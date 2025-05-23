@@ -225,7 +225,6 @@ def download_manga(manga: Manga, end: int, start: int = 0):
     chapters = []  # list[Chapter]
 
     r = requests.get(f"{ROOT}/manga/{manga.id}/feed")
-    print(r.headers)
     api_check(r)
 
     for chapter in r.json()["data"]:
