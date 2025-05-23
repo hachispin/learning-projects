@@ -205,7 +205,7 @@ def download_chapter(chapter: Chapter, manga_title: str = "Unnamed"):
         duration = round((end - start) * 1000)
 
         image_report(url, success, cached, bytes, duration)
-        time.sleep(0.2)  # Adjust with caution
+        time.sleep(0.2)  # Adjust with caution (well not really, requests speed is atrocious)
 
 
 def download_manga(manga: Manga, end: int, start: int = 0):
@@ -230,6 +230,7 @@ def download_manga(manga: Manga, end: int, start: int = 0):
     for chapter in r.json()["data"]:
         chap_id = chapter["id"]
         chap_num = chapter["attributes"]["chapter"]
+        # I know you can just sort by languages, but for some reason it only works if I do this??
         if chapter["attributes"]["translatedLanguage"] == "en":
             chapters.append(Chapter(chap_id, chap_num))
 
