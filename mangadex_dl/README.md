@@ -1,5 +1,6 @@
 ## Description
-A basic CLI app that can search for and download manga from [MangaDex](https://mangadex.org).
+A basic CLI app that can search for and download manga from [MangaDex](https://mangadex.org). <br>
+This program assumes that **chapters are labeled sensibly**. (e.g chapters numbers are, well numbers, and don't reset per-volume)
 
 ### Notes
 - Files are saved in a directory called ```mdex_save``` with the same parent as ```mangadex_dl.py```
