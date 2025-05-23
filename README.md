@@ -1,1 +1,1 @@
-### Check each folder for their corresponding README.md file
+Check each directory (project) for their corresponding README.md file
