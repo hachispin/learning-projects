@@ -69,7 +69,7 @@ def api_check(r: requests.Response) -> None:
     except ValueError:
         raise ApiError(
             f"Something has gone VERY wrong. ({r.status_code})"
-            f"API response: {r.json()}")
+            f"API response: {r.text}")
 
     if result != "ok":
         raise ApiError(
