@@ -1,0 +1,17 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+BraceWrapping:
+  AfterFunction: false
+  AfterClass: false
+  AfterNamespace: false
+  AfterControlStatement: false
+PointerAlignment: Left
+BreakBeforeBinaryOperators: NonAssignment
+AllowAllParametersOfDeclarationOnNextLine: true
+BinPackParameters: false
+ColumnLimit: 100
+Cpp11BracedListStyle: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortBlocksOnASingleLine: false
