@@ -1,6 +1,9 @@
 ## Description
-A basic CLI app that can search for and download manga from [MangaDex](https://mangadex.org). <br><br>
-This program assumes that **chapters are labeled sensibly**. (e.g chapters numbers are, well numbers, and don't reset per-volume) <br>
+A basic CLI app that can search for and download manga from [MangaDex](https://mangadex.org).
+
+
+This program assumes that **chapters are labeled sensibly**. (e.g chapters numbers are, well numbers, and don't reset per-volume)
+
 Otherwise, they're completely ignored as per Line 239:
 ```
     for chapter in chapters:
