@@ -1,4 +1,5 @@
 #include <cmath>
+#include <format>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -7,7 +8,7 @@
 constexpr char ops[5] = { '+', '-', '*', '/', '^' };
 
 std::string removeAllSpaces(std::string s) {
-    for (int i = 0; i < s.size(); i++) {
+    for (size_t i = 0; i < s.size(); i++) {
         if (s[i] == ' ') {
             s.erase(i, 1);
             i--;
@@ -24,9 +25,9 @@ bool isOperator(char chr) {
     return false;
 }
 
-int findOperatorIndex(std::string_view expr) {
-    int opIdx = -1;
-    for (int i = 0; i < expr.size(); i++) {
+size_t findOperatorIndex(std::string_view expr) {
+    auto opIdx = std::string::npos;
+    for (size_t i = 0; i < expr.size(); i++) {
         if (isOperator(expr[i])) {
             opIdx = i; // this is fine because multiple operator exprs will be
             break;     // weeded out since right and left sides wont be valid numbers
@@ -36,22 +37,27 @@ int findOperatorIndex(std::string_view expr) {
 }
 
 std::tuple<std::string, std::string> // ordered (left, right) of index
-splitByIndex(std::string_view sv, int idx) {
-    if (idx > sv.size() - 1 || idx < 0)
-        throw std::out_of_range("Provided index is outside string in splitByIndex");
+splitByIndex(std::string_view sv, size_t idx) {
+    if (idx > sv.size() - 1) {
+        std::string msg{ std::format("Provided index '{}' is outside string in splitByIndex()",
+                                     idx) };
+        throw std::out_of_range(msg);
+    }
 
     // doesn't include the character at the splitting index `idx`
     return { std::string(sv.substr(0, idx)), std::string(sv.substr(idx + 1)) };
 }
 
 // must have:
-// - no leading zeroes
-// - up to one dot which has numbers on both sides
-// - only numbers and dots
+// - no unnecessary leading zeroes
+// - only numbers and up to one dot
+// - size greater than 1 (i.e. not blank)
 bool isValidNumber(std::string_view s) {
-    if (s[0] == '.' || s.back() == '.') // `.1` and `23.` isn't valid
+    if (s.size() == 0)
         return false;
-    if (s.size() > 1 && s[0] == '0' && s[1] != '.') // `00` isn't valid
+    if (s[0] == '.' || s.back() == '.')             // number can't start or end with '.'
+        return false;                               // ^^ this also doesnt allow shorthand ".5"
+    if (s[0] == '0' && s.size() > 1 && s[1] != '.') // only allow a leading zero if next char is '.'
         return false;
 
     int dotCount = 0;
@@ -73,21 +79,16 @@ bool isValidNumber(std::string_view s) {
 // for the sake of simplicity, a valid expression here is defined
 // as having one operator between two (valid) numeric substrings
 bool isValidExpression(std::string_view expr) {
-    int opIdx{ findOperatorIndex(expr) };
+    size_t opIdx{ findOperatorIndex(expr) };
 
     if (expr.size() < 3)
         return false;
-    if (opIdx == -1)
+    if (opIdx == std::string::npos)
         return false;
 
     auto [left, right] = splitByIndex(expr, opIdx);
 
-    if ( // clang-format off
-        left.size() == 0        ||
-        right.size() == 0       ||
-        !isValidNumber(left)    ||
-        !isValidNumber(right)
-    ) // clang-format on
+    if (!isValidNumber(left) || !isValidNumber(right))
         return false;
     return true;
 }
@@ -97,7 +98,7 @@ bool isValidExpression(std::string_view expr) {
 // e.g. a + b
 double doOperation(std::string_view expr) {
     // all of this is done assuming valid expr!
-    int opIdx{ findOperatorIndex(expr) };
+    size_t opIdx{ findOperatorIndex(expr) };
     auto [left, right] = splitByIndex(expr, opIdx);
     double leftDouble = std::stod(left);
     double rightDouble = std::stod(right);
@@ -111,12 +112,14 @@ double doOperation(std::string_view expr) {
         return leftDouble * rightDouble;
     case '/':
         if (rightDouble == 0.0)
-            throw std::runtime_error("Division by zero");
-        return leftDouble / rightDouble;
+            throw std::runtime_error("Division by zero"); // should've been handled prior
+        return leftDouble / rightDouble;                  // to reaching this point
     case '^':
         return std::pow(leftDouble, rightDouble);
     default:
-        return 0.0; // should be unreachable
+        std::string msg{ std::format("Invalid operator '{}' given by findOperatorIndex()",
+                                     expr[opIdx]) };
+        throw std::logic_error(msg);
     }
 }
 
@@ -132,7 +135,7 @@ int main() {
             std::cout << "Invalid expression\n";
             continue;
         } else {
-            int opIdx = findOperatorIndex(input);
+            size_t opIdx = findOperatorIndex(input);
             auto [left, right] = splitByIndex(input, opIdx);
 
             // division by zero
