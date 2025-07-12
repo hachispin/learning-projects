@@ -5,8 +5,6 @@
 #include <string>
 #include <tuple>
 
-constexpr char ops[5] = { '+', '-', '*', '/', '^' };
-
 std::string removeAllSpaces(std::string s) {
     for (size_t i = 0; i < s.size(); i++) {
         if (s[i] == ' ') {
@@ -16,21 +14,26 @@ std::string removeAllSpaces(std::string s) {
     }
     return s;
 }
-
+// allowed operators are also defined here
 bool isOperator(char chr) {
-    for (char op : ops) {
-        if (chr == op)
-            return true;
+    switch (chr) {
+    case '+':
+    case '-':
+    case '*':
+    case '/':
+    case '^': // exponentiation
+        return true;
+    default:
+        return false;
     }
-    return false;
 }
 
 size_t findOperatorIndex(std::string_view expr) {
     auto opIdx = std::string::npos;
     for (size_t i = 0; i < expr.size(); i++) {
         if (isOperator(expr[i])) {
-            opIdx = i; // this is fine because multiple operator exprs will be
-            break;     // weeded out since right and left sides wont be valid numbers
+            opIdx = i; // only finds first operator as intended
+            break;
         }
     }
     return opIdx;
@@ -44,14 +47,14 @@ splitByIndex(std::string_view sv, size_t idx) {
         throw std::out_of_range(msg);
     }
 
-    // doesn't include the character at the splitting index `idx`
+    // doesn't include the char (operator) at the splitting index `idx`
     return { std::string(sv.substr(0, idx)), std::string(sv.substr(idx + 1)) };
 }
 
 // must have:
-// - no unnecessary leading zeroes
-// - only numbers and up to one dot
-// - size greater than 1 (i.e. not blank)
+//      no unnecessary leading zeroes
+//      only numbers and up to one dot
+//      size greater than 1 (i.e. not blank)
 bool isValidNumber(std::string_view s) {
     if (s.size() == 0)
         return false;
@@ -76,8 +79,8 @@ bool isValidNumber(std::string_view s) {
         return false;
 }
 
-// for the sake of simplicity, a valid expression here is defined
-// as having one operator between two (valid) numeric substrings
+// for simplicity, a valid expression here is defined as
+// one operator between two (valid) numeric substrings
 bool isValidExpression(std::string_view expr) {
     size_t opIdx{ findOperatorIndex(expr) };
 
@@ -94,8 +97,8 @@ bool isValidExpression(std::string_view expr) {
 }
 
 // takes inputs in the format:
-//  a?b, where ? is a (valid) operator
-// e.g. a + b
+// a?b, where ? is a defined operator
+// e.g. a+b
 double doOperation(std::string_view expr) {
     // all of this is done assuming valid expr!
     size_t opIdx{ findOperatorIndex(expr) };
@@ -112,8 +115,8 @@ double doOperation(std::string_view expr) {
         return leftDouble * rightDouble;
     case '/':
         if (rightDouble == 0.0)
-            throw std::runtime_error("Division by zero"); // should've been handled prior
-        return leftDouble / rightDouble;                  // to reaching this point
+            throw std::runtime_error("Division by zero"); // throw because this should've been
+        return leftDouble / rightDouble;                  // handled prior to reaching this point
     case '^':
         return std::pow(leftDouble, rightDouble);
     default:
@@ -146,7 +149,7 @@ int main() {
         }
         break;
     }
-    // TODO: trim spaces less aggresively because something like
+    // TODO: trim spaces less aggresively because
     // 1 2 3 4 * 5
     // is interpreted as
     // 1234*5 = 6170
