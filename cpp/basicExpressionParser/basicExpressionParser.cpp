@@ -126,6 +126,16 @@ double doOperation(std::string_view expr) {
     }
 }
 
+// only used to check input
+bool isStodSafe(std::string_view sv) {
+    try {
+        std::stod(std::string(sv));
+        return true;
+    } catch (const std::out_of_range&) {
+        return false;
+    }
+}
+
 int main() {
     std::string input{};
 
@@ -137,16 +147,22 @@ int main() {
         if (!isValidExpression(input)) {
             std::cout << "Invalid expression\n";
             continue;
-        } else {
-            size_t opIdx = findOperatorIndex(input);
-            auto [left, right] = splitByIndex(input, opIdx);
-
-            // division by zero
-            if (input[opIdx] == '/' && std::stod(right) == 0.0) {
-                std::cout << "You cannot divide by zero!\n";
-                continue;
-            }
         }
+
+        size_t opIdx = findOperatorIndex(input);
+        auto [left, right] = splitByIndex(input, opIdx);
+
+        if (!isStodSafe(left) || !isStodSafe(right)) {
+            std::cout << "Your numbers are too large!\n";
+            continue;
+        }
+
+        // division by zero
+        if (input[opIdx] == '/' && std::stod(right) == 0.0) {
+            std::cout << "You cannot divide by zero\n";
+            continue;
+        }
+
         break;
     }
     // TODO: trim spaces less aggresively because
