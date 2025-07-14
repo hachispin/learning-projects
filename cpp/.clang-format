@@ -15,3 +15,5 @@ ColumnLimit: 100
 Cpp11BracedListStyle: false
 AllowShortFunctionsOnASingleLine: None
 AllowShortBlocksOnASingleLine: false
+NamespaceIndentation: All
+FixNamespaceComments: false
