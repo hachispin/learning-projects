@@ -2,3 +2,4 @@ cpp/.vscode/
 python/.env
 cpp/builds/
 cpp/sandbox/
+python/.vscode/

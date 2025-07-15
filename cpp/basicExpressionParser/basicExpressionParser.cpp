@@ -142,6 +142,12 @@ int main() {
     while (true) {
         std::cout << "Calculate something: ";
         std::getline(std::cin, input);
+
+        if (!std::cin) {
+            std::cout << "EOF\n";
+            std::exit(0);
+        }
+
         input = removeAllSpaces(input);
 
         if (!isValidExpression(input)) {
