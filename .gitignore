@@ -1,5 +1,9 @@
 cpp/.vscode/
+python/.vscode/
 python/.env
 cpp/builds/
 cpp/sandbox/
-python/.vscode/
+
+# Save locations
+python/mangadex-dl/mdex_save
+python/notepad/data.json

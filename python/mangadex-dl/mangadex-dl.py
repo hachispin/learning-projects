@@ -126,12 +126,11 @@ def image_report(img_url: str, success: bool, cached: bool,
 
     Parameters:
         img_url (str): The full URL of the image (including https://)
-        success (bool): true if the image was successfully retrieved, false
-                        otherwise
-        cached (bool): true if the server returned an X-Cache header with a
+        success (bool): True if the image was successfully retrieved
+        cached (bool): True if the server returned an X-Cache header with a
                         value starting with HIT
         bytes (int): The size (in bytes) of the retrieved image
-        duration (int): The time (in miliseconds) that the complete retrieval
+        duration (int): The time (in milliseconds) that the complete retrieval
                         (not TTFB) of the image took
 
     Reference:

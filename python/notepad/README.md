@@ -8,8 +8,8 @@ You must have the [PyQt6](https://pypi.org/project/PyQt6/) library installed to 
 Notes are stored in `data.json` (as of now, this can't be directly configured). This file will be created upon first use.
 
 - Viewing a note is done through the dropdown (`QComboBox`)
-- Saving and deleting are done through the `Save` and `Delete` buttons
-- Editing is also done through the `Save` button after choosing a note from the dropdown
+- Saving and deleting are done through the "Save" and "Delete" buttons
+- Editing is also done through the "Save" button after choosing a note from the dropdown
 
 ## To-do
 
