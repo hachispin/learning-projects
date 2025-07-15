@@ -6,7 +6,7 @@ from datetime import datetime
 
 # Note related exceptions
 class NoteException(Exception):
-    """Base class for all Note errors"""
+    """Base class for all `Note` errors"""
     pass
 
 
@@ -23,7 +23,7 @@ class TitleAlreadyExistsError(NoteException):
 
 class BlankBodyError(NoteException):
     """
-    Raised when a Note instance is initialised
+    Raised when a `Note` instance is initialised
     with a blank (i.e, whitespace-only) `body`
     """
     pass
@@ -52,7 +52,7 @@ class NotFoundError(NoteException):
 class FormatError(NoteException):
     """
     Raised when (imported) note data has missing or blank keys or
-    has the wrong format (e.g, .txt file extension instead of .json)
+    has the wrong format (e.g, ".txt" file extension instead of ".json")
 
     NOTE: Do not raise for empty data
     """
@@ -156,7 +156,7 @@ class NoteCollection:
     def validate_json(fp: Path, strict=True) -> None:
         """
         Given a Path `fp`:
-            Checks if the file exists and has the `.json` suffix
+            Checks if the file exists and has the ".json" suffix
 
         The `strict` flag checks existence of `NoteCollection`
         and each of its corresponding `Note` keys when True

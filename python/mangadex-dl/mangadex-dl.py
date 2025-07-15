@@ -58,7 +58,7 @@ class ApiError(Exception):
 
 def api_check(r: requests.Response) -> None:
     """
-    Checks health of API. Raise ApiError if things 
+    Checks health of API. Raise ApiError if things
     don't look good, else do nothing.
 
     - r is the API response that has NOT already
@@ -106,7 +106,7 @@ def search_manga(query: str, page: int = 0) -> list[Manga]:
         "offset": page * RESULTS_PER_PAGE,
         "limit": RESULTS_PER_PAGE
     }
-    r = requests.get(f"{ROOT}/manga", params=params)
+    r = requests.get(f"{ROOT}/manga", params=params)  # type: ignore[arg-type]
     api_check(r)
 
     titles = []  # list[Manga]
@@ -126,10 +126,13 @@ def image_report(img_url: str, success: bool, cached: bool,
 
     Parameters:
         img_url (str): The full URL of the image (including https://)
-        success (bool): true if the image was successfully retrieved, false otherwise
-        cached (bool): true if the server returned an X-Cache header with a value starting with HIT
+        success (bool): true if the image was successfully retrieved, false
+                        otherwise
+        cached (bool): true if the server returned an X-Cache header with a
+                        value starting with HIT
         bytes (int): The size (in bytes) of the retrieved image
-        duration (int): The time (in miliseconds) that the complete retrieval (not TTFB) of the image took
+        duration (int): The time (in miliseconds) that the complete retrieval
+                        (not TTFB) of the image took
 
     Reference:
         https://api.mangadex.org/docs/04-chapter/retrieving-chapter/
@@ -157,10 +160,10 @@ def download_chapter(chapter: Chapter, manga_title: str = "Unnamed"):
     r = requests.get(f"{ROOT}/at-home/server/{chapter.id}")
     api_check(r)
 
-    r = r.json()
-    baseUrl = r["baseUrl"]  # str
-    hash = r["chapter"]["hash"]  # str
-    images = r["chapter"]["data"]  # list[str]
+    r_json = r.json()
+    baseUrl = r_json["baseUrl"]  # str
+    hash = r_json["chapter"]["hash"]  # str
+    images = r_json["chapter"]["data"]  # list[str]
 
     # Construct page URLs and download
     for page, image in enumerate(images, start=1):
@@ -199,13 +202,15 @@ def download_chapter(chapter: Chapter, manga_title: str = "Unnamed"):
             success = True
         except Exception as e:
             raise Exception(
-                f"Something went wrong while saving file {url} in {img_path}: {e}")
+                "Something went wrong while saving "
+                f"file {url} in {img_path}: {e}") from e
 
         end = time.time()
         duration = round((end - start) * 1000)
 
         image_report(url, success, cached, bytes, duration)
-        time.sleep(0.2)  # Adjust with caution (well not really, requests speed is atrocious)
+        # Adjust with caution (well not really, requests speed is atrocious)
+        time.sleep(0.2)
 
 
 def download_manga(manga: Manga, end: int, start: int = 0):
@@ -230,7 +235,8 @@ def download_manga(manga: Manga, end: int, start: int = 0):
     for chapter in r.json()["data"]:
         chap_id = chapter["id"]
         chap_num = chapter["attributes"]["chapter"]
-        # I know you can just sort by languages, but for some reason it only works if I do this??
+        # I know you can just sort by languages, but for
+        # some reason it only works if I do this (?)
         if chapter["attributes"]["translatedLanguage"] == "en":
             chapters.append(Chapter(chap_id, chap_num))
 
@@ -268,9 +274,9 @@ if __name__ == "__main__":
             print(f"[{i}]: {manga}")
 
         index = get_valid_index(
-            "- Enter manga index to download\n- Leave blank for next page\nIndex: ",
-            len(response)
-        )
+            "Enter manga index to download\n"
+            "- Leave blank for next page\n"
+            "Index: ", len(response))
 
         if index is None:
             page += 1

@@ -1,0 +1,9 @@
+certifi==2025.7.14
+charset-normalizer==3.4.2
+idna==3.10
+PyQt6==6.9.1
+PyQt6-Qt6==6.9.1
+PyQt6_sip==13.10.2
+requests==2.32.4
+types-requests==2.32.4.20250611
+urllib3==2.5.0

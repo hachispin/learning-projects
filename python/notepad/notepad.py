@@ -36,7 +36,7 @@ if not NOTES_DATA.exists():
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Notepad--")
+        self.setWindowTitle("notepad")  # Should consider a better name soon
         self.setMinimumSize(QSize(640, 360))
 
         self.collection = self.load_data()
