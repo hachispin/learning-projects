@@ -25,9 +25,9 @@ For this quiz, assume the user enters a valid number.
 #include <string_view>
 
 namespace hiloConfig {
-    constexpr int maxTries{ 7 };
-    constexpr int upperBound{ 100 };
-    constexpr int lowerBound{ 1 };
+    constexpr int maxTries{ 7 };     // default: 7
+    constexpr int upperBound{ 100 }; // default: 100
+    constexpr int lowerBound{ 1 };   // default: 1
 }
 
 namespace messages { // the "Guess#X: " message is in getGuess() because it's quite short
@@ -61,6 +61,13 @@ int randInt() {
     return gen(mt);
 }
 
+void checkEOF() {
+    if (!std::cin) {
+        std::cout << "EOF\n";
+        std::exit(0);
+    }
+}
+
 bool isValidGuess(std::string input) {
     using namespace hiloConfig;
 
@@ -85,6 +92,7 @@ int getGuess(std::string_view prompt) {
     while (true) {
         std::cout << prompt;
         std::getline(std::cin, input);
+        checkEOF();
 
         if (isValidGuess(input))
             break;
@@ -122,9 +130,7 @@ bool getPlayAgainResponse() {
     while (true) {
         std::cout << messages::playAgain << '\n';
         std::getline(std::cin, response);
-
-        if (response.size() == 0)
-            continue; // maybe they didn't read?
+        checkEOF();
 
         option = static_cast<char>(std::tolower(response[0]));
 
