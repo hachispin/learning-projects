@@ -11,7 +11,8 @@ class Downloader:
         self.root = config["api_root"]
         self.save_loc = config["save"]["root"]
 
-    def get_image_urls(self, chapter: Chapter, datasaver: bool) -> tuple:
+    def get_image_urls(self, chapter: Chapter,
+                       datasaver: bool) -> tuple[str, ...]:
         """
         Reference:
             https://api.mangadex.org/docs/04-chapter/retrieving-chapter/
@@ -35,11 +36,20 @@ class Downloader:
             for file in image_files
         )
 
-    def download_images(self, *image_urls: str):
-        ...
+    def send_image_report(self,
+                          image_url: str, success: bool, cached: bool,
+                          size_bytes: int, duration: int):
+        """
+        Sends a POST request to the MangaDex@Home report endpoint
+
+        Reference:
+            https://api.mangadex.org/docs/04-chapter/retrieving-chapter/#the-mangadexhome-report-endpoint
+        """
+
+    def download_images(self, *image_urls: str): ...
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # Tests
     # Just a fake config for testing
     cfg = {
         "api_root": "https://api.mangadex.org",
@@ -84,3 +94,7 @@ if __name__ == "__main__":
 #             continue
 #         if start <= float(chap) <= end:
 #             download_chapter(chapter, manga.title)
+
+if __name__ == "__main__":
+    raise RuntimeError(
+        "run this file as a module: python -m mdex_dl.api.download")

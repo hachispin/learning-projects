@@ -6,7 +6,7 @@ class Manga:
         tags (list[str], optional): list of genres used for searching
     """
 
-    def __init__(self, title: str, id: str, tags: list[str] = [""]):
+    def __init__(self, title: str, id: str, tags: list[str] | None = None):
         self.title = title
         self.id = id
         self.tags = tags
@@ -14,8 +14,13 @@ class Manga:
     def __str__(self):
         return f"{self.title}"
 
-    def __repr__(self):
-        return f"Manga('{self.title}', {self.id}, {self.tags})"
+    def __repr__(self):   # ↓ repr() is used to handle quotes in strings
+        repr_str = f"Manga({repr(self.title)}, {repr(self.id)}"
+
+        if self.tags:
+            repr_str += f", {repr(self.tags)}"
+
+        return repr_str
 
 
 class Chapter:
@@ -31,6 +36,9 @@ class Chapter:
         self.title = f"Ch. {chap_num}"
         self.id = id
         self.chap_num = chap_num
+
+    def __repr__(self) -> str:
+        return f"{repr(self.id)}"
 
     def __str__(self):
         return self.title

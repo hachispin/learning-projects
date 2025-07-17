@@ -1,8 +1,9 @@
 # Default config is at repo:
 # learning-projects/python/mangadex-dl/config.toml
 
-api_root = "https://api.mangadex.org"   # there is almost zero situation where
-                                        # this should be changed
+# api endpoints, change if needed
+api_root = "https://api.mangadex.org"
+report_root = "https://api.mangadex.network/report"
 
 [save]
 root = "mdex_save"          # where all chapters are saved

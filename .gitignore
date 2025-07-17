@@ -1,10 +1,15 @@
 python/.vscode/
 python/.env
-python/mangadex-dl/__pycache__/
+python/mdex_dl/__pycache__/
+python/mdex_dl/api/__pycache__
 cpp/.vscode/
 cpp/builds/
 cpp/sandbox/
 
 # Save locations
-python/mangadex-dl/mdex_save
+python/mdex_dl/mdex_save
 python/notepad/data.json
+
+# Logs
+python/mdex_dl/logs
+python/mdex_dl/pyproject.toml
