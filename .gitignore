@@ -5,7 +5,7 @@
 __pycache__/
 
 # Build / save dirs
-/builds/
+cpp/builds/
 sandbox/
 python/mdex_dl/mdex_save/
 python/notepad/data.json

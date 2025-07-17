@@ -1,25 +1,39 @@
 from mdex_dl.models import Chapter
+from mdex_dl.api.utils import require_ok_json
 
 import requests
 import pycurl
 import certifi
 from io import BytesIO
+from pathlib import Path
+
+# NOTE: Downloader class instances are created for
+# each chapter, and not for the entire manga
 
 
 class Downloader:
-    def __init__(self, config: dict):
-        self.root = config["api_root"]
+    def __init__(self, chapter: Chapter, config: dict):
+        # Only get necessary info
+        self.api_root = config["api_root"]
+        self.report_endpoint = config["report_endpoint"]
+        self.image_report_timeout = config["images"]["image_report_timeout"]
+        self.download_method = config[""]
+        self.use_datasaver = config["images"]["use_datasaver"]
         self.save_loc = config["save"]["root"]
 
-    def get_image_urls(self, chapter: Chapter,
-                       datasaver: bool) -> tuple[str, ...]:
+        self.chapter = chapter
+        self.image_urls = self.get_image_urls(self.use_datasaver)
+
+    def get_image_urls(self, datasaver: bool) -> tuple[str, ...]:
         """
+        Sends a GET request for image delivery metadata and
+        returns contructed image URLs accordingly
+
         Reference:
             https://api.mangadex.org/docs/04-chapter/retrieving-chapter/
         """
-
-        r = requests.get(f"{self.root}/at-home/server/{chapter.id}")
-        r_json = r.json()
+        r = requests.get(f"{self.api_root}/at-home/server/{self.chapter.id}")
+        r_json = require_ok_json(r)
 
         base_url = r_json["baseUrl"]
         chapter_hash = r_json["chapter"]["hash"]
@@ -38,15 +52,26 @@ class Downloader:
 
     def send_image_report(self,
                           image_url: str, success: bool, cached: bool,
-                          size_bytes: int, duration: int):
+                          size_bytes: int, duration_ms: int) -> None:
         """
         Sends a POST request to the MangaDex@Home report endpoint
 
         Reference:
             https://api.mangadex.org/docs/04-chapter/retrieving-chapter/#the-mangadexhome-report-endpoint
         """
+        payload = {
+            "url": image_url,
+            "success": success,
+            "bytes": size_bytes,
+            "duration": duration_ms,
+            "cached": cached
+        }
 
-    def download_images(self, *image_urls: str): ...
+        r = requests.post(f"{self.report_endpoint}",
+                          json=payload,
+                          timeout=self.image_report_timeout)
+
+    def download_images(self): ...
 
 
 if __name__ == "__main__":  # Tests
@@ -56,9 +81,9 @@ if __name__ == "__main__":  # Tests
         "save": {"root": "mdex_save"}
     }
 
-    d = Downloader(cfg)
     c = Chapter(id="a54c491c-8e4c-4e97-8873-5b79e59da210", chap_num=1)
-    print(d.get_image_urls(c, datasaver=True))
+    d = Downloader(c, cfg)
+    print(d.image_urls)
 
 
 # def download_manga(manga: Manga, end: int, start: int = 0):
@@ -94,7 +119,3 @@ if __name__ == "__main__":  # Tests
 #             continue
 #         if start <= float(chap) <= end:
 #             download_chapter(chapter, manga.title)
-
-if __name__ == "__main__":
-    raise RuntimeError(
-        "run this file as a module: python -m mdex_dl.api.download")

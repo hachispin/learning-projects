@@ -11,27 +11,6 @@ from pathlib import Path
 # ZEROS = 3  # for zero padding image names
 
 
-def api_check(r: requests.Response) -> None:
-    """
-    Checks health of API. Raise ApiError if things
-    don't look good, else do nothing.
-
-    - r is the API response that has NOT already
-    been converted to a dict (with r.json())
-    """
-    try:
-        result = r.json()["result"]
-    except ValueError:
-        raise ApiError(
-            f"Something has gone VERY wrong. ({r.status_code})"
-            f"API response: {r.text}")
-
-    if result != "ok":
-        raise ApiError(
-            f"API returned result {result}, \
-            expected 'ok'. Status code {r.status_code}")
-
-
 def get_manga_title(attrs: dict) -> str:
     """
     Tries to retrieve title in en, if it fails

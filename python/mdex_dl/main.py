@@ -1,5 +1,5 @@
 from mdex_dl.api.search import search_manga
-from mdex_dl.api.download import download_chapter
+from mdex_dl.api.download import Downloader
 
 from mdex_dl.models import Manga
 import tomli

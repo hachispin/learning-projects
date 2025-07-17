@@ -1,3 +1,6 @@
+from enum import Enum
+
+
 class Manga:
     """
     Parameters:
@@ -48,7 +51,15 @@ class ApiError(Exception):
     """Exception raised for API problems"""
 
     def __init__(self, message):
-        self.message = message
+        super().__init__(message)
+
+
+class ConfigError(Exception):
+    """Exception raised for unrecoverable config states"""
+
+    def __init__(self, message: str, bad_options: list[str]):
+        super().__init__(message)
+        self.bad_options = bad_options
 
     def __str__(self):
-        return f"{self.message}"
+        return f"{self.args[0]} - Bad options: {self.bad_options}"
