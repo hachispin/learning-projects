@@ -1,7 +1,6 @@
 python/.vscode/
 python/.env
-python/mdex_dl/__pycache__/
-python/mdex_dl/api/__pycache__
+__pycache__/
 cpp/.vscode/
 cpp/builds/
 cpp/sandbox/
