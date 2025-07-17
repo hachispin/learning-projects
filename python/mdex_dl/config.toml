@@ -1,0 +1,19 @@
+# Default config is at repo:
+# learning-projects/python/mangadex-dl/config.toml
+
+api_root = "https://api.mangadex.org"   # there is almost zero situation where
+                                        # this should be changed
+
+[save]
+root = "mdex_save"          # where all chapters are saved
+max_title_length = 60       # set to 0 (or lower) for unlimited
+
+[images]
+zero_padding = 3            # consider updating this for large chapters
+use_datasaver = false
+download_method = "curl"    # will fallback to requests if needed
+max_retries = 5
+
+[cli]
+options_per_row = 3
+results_per_page = 10

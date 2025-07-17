@@ -1,4 +1,6 @@
-# mangadex-dl
+# mangadex-dl (_Rewrite in progress!_)
+
+Nothing works right now.
 
 ## Description
 
@@ -34,7 +36,7 @@ Otherwise, they're completely ignored as per Line 239:
 
 ## To-do
 
-- **Give better feedback on when chapters can't be downloaded**
-- Add a config file
-- Allow sorting by tags and other characteristics of note
-- Switch to [requests-futures](https://github.com/ross/requests-futures) or pipe through `curl` for faster download speeds
+- [ ] **Give better feedback on when chapters can't be downloaded**
+- [ ] Add a config file
+- [ ] Allow sorting by tags and other characteristics of note
+- [ ] Switch to [requests-futures](https://github.com/ross/requests-futures) or pipe through `curl` for faster download speeds

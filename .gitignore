@@ -1,6 +1,7 @@
-cpp/.vscode/
 python/.vscode/
 python/.env
+python/mangadex-dl/__pycache__/
+cpp/.vscode/
 cpp/builds/
 cpp/sandbox/
 
