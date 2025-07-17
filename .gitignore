@@ -1,6 +1,6 @@
 python/.vscode/
 python/.env
-__pycache__/
+**/__pycache__/
 cpp/.vscode/
 cpp/builds/
 cpp/sandbox/
