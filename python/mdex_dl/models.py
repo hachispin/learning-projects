@@ -1,5 +1,3 @@
-from enum import Enum
-
 
 class Manga:
     """
@@ -55,11 +53,12 @@ class ApiError(Exception):
 
 
 class ConfigError(Exception):
-    """Exception raised for unrecoverable config states"""
+    """Exception raised for bad config states"""
 
-    def __init__(self, message: str, bad_options: list[str]):
-        super().__init__(message)
-        self.bad_options = bad_options
+    def __init__(self, errors: list[str]):
+        self.errors = errors
 
     def __str__(self):
-        return f"{self.args[0]} - Bad options: {self.bad_options}"
+        return (
+            "Config validation failed:\n" +
+            "\n".join(f"- {err}" for err in self.errors))

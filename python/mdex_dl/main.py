@@ -1,15 +1,17 @@
 from mdex_dl.api.search import search_manga
-from mdex_dl.api.download import Downloader
-
+# from mdex_dl.api.download import Downloader
 from mdex_dl.models import Manga
-import tomli
-from pathlib import Path
+from mdex_dl.load_config import require_ok_config
+from mdex_dl.logger import setup_logging
+
+import logging
 
 
-with open("config.toml", "rb") as f:
-    config = tomli.load(f)
-
+config = require_ok_config()
+setup_logging(config)
 OPTIONS_PER_ROW = config["cli"]["options_per_row"]
+
+logging.debug("Hello, world!")
 
 
 class Controls:

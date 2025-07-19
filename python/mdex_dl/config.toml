@@ -1,18 +1,28 @@
 # Default config is at repo:
-# learning-projects/python/mangadex-dl/config.toml
+# learning-projects/python/mdex_dl/config.toml
 
-# api endpoints, change if needed
-api_root = "https://api.mangadex.org"
+# NOTE: dirs like `save.location` are made from project root
+# all time units (like reqs.get_timeout) are in seconds
+
+[reqs]
+api_root = "https://api.mangadex.org"                   
 report_endpoint = "https://api.mangadex.network/report"
 
+max_retries = 5             # for all requests
+
+# time stuff
+base_delay  = 0.2            # this is in between normal requests (not ratelimited)
+base_delay_ratelimit = 2.0  # if Retry-After is not provided for some reason
+get_timeout = 10
+post_timeout = 20
+
+
 [save]
-root = "mdex_save"          # where all chapters are saved
-max_title_length = 60       # max: 255; if invalid, default to 60
+location = "mdex_save"      # where all chapters are saved
+max_title_length = 60       # max: 255
 
 [images]
 use_datasaver = false
-max_retries = 5
-image_report_timeout = 20   # seconds
 
 [search]
 results_per_page = 10
@@ -20,4 +30,9 @@ include_pornographic = false
 
 [cli]
 options_per_row = 3
-use_ansi = true             # set to false if your terminal doesn't support ansi
+use_ansi = true         # set to false if your terminal doesn't support ANSI
+
+[logging]
+enabled = true          # set to false to stop logs from being created
+level = "INFO"          # options: "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"
+location = "logs"
