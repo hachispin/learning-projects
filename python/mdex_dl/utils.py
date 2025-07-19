@@ -1,3 +1,9 @@
+"""
+Contains common functions such as `safe_get_req()`, which
+is used to retry GET requests while complying with ratelimits
+and raising `ApiError` if needed
+"""
+
 from mdex_dl.models import Chapter, Manga, ApiError
 
 # for jitter
@@ -36,8 +42,7 @@ def safe_get_req(url: str, max_retries: int) -> requests.Response:
             retry_after = int(r.headers.get("X-RateLimit-Retry-After", -1))
 
             if retry_after == -1:
-                logging.warning(
-                    "Retry-After not provided after being ratelimited")
+                logging.warning("Retry-After not provided after being ratelimited")
                 tts = 1
 
             tts = retry_after - time.time()

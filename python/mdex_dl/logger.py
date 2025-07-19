@@ -1,12 +1,20 @@
-from mdex_dl.utils import get_project_root
-from mdex_dl.load_config import Config
+"""
+Sets up `logging.basicConfig` with the function
+`setup_logging()`for use in other modules.
+
+Logging may also be disabled if configured as such.
+"""
 
 from pathlib import Path
 import logging
 from datetime import datetime
 
+from mdex_dl.utils import get_project_root
+from mdex_dl.load_config import Config
+
 
 def setup_logging(config: Config) -> None:
+    """Sets up (or disables) logging according to rules set in config."""
     cfg = config["logging"]
 
     if not cfg["enabled"]:
@@ -17,5 +25,5 @@ def setup_logging(config: Config) -> None:
             filename=f"{log_dir}/mdex_dl_{datetime.now():%Y-%m-%d_%H-%M-%S}.log",  # noqa
             filemode="w",
             level=cfg["level"],
-            format="%(asctime)s [%(levelname)s] %(message)s"
+            format="%(asctime)s [%(levelname)s] %(message)s",
         )

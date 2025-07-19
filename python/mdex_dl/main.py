@@ -1,4 +1,11 @@
+"""
+The entry-point of this project. This is also the only module
+where `mdex_dl.load_config` is used. All other modules then
+inherit the config from here.
+"""
+
 from mdex_dl.api.search import search_manga
+
 # from mdex_dl.api.download import Downloader
 from mdex_dl.models import Manga
 from mdex_dl.load_config import require_ok_config
@@ -28,7 +35,7 @@ def print_options(*options: str):
         if (idx + 1) % OPTIONS_PER_ROW == 0:  # New row
             print(option)
         else:  # Stay on current
-            print(option, end=" "*spacing)
+            print(option, end=" " * spacing)
 
     if len(options) % OPTIONS_PER_ROW != 0:
         print()  # Newline at end of options if not already printed

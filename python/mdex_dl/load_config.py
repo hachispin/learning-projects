@@ -1,10 +1,16 @@
-# pylint: disable=missing-module-docstring
+"""
+Loads "config.toml" (in project root) and accumulates errors to be
+raised with `ConfigError` if found, along with proper reasons.
+
+This also contains the fully type-hinted config as `Config`, which
+consists of its parts: `ReqsConfig`, `SaveConfig`, etc.
+"""
+
 import tomllib
 from pathlib import Path
 from logging import _nameToLevel  # Private but it's fine I think
 from typing import TypedDict
 
-# pylint: enable=missing-module-docstring
 from mdex_dl.models import ConfigError
 from mdex_dl.utils import get_project_root
 

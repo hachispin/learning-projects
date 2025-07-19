@@ -1,3 +1,11 @@
+"""
+Contains all classes and subclassed exceptions
+that are used in other modules.
+
+Note that no functionality is here; common
+functions instead are in `mdex_dl.utils`
+"""
+
 
 class Manga:
     """
@@ -15,7 +23,7 @@ class Manga:
     def __str__(self):
         return f"{self.title}"
 
-    def __repr__(self):   # ↓ repr() is used to handle quotes in strings
+    def __repr__(self):  # ↓ repr() is used to handle quotes in strings
         repr_str = f"Manga({repr(self.title)}, {repr(self.id)}"
 
         if self.tags:
@@ -59,6 +67,6 @@ class ConfigError(Exception):
         self.errors = errors
 
     def __str__(self):
-        return (
-            "Config validation failed:\n" +
-            "\n".join(f"- {err}" for err in self.errors))
+        return "Config validation failed:\n" + "\n".join(
+            f"- {err}" for err in self.errors
+        )
