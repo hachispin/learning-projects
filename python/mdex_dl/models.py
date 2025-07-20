@@ -10,14 +10,14 @@ functions instead are in `mdex_dl.utils`
 class Manga:
     """
     Parameters:
-        title (str, required): The manga title as given by the API
+        title (str, required): the manga title as given by the API
         id (str, required): UUID used for GET requests
         tags (list[str], optional): list of genres used for searching
     """
 
-    def __init__(self, title: str, id: str, tags: list[str] | None = None):
+    def __init__(self, title: str, uuid: str, tags: list[str] | None = None):
         self.title = title
-        self.id = id
+        self.id = uuid
         self.tags = tags
 
     def __str__(self):
@@ -37,13 +37,11 @@ class Chapter:
     Parameters:
         id (str): UUID used for GET requests
         chap_num (str | None): used to name dirs upon download
-
-    self.title = Ch. {chap_num}
     """
 
-    def __init__(self, id: str, chap_num):
-        self.title = f"Ch. {chap_num}"
-        self.id = id
+    def __init__(self, uuid: str, chap_num: str | None):
+        self.title = f"Ch. {chap_num or "Unknown"}"
+        self.id = uuid
         self.chap_num = chap_num
 
     def __repr__(self) -> str:
@@ -51,22 +49,3 @@ class Chapter:
 
     def __str__(self):
         return self.title
-
-
-class ApiError(Exception):
-    """Exception raised for API problems"""
-
-    def __init__(self, message):
-        super().__init__(message)
-
-
-class ConfigError(Exception):
-    """Exception raised for bad config states"""
-
-    def __init__(self, errors: list[str]):
-        self.errors = errors
-
-    def __str__(self):
-        return "Config validation failed:\n" + "\n".join(
-            f"- {err}" for err in self.errors
-        )

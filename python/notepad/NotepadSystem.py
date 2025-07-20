@@ -7,7 +7,6 @@ from datetime import datetime
 # Note related exceptions
 class NoteException(Exception):
     """Base class for all `Note` errors"""
-    pass
 
 
 class TitleAlreadyExistsError(NoteException):
@@ -26,7 +25,6 @@ class BlankBodyError(NoteException):
     Raised when a `Note` instance is initialised
     with a blank (i.e, whitespace-only) `body`
     """
-    pass
 
 
 class BlankTitleError(NoteException):
@@ -34,7 +32,6 @@ class BlankTitleError(NoteException):
     Raised when a `Note` instance is initialised
     with a blank (i.e, whitespace-only) `title`
     """
-    pass
 
 
 class NotFoundError(NoteException):
@@ -56,7 +53,6 @@ class FormatError(NoteException):
 
     NOTE: Do not raise for empty data
     """
-    pass
 
 
 class Note:
@@ -77,10 +73,7 @@ class Note:
 
     def __repr__(self) -> str:
         return "Note('{}', '{}', '{}', '{}')".format(
-            self.title,
-            self.body,
-            self.created_at,
-            self.last_edited
+            self.title, self.body, self.created_at, self.last_edited
         )
 
     def to_dict(self) -> dict:
@@ -88,7 +81,7 @@ class Note:
             "title": self.title,
             "body": self.body,
             "created_at": self._created_at,
-            "last_edited": self.last_edited
+            "last_edited": self.last_edited,
         }  # Allows **kwargs for dict unpacking later
 
     @staticmethod
@@ -163,8 +156,7 @@ class NoteCollection:
         """
 
         if fp.suffix != ".json":
-            raise FormatError(
-                f"File provided must be '.json', not '{fp.suffix}'")
+            raise FormatError(f"File provided must be '.json', not '{fp.suffix}'")
         if not fp.exists():
             raise FileNotFoundError(f"File '{fp}' does not exist")
 
@@ -179,13 +171,12 @@ class NoteCollection:
 
             if collection is None:
                 raise FormatError(
-                    "Missing top level NoteCollection key (file is not empty)")
+                    "Missing top level NoteCollection key (file is not empty)"
+                )
 
             if not isinstance(collection, list):
                 t = type(collection)
-                raise FormatError(
-                    f"Expected list for NoteCollection, instead got {t}"
-                )
+                raise FormatError(f"Expected list for NoteCollection, instead got {t}")
 
             for note in collection:
                 if not all(note.get(key) for key in req_note_keys):
@@ -219,16 +210,18 @@ if __name__ == "__main__":  # Create test notes
     if ans.strip().lower() != "y":
         exit()
 
-    new = NoteCollection([
-        Note.new_note("Test Note", "A placeholder body"),
-        Note.new_note("Another One", "You see me?")
-    ])
+    new = NoteCollection(
+        [
+            Note.new_note("Test Note", "A placeholder body"),
+            Note.new_note("Another One", "You see me?"),
+        ]
+    )
 
     time.sleep(3)
     new.edit_note(
         curr_title="Another One",  # Used to find index
         new_title="Changed Title",
-        new_body="hi"
+        new_body="hi",
     )
 
     new_json = new.to_json()

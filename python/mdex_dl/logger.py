@@ -9,8 +9,10 @@ from pathlib import Path
 import logging
 from datetime import datetime
 
-from mdex_dl.utils import get_project_root
 from mdex_dl.load_config import Config
+
+
+project_root = Path(__file__).parent
 
 
 def setup_logging(config: Config) -> None:
@@ -20,7 +22,7 @@ def setup_logging(config: Config) -> None:
     if not cfg["enabled"]:
         logging.disable(logging.CRITICAL)
     else:
-        log_dir = Path(get_project_root() / cfg["location"])
+        log_dir = Path(project_root / cfg["location"])
         logging.basicConfig(
             filename=f"{log_dir}/mdex_dl_{datetime.now():%Y-%m-%d_%H-%M-%S}.log",  # noqa
             filemode="w",

@@ -7,15 +7,14 @@
 [reqs]
 api_root = "https://api.mangadex.org"                   
 report_endpoint = "https://api.mangadex.network/report"
-
-max_retries = 5             # for all requests
-
-# time stuff
-base_delay  = 0.2            # this is in between normal requests (not ratelimited)
-base_delay_ratelimit = 2.0  # if Retry-After is not provided for some reason
 get_timeout = 10
 post_timeout = 20
 
+[retry]
+max_retries = 5
+backoff_factor = 1
+backoff_jitter = 0.5
+backoff_max = 30
 
 [save]
 location = "mdex_save"      # where all chapters are saved

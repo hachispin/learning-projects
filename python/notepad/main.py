@@ -4,10 +4,17 @@ from pathlib import Path
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QBrush
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QPushButton,
-    QLineEdit, QTextEdit, QVBoxLayout,
-    QHBoxLayout, QComboBox, QWidget,
-    QMessageBox, QSizePolicy
+    QApplication,
+    QMainWindow,
+    QPushButton,
+    QLineEdit,
+    QTextEdit,
+    QVBoxLayout,
+    QHBoxLayout,
+    QComboBox,
+    QWidget,
+    QMessageBox,
+    QSizePolicy,
 )
 
 from NotepadSystem import Note, NoteCollection
@@ -26,8 +33,7 @@ APP_DIR = Path(__file__).parent
 NOTES_DATA = Path.joinpath(APP_DIR, SAVE_NAME)
 
 if not APP_DIR.exists():
-    raise FileNotFoundError(
-        "Could not find parent dir")
+    raise FileNotFoundError("Could not find parent dir")
 
 if not NOTES_DATA.exists():
     NOTES_DATA.write_text("")
@@ -42,7 +48,7 @@ class MainWindow(QMainWindow):
         self.collection = self.load_data()
         menubar = QHBoxLayout()
         top = QVBoxLayout()
-# Menubar
+        # Menubar
         self.curr_note_title = QLineEdit()
         self.curr_note_title.setPlaceholderText("New title")
         self.curr_note_title.setMaxLength(24)
@@ -51,10 +57,7 @@ class MainWindow(QMainWindow):
         self.save = QPushButton("Save")
         self.delete = QPushButton("Delete")
 
-        least_width = QSizePolicy(
-            QSizePolicy.Policy.Fixed,
-            QSizePolicy.Policy.Fixed
-        )
+        least_width = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
         self.save.setSizePolicy(least_width)
         self.delete.setSizePolicy(least_width)
@@ -63,17 +66,16 @@ class MainWindow(QMainWindow):
         menubar.addWidget(self.save)
         menubar.addWidget(self.delete)
         self.update_dropdown()
-# Body
+        # Body
         # Not set until note picked
         self.curr_note_body = QTextEdit()
-        self.curr_note_body.setPlaceholderText(
-            "Start writing a new note here...")
-# Mappings
+        self.curr_note_body.setPlaceholderText("Start writing a new note here...")
+        # Mappings
         # Note that dropdown index - 1 = NoteCollection index
         self.dropdown.currentIndexChanged.connect(self.display_note)
         self.save.clicked.connect(self.save_curr_note)
         self.delete.clicked.connect(self.delete_curr_note)
-# Layout
+        # Layout
         top.addLayout(menubar)
         top.addWidget(self.curr_note_body)
         container = QWidget()
@@ -89,40 +91,26 @@ class MainWindow(QMainWindow):
                 "Fatal error",
                 "Something went wrong and the program must exit! "
                 "Please raise an issue if you see this message. "
-                "(or if you're the dev, do your job!)"
+                "(or if you're the dev, do your job!)",
             )
             sys.exit(1)
 
         match error:
             case TitleAlreadyExistsError():
-                QMessageBox.warning(
-                    self,
-                    "Save failed",
-                    "This title is already taken."
-                )
+                QMessageBox.warning(self, "Save failed", "This title is already taken.")
             case BlankTitleError():
-                QMessageBox.warning(
-                    self,
-                    "Invalid title",
-                    "Title must not be blank."
-                )
+                QMessageBox.warning(self, "Invalid title", "Title must not be blank.")
             case BlankBodyError():
                 QMessageBox.warning(
-                    self,
-                    "Invalid body",
-                    "Note body must not be blank."
+                    self, "Invalid body", "Note body must not be blank."
                 )
             case NotFoundError():
                 QMessageBox.warning(
-                    self,
-                    "Note not found",
-                    "Could not find note to read/update/delete"
+                    self, "Note not found", "Could not find note to read/update/delete"
                 )
             case FormatError():
                 QMessageBox.warning(
-                    self,
-                    "Invalid import",
-                    "Imported notes format could not be read"
+                    self, "Invalid import", "Imported notes format could not be read"
                 )
             case _:
                 # logger is for losers
@@ -141,8 +129,7 @@ class MainWindow(QMainWindow):
             dd_idx = self.dropdown.currentIndex()
 
         elif dd_idx == 0:
-            e = ValueError(
-                "Attempted to access reserved index 0 (New note...)")
+            e = ValueError("Attempted to access reserved index 0 (New note...)")
             self.handle_note_exception(e, fatal=True)
 
         try:
@@ -164,13 +151,11 @@ class MainWindow(QMainWindow):
         dd.clear()
         dd.addItem("New note...")
         idx = dd.model().index(0, 0)  # type: ignore[union-attr]
-        dd.model().setData(           # type: ignore[union-attr]
+        dd.model().setData(  # type: ignore[union-attr]
             idx, QBrush(Qt.GlobalColor.gray), Qt.ItemDataRole.ForegroundRole
         )
 
-        self.dropdown.addItems(
-            [note.title for note in self.collection.notes]
-        )
+        self.dropdown.addItems([note.title for note in self.collection.notes])
 
     def display_note(self):
         """
@@ -201,8 +186,7 @@ class MainWindow(QMainWindow):
                 self.collection.add_note(new)
             else:  # Edit
                 curr_note = self.get_note_by_dropdown(curr)
-                self.collection.edit_note(
-                    curr_note.title, saved_title, saved_body)
+                self.collection.edit_note(curr_note.title, saved_title, saved_body)
 
         except NoteException as e:
             self.handle_note_exception(e)

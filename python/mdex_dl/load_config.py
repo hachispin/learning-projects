@@ -1,9 +1,9 @@
 """
-Loads "config.toml" (in project root) and accumulates errors to be
+Loads `config.toml` (in project root) and accumulates errors to be
 raised with `ConfigError` if found, along with proper reasons.
 
-This also contains the fully type-hinted config as `Config`, which
-consists of its parts: `ReqsConfig`, `SaveConfig`, etc.
+This also contains the fully type-hinted config as **Config**, which
+consists of its parts: **ReqsConfig**, **SaveConfig**, etc.
 """
 
 import tomllib
@@ -11,8 +11,7 @@ from pathlib import Path
 from logging import _nameToLevel  # Private but it's fine I think
 from typing import TypedDict
 
-from mdex_dl.models import ConfigError
-from mdex_dl.utils import get_project_root
+from mdex_dl.errors import ConfigError
 
 
 # These are all just for static type checkers
@@ -21,11 +20,17 @@ class ReqsConfig(TypedDict):
 
     api_root: str
     report_endpoint: str
-    max_retries: int
-    base_delay: int | float
-    base_delay_ratelimit: int | float
     get_timeout: int | float
     post_timeout: int | float
+
+
+class RetryConfig(TypedDict):
+    """Type hints for [retry] in config.toml"""
+
+    max_retries: int
+    backoff_factor: int | float
+    backoff_jitter: int | float
+    backoff_max: int | float
 
 
 class SaveConfig(TypedDict):
@@ -68,13 +73,14 @@ class Config(TypedDict):
 
     reqs: ReqsConfig
     save: SaveConfig
+    retry: RetryConfig
     images: ImagesConfig
     search: SearchConfig
     cli: CliConfig
     logging: LoggingConfig
 
 
-project_root = get_project_root()
+project_root = Path(__file__).resolve().parent
 
 
 # pylint: disable=missing-function-docstring
@@ -91,7 +97,7 @@ def is_str(x):
 
 
 def is_numeric(x):
-    return isinstance(x, float) or isinstance(x, int)
+    return isinstance(x, (float, int))
 
 
 def get_dirname_problems(option_name: str, dirname: str) -> str | None:
@@ -102,12 +108,20 @@ def get_dirname_problems(option_name: str, dirname: str) -> str | None:
 
 
 # pylint: enable=missing-function-docstring
-def require_ok_config() -> Config:  # or throws ConfigError
+# pylint: disable=too-many-branches too-many-statements
+def require_ok_config() -> Config:
     """
-    Just check magic constraints on each config option because
-    I'm lazy. Raises ConfigError if invalid, else return config
+    Checks constraints and types of all values in `./config.toml`
+    from the project root.
+
+    Returns:
+        Config (TypedDict): The fully typed config object.
+
+    Raises:
+        ConfigError: If any config values are of the wrong type or
+        fail constraints
     """
-    cfg_fp = Path(get_project_root() / "config.toml")
+    cfg_fp = Path(project_root / "config.toml")
     print(cfg_fp)
 
     try:
@@ -118,7 +132,7 @@ def require_ok_config() -> Config:  # or throws ConfigError
             errors=["Config file not found; expected config.toml in mdex_dl)"]
         ) from None
 
-    bad_options = []
+    errors = []  # list[str]
 
     # theres a lot of repetition here but I've
     # chosen not try to apply DRY because:
@@ -130,84 +144,95 @@ def require_ok_config() -> Config:  # or throws ConfigError
 
     reqs = cfg["reqs"]  # ReqsConfig
 
+    if not is_str(reqs["api_root"]):
+        errors.append("reqs.api_root: must be a string")
     if not reqs["api_root"].startswith("https://"):
-        bad_options.append("api_root: invalid URL; must start with https://")
+        errors.append("api_root: invalid URL; must start with https://")
 
+    if not is_str(reqs["report_endpoint"]):
+        errors.append("reqs.report_endpoint: must be a string")
     if not reqs["report_endpoint"].startswith("https://"):
-        bad_options.append("report_endpoint: invalid URL; must start with https://")
-
-    if not is_int(reqs["max_retries"]):
-        bad_options.append("images.max_retries: must be integer")
-    elif reqs["max_retries"] < 0:
-        bad_options.append("images.max_retries: must not be negative")
-
-    if not is_numeric(reqs["base_delay"]):
-        bad_options.append("reqs.base_delay must be int or float")
-    elif reqs["base_delay"] < 0:
-        bad_options.append("reqs.base_delay: must not be negative")
-
-    if not is_numeric(reqs["base_delay_ratelimit"]):
-        bad_options.append("reqs.base_delay must be int or float")
-    elif reqs["base_delay_ratelimit"] < 0:
-        bad_options.append("reqs.base_delay: must not be negative")
+        errors.append("report_endpoint: invalid URL; must start with https://")
 
     if not is_numeric(reqs["get_timeout"]):
-        bad_options.append("reqs.get_timeout: must be int or float")
+        errors.append("reqs.get_timeout: must be int or float")
     elif reqs["get_timeout"] <= 0:
-        bad_options.append("reqs.get_timeout: must be greater than zero")
+        errors.append("reqs.get_timeout: must be greater than zero")
 
     if not is_numeric(reqs["post_timeout"]):
-        bad_options.append("reqs.post_timeout: must be int or float")
+        errors.append("reqs.post_timeout: must be int or float")
     elif reqs["post_timeout"] <= 0:
-        bad_options.append("reqs.post_timeout: must be greater than zero")
+        errors.append("reqs.post_timeout: must be greater than zero")
+
+    retry = cfg["retry"]  # RetryConfig
+
+    if not is_int(retry["max_retries"]):
+        errors.append("retry.max_retries: must be int")
+    elif retry["max_retries"] < 0:
+        errors.append("retry.max_retries: cannot be negative")
+
+    if not is_numeric(retry["backoff_factor"]):
+        errors.append("retry.backoff_factor: must be int or float")
+    elif retry["backoff_factor"] < 0:
+        errors.append("retry.backoff_factor: cannot be negative")
+
+    if not is_numeric(retry["backoff_jitter"]):
+        errors.append("retry.backoff_jitter: must be int or float")
+    elif retry["backoff_jitter"] < 0:
+        errors.append("retry.backoff_jitter: cannot be negative")
+
+    if not is_numeric(retry["backoff_max"]):
+        errors.append("retry.backoff_max: must be int or float")
+    elif retry["backoff_max"] <= 0:
+        errors.append("retry.backoff_max: must be greater than zero")
 
     save = cfg["save"]  # SaveConfig
 
     if p := get_dirname_problems("save.location", save["location"]):
-        bad_options.append(p)
+        errors.append(p)
 
     if not is_int(save["max_title_length"]):
-        bad_options.append("save.max_title_length: must be integer")
+        errors.append("save.max_title_length: must be integer")
     elif save["max_title_length"] > 255:
-        bad_options.append("save.max_title_length: must not be greater than 255")
+        errors.append("save.max_title_length: must not be greater than 255")
     elif save["max_title_length"] <= 0:
-        bad_options.append("save.max_title_length: must be greater than zero")
+        errors.append("save.max_title_length: must be greater than zero")
 
     images = cfg["images"]  # ImagesConfig
 
     if not is_bool(images["use_datasaver"]):
-        bad_options.append("images.use_datasaver: must be true or false")
+        errors.append("images.use_datasaver: must be true or false")
 
     search = cfg["search"]  # SearchConfig
 
     if not is_int(search["results_per_page"]):
-        bad_options.append("search.results_per_page: must be integer")
+        errors.append("search.results_per_page: must be integer")
     elif search["results_per_page"] <= 0:
-        bad_options.append("search.results_per_page: must be greater than zero")
+        errors.append("search.results_per_page: must be greater than zero")
 
     if not is_bool(search["include_pornographic"]):
-        bad_options.append("search.include_pornographic: must be true or false")
+        errors.append("search.include_pornographic: must be true or false")
 
     cli = cfg["cli"]  # CliConfig
 
     if not is_int(cli["options_per_row"]):
-        bad_options.append("cli.options_per_row: must be integer")
+        errors.append("cli.options_per_row: must be integer")
     if cli["options_per_row"] <= 0:
-        bad_options.append("cli.options_per_row: must be greater than zero")
+        errors.append("cli.options_per_row: must be greater than zero")
 
     if not is_bool(cli["use_ansi"]):
-        bad_options.append("cli.use_ansi: must be true or false")
+        errors.append("cli.use_ansi: must be true or false")
 
     logging = cfg["logging"]  # LoggingConfig
 
     if not is_bool(logging["enabled"]):
-        bad_options.append("logging.enabled: must be true or false")
+        errors.append("logging.enabled: must be true or false")
 
     if not is_str(logging["level"]):
-        bad_options.append("logging.level: must be string")
+        errors.append("logging.level: must be string")
 
     elif logging["level"] not in ("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"):
-        bad_options.append(
+        errors.append(
             "logging.level: invalid option, must be: "
             "'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'"
         )
@@ -215,10 +240,10 @@ def require_ok_config() -> Config:  # or throws ConfigError
         logging["level"] = _nameToLevel.get(logging["level"])  # type: ignore
 
     if p := get_dirname_problems("logging.location", logging["location"]):
-        bad_options.append(p)
+        errors.append(p)
 
-    if bad_options:
-        raise ConfigError(errors=bad_options)
+    if errors:
+        raise ConfigError(errors=errors)
     return cfg
 
 
