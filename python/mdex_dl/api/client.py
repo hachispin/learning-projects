@@ -12,8 +12,7 @@ from typing import Any
 import requests
 
 from mdex_dl.errors import ApiError
-from mdex_dl.load_config import ReqsConfig, RetryConfig
-from mdex_dl.models import Chapter, Manga
+from mdex_dl.models import Chapter, Manga, Config, ReqsConfig
 
 
 def safe_to_json(r: requests.Response) -> dict[str, Any] | None:
@@ -62,9 +61,7 @@ def get_cattributes(
     Reference:
         https://api.mangadex.org/docs/redoc.html#tag/Manga
     """
-    r = session.get(
-        f"{cfg['api_root']}/chapter/{chapter.id}", timeout=cfg["get_timeout"]
-    )
+    r = session.get(f"{cfg.api_root}/chapter/{chapter.uuid}", timeout=cfg.get_timeout)
 
     if (r_json := safe_to_json(r)) is not None:
         assert_ok_response(r_json)
@@ -73,7 +70,7 @@ def get_cattributes(
 
 
 def get_with_ratelimit(
-    url: str, session: requests.Session, retry_cfg: RetryConfig, reqs_cfg: ReqsConfig
+    url: str, session: requests.Session, cfg: Config
 ) -> requests.Response:
     """
     Sends a GET request with the specified session and handles ratelimiting
@@ -82,7 +79,7 @@ def get_with_ratelimit(
     This essentially acts as a wrapper for `sessions.get(url, ...)`
     """
 
-    r = session.get(url, timeout=reqs_cfg["get_timeout"])
+    r = session.get(url, timeout=cfg.reqs.get_timeout)
 
     if r.status_code != 429:
         return r
@@ -104,9 +101,9 @@ def get_with_ratelimit(
         ) from None
 
     time.sleep(tts)
-    time.sleep(random.uniform(0, retry_cfg["backoff_jitter"]))
+    time.sleep(random.uniform(0, cfg.retry.backoff_jitter))
 
-    return session.get(url, timeout=reqs_cfg["get_timeout"])
+    return session.get(url, timeout=cfg.reqs.get_timeout)
 
 
 def get_mattributes(
@@ -120,7 +117,7 @@ def get_mattributes(
     Reference:
         https://api.mangadex.org/docs/redoc.html#tag/Chapter/operation/get-chapter-id
     """
-    r = session.get(f"{cfg['api_root']}/manga/{manga.id}", timeout=cfg["get_timeout"])
+    r = session.get(f"{cfg.api_root}/manga/{manga.uuid}", timeout=cfg.get_timeout)
 
     if (r_json := safe_to_json(r)) is not None:
         assert_ok_response(r_json)

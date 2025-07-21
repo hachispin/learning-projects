@@ -2,85 +2,30 @@
 Loads `config.toml` (in project root) and accumulates errors to be
 raised with `ConfigError` if found, along with proper reasons.
 
-This also contains the fully type-hinted config as **Config**, which
-consists of its parts: **ReqsConfig**, **SaveConfig**, etc.
+This also contains the fully type-hinted config as Config, which
+consists of its parts: ReqsConfig, SaveConfig, etc.
+
+For this project, the whole config should be passed if more than
+one field is used (e.g. cfg.reqs and cfg.search), else, it's
+preferred to only pass the needed field (e.g. cfg.save)
 """
 
 import tomllib
 from pathlib import Path
 from logging import _nameToLevel  # Private but it's fine I think
-from typing import TypedDict
 
+from mdex_dl import PROJECT_ROOT
 from mdex_dl.errors import ConfigError
-
-
-# These are all just for static type checkers
-class ReqsConfig(TypedDict):
-    """Type hints for [reqs] in config.toml"""
-
-    api_root: str
-    report_endpoint: str
-    get_timeout: int | float
-    post_timeout: int | float
-
-
-class RetryConfig(TypedDict):
-    """Type hints for [retry] in config.toml"""
-
-    max_retries: int
-    backoff_factor: int | float
-    backoff_jitter: int | float
-    backoff_max: int | float
-
-
-class SaveConfig(TypedDict):
-    """Type hints for [save] in config.toml"""
-
-    location: str
-    max_title_length: int
-
-
-class ImagesConfig(TypedDict):
-    """Type hints for [images] in config.toml"""
-
-    use_datasaver: bool
-
-
-class SearchConfig(TypedDict):
-    """Type hints for [search] in config.toml"""
-
-    results_per_page: int
-    include_pornographic: bool
-
-
-class CliConfig(TypedDict):
-    """Type hints for [cli] in config.toml"""
-
-    options_per_row: int
-    use_ansi: bool
-
-
-class LoggingConfig(TypedDict):
-    """Type hints for [logging] in config.toml"""
-
-    enabled: bool
-    level: str | int  # converted from string literal (e.g. "CRITICAL")
-    location: str  # to int with _nameToLevel()
-
-
-class Config(TypedDict):
-    """Full type hints for config.toml"""
-
-    reqs: ReqsConfig
-    save: SaveConfig
-    retry: RetryConfig
-    images: ImagesConfig
-    search: SearchConfig
-    cli: CliConfig
-    logging: LoggingConfig
-
-
-project_root = Path(__file__).resolve().parent
+from mdex_dl.models import (
+    Config,
+    ReqsConfig,
+    RetryConfig,
+    SaveConfig,
+    ImagesConfig,
+    SearchConfig,
+    CliConfig,
+    LoggingConfig,
+)
 
 
 # pylint: disable=missing-function-docstring
@@ -115,18 +60,18 @@ def require_ok_config() -> Config:
     from the project root.
 
     Returns:
-        Config (TypedDict): The fully typed config object.
+        Config : The fully typed config object.
 
     Raises:
         ConfigError: If any config values are of the wrong type or
         fail constraints
     """
-    cfg_fp = Path(project_root / "config.toml")
+    cfg_fp = Path(PROJECT_ROOT / "config.toml")
     print(cfg_fp)
 
     try:
         with cfg_fp.open("rb") as f:
-            cfg: Config = tomllib.load(f)  # type: ignore
+            cfg = tomllib.load(f)  # type: ignore
     except FileNotFoundError:
         raise ConfigError(
             errors=["Config file not found; expected config.toml in mdex_dl)"]
@@ -244,9 +189,17 @@ def require_ok_config() -> Config:
 
     if errors:
         raise ConfigError(errors=errors)
-    return cfg
+    return Config(
+        reqs=ReqsConfig(**cfg["reqs"]),  # Consider writing a function for this
+        save=SaveConfig(**cfg["save"]),  # if config gets more complex
+        retry=RetryConfig(**cfg["retry"]),
+        images=ImagesConfig(**cfg["images"]),
+        search=SearchConfig(**cfg["search"]),
+        cli=CliConfig(**cfg["cli"]),
+        logging=LoggingConfig(**cfg["logging"]),
+    )
 
 
 if __name__ == "__main__":
     z = require_ok_config()
-    print(z)
+    print(f"{z.search.include_pornographic=}")
