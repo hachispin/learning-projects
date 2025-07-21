@@ -198,7 +198,7 @@ class Downloader:
         urls = self._construct_image_urls(cdn_data)
         zeros = len(str(len(urls))) + 1  # +1 purely for looks
 
-        for idx, url in enumerate(urls[:img_idx]):  # start from where we last left off
+        for idx, url in enumerate(urls[img_idx:]):  # start from where we last left off
             ext = Path(url).suffix
             fp = self._get_image_fp(idx, zeros, ext)
             report = self._download_image(url, fp)
