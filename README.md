@@ -1,6 +1,6 @@
 # learning-projects
 
-Currently working on: `mangadex-dl`'s [to-do list](python/mangadex-dl/README.md#to-do)
+Currently working on: `mdex-dl`'s [to-do list](python/mdex-dl/README.md#to-do)
 
 ## Description
 
