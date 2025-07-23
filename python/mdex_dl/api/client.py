@@ -1,6 +1,7 @@
 """
-Contains API utilities such as safe_get_req(), which is a GET request
-wrapper with proper backoff logic and error handling
+Contains API utilities such as get_with_ratelimit(), which wraps the
+Retry() session in mdex_dl.api.http_config to listen for MangaDex's
+custom ratelimit headers (X-Ratelimit-*)
 """
 
 import logging

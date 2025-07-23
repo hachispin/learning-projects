@@ -1,5 +1,5 @@
 """
-Contains the retry config instantiation used for urllib3.
+Contains the retry config used for requests sessions.
 """
 
 import logging

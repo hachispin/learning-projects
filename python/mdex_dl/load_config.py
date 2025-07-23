@@ -8,6 +8,9 @@ consists of its parts: ReqsConfig, SaveConfig, etc.
 For this project, the whole config should be passed if more than
 one field is used (e.g. cfg.reqs and cfg.search), else, it's
 preferred to only pass the needed field (e.g. cfg.save)
+
+(though in practice, basically everything requires more
+than one config field)
 """
 
 import tomllib

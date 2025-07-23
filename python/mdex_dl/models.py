@@ -1,9 +1,5 @@
 """
-Contains all classes and subclassed exceptions
-that are used in other modules.
-
-Note that no functionality is here; common
-functions instead are in `mdex_dl.utils`
+Contains all the classes that are used in other modules.
 """
 
 from dataclasses import dataclass

@@ -1,4 +1,4 @@
-"""WIP"""
+"""Contains the Searcher() class."""
 
 import logging
 from typing import Any
@@ -15,8 +15,10 @@ logger = logging.getLogger(__name__)
 
 class Searcher:
     """
+    Contains searching functionality.
+
     NOTE: There should only be one instance of this class
-    used throughout the program's class
+    created throughout the program's runtime.
     """
 
     def __init__(self, cfg: Config):
