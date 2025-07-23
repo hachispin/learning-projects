@@ -14,4 +14,4 @@ Some of the code here might be _questionable_, but I do try and refactor from ti
 
 The entry point should be formatted as such:
 
-`learning-projects/[language]/[projectName]/[projectName].[ext]`
+`learning-projects/[language]/[projectName]/main.[ext]`
