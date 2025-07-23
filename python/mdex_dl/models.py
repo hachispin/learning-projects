@@ -84,6 +84,14 @@ class ChapterGetResponse:
 
 
 @dataclass
+class SearchResults:
+    """Contains info gathered when `GET /manga` is invoked"""
+
+    results: tuple[Manga, ...]
+    total: int
+
+
+@dataclass
 class ReqsConfig:
     """Type hints for [reqs] in config.toml"""
 

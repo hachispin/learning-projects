@@ -60,7 +60,7 @@ def require_ok_config() -> Config:
     from the project root.
 
     Returns:
-        Config : The fully typed config object.
+        Config: The fully typed config object.
 
     Raises:
         ConfigError: If any config values are of the wrong type or
@@ -135,6 +135,8 @@ def require_ok_config() -> Config:
 
     if p := get_dirname_problems("save.location", save["location"]):
         errors.append(p)
+    if p is None:  # lazy init
+        Path(PROJECT_ROOT / save["location"]).mkdir(parents=True, exist_ok=True)
 
     if not is_int(save["max_title_length"]):
         errors.append("save.max_title_length: must be integer")

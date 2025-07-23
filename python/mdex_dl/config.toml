@@ -32,6 +32,6 @@ options_per_row = 3
 use_ansi = true         # set to false if your terminal doesn't support ANSI
 
 [logging]
-enabled = true          # set to false to stop logs from being created
-level = "INFO"          # options: "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"
+enabled = true      # set to false to stop logs from being created
+level = "INFO"     # options: "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"
 location = "logs"

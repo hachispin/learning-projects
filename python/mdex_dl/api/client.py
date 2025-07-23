@@ -15,6 +15,9 @@ from mdex_dl.errors import ApiError
 from mdex_dl.models import Chapter, Manga, Config, ReqsConfig
 
 
+logger = logging.getLogger(__name__)
+
+
 def safe_to_json(r: requests.Response) -> dict[str, Any] | None:
     """
     Checks if the provided response can be converted to JSON.
@@ -70,7 +73,10 @@ def get_cattributes(
 
 
 def get_with_ratelimit(
-    url: str, session: requests.Session, cfg: Config
+    url: str,
+    session: requests.Session,
+    cfg: Config,
+    params: dict[str, Any] | None = None,
 ) -> requests.Response:
     """
     Sends a GET request with the specified session and handles ratelimiting
@@ -79,11 +85,14 @@ def get_with_ratelimit(
     This essentially acts as a wrapper for `sessions.get(url, ...)`
     """
 
-    r = session.get(url, timeout=cfg.reqs.get_timeout)
+    if params is not None:
+        r = session.get(url, timeout=cfg.reqs.get_timeout, params=params)
+    else:
+        r = session.get(url, timeout=cfg.reqs.get_timeout)
 
     if r.status_code != 429:
         return r
-    logging.warning("Ratelimited (received status code 429)")
+    logger.warning("Ratelimited (received status code 429)")
 
     try:
         retry_after = r.headers["X-RateLimit-Retry-After"]
@@ -92,34 +101,46 @@ def get_with_ratelimit(
             "Ratelimit but not provided 'X-RateLimit-Retry-After' header", r
         ) from None
 
-    logging.info("X-RateLimit-Retry-After = %s", retry_after)
+    logger.info("X-RateLimit-Retry-After = %s", retry_after)
     try:
-        tts = int(retry_after)
+        tts = int(int(retry_after) - time.time())
     except (ValueError, TypeError):
         raise ApiError(
             f"Expected type int from X-RateLimit-Retry-After, instead got {type(retry_after)}"
         ) from None
 
+    logger.info("Time to sleep: %s seconds", tts)
+    print(f"Ratelimited! Please wait {tts} seconds...")
     time.sleep(tts)
     time.sleep(random.uniform(0, cfg.retry.backoff_jitter))
 
     return session.get(url, timeout=cfg.reqs.get_timeout)
 
 
-def get_mattributes(
-    session: requests.Session, cfg: ReqsConfig, manga: Manga
+def get_manga_feed(
+    session: requests.Session, cfg: Config, manga: Manga
 ) -> dict[str, Any]:
     """
-    Sends a GET request to `api_root/manga/manga.id`
-
-    Note: mattributes is short for **m**anga **attributes**
+    Sends a GET request to `/manga/manga.id`
 
     Reference:
-        https://api.mangadex.org/docs/redoc.html#tag/Chapter/operation/get-chapter-id
+        https://api.mangadex.org/docs/redoc.html#tag/Manga/operation/get-manga-id
     """
-    r = session.get(f"{cfg.api_root}/manga/{manga.uuid}", timeout=cfg.get_timeout)
+
+    feed = f"{cfg.reqs.api_root}/manga/{manga.uuid}/feed"
+
+    if cfg.search.include_pornographic:
+        r = session.get(
+            feed,
+            params={
+                "contentRating[]": ["safe", "suggestive", "erotica", "pornographic"]
+            },
+            timeout=cfg.reqs.get_timeout,
+        )
+    else:
+        r = session.get(feed, timeout=cfg.reqs.get_timeout)
 
     if (r_json := safe_to_json(r)) is not None:
         assert_ok_response(r_json)
-        return r_json["data"]["attributes"]
+        return r_json
     raise ApiError("API returned a response that couldn't be parsed as JSON", r)

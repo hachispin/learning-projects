@@ -119,10 +119,14 @@ class Downloader:
         Returns:
             Path: where the image should be saved given its info
         """
-        idx_zp = str(idx).zfill(zeros + 1)
+        idx_zp = str(idx).zfill(zeros)
 
         image_fp = Path(
-            PROJECT_ROOT / self.cfg.save.location / self.manga_title / f"{idx_zp}{ext}"
+            PROJECT_ROOT
+            / self.cfg.save.location
+            / self.manga_title
+            / (self.chapter.chap_num or "?")
+            / f"{idx_zp}{ext}"
         )
         image_fp.parent.mkdir(parents=True, exist_ok=True)
 
@@ -137,8 +141,8 @@ class Downloader:
             "url": url,
             "success": 200 <= response_code < 300,
             "cached": any(h.lower().startswith("x-cache: hit") for h in headers),
-            "size_bytes": c.getinfo(pycurl.SIZE_DOWNLOAD),
-            "duration_ms": c.getinfo(pycurl.TOTAL_TIME) * 1000,
+            "size_bytes": int(c.getinfo(pycurl.SIZE_DOWNLOAD)),
+            "duration_ms": int(c.getinfo(pycurl.TOTAL_TIME) * 1000),
         }
 
         logger.debug("ImageReport for chapter '%s': %s", self.chapter.uuid, stats)
@@ -199,6 +203,8 @@ class Downloader:
         zeros = len(str(len(urls))) + 1  # +1 purely for looks
 
         for idx, url in enumerate(urls[img_idx:]):  # start from where we last left off
+            print(f"Downloading page {idx + 1}/{len(urls)}    ", end="\r", flush=True)
+
             ext = Path(url).suffix
             fp = self._get_image_fp(idx, zeros, ext)
             report = self._download_image(url, fp)
@@ -209,6 +215,8 @@ class Downloader:
                 self._download_images(retries - 1, base_url, idx)
             # self._send_image_report(*report)
             # ^ Check ahead for why this is commented out!
+
+        print("\nCompleted!")
 
     def download_images(self):
         """
