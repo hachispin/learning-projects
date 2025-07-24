@@ -50,7 +50,7 @@ class Searcher:
     def search(self, query: str, page: int = 0) -> SearchResults:
         """
         Searches for the given query and returns a list of Manga UUIDs.
-        By default, this searches by relevance only.
+        By default, this sorts by descending relevance to the query.
 
         Pornographic results will only be included if configured as such.
 
@@ -63,6 +63,8 @@ class Searcher:
         params = {
             "title": query,
             "order[relevance]": "desc",
+            "hasAvailableChapters": True,
+            "availableTranslatedLanguage[]": ["en"],
             "limit": self.cfg.search.results_per_page,
             "offset": self.cfg.search.results_per_page * page,
         }
@@ -93,23 +95,23 @@ class Searcher:
 
         return SearchResults(tuple(results), total=r_json["total"])
 
-    def get_random_manga(self) -> Manga:
-        """Fetches a random manga from the `GET /manga/random` endpoint"""
+    def get_random_manga(self) -> Manga | None:
+        """
+        Fetches a random manga from the `GET /manga/random` endpoint.
+
+        Returns:
+        -   Manga: if response is json-parsable
+        -   None: if not
+        """
         r = self._get_with_ratelimit(f"{self.cfg.reqs.api_root}/manga/random")
 
         if (r_json := safe_to_json(r)) is None:
-            raise ApiError("Failed to convert search into JSON", r)
+            logger.warning(
+                "Failed to get a valid JSON response from the `GET /manga/random` endpoint"
+            )
+            return None
         assert_ok_response(r_json)
 
         return Manga(
             self._get_title(r_json["data"]["attributes"]), r_json["data"]["id"]
         )
-
-    def _test_ratelimit(self, num_reqs: int):
-        """Don't use."""
-
-        logger.debug("Testing %s requests", num_reqs)
-
-        for i in range(1, num_reqs + 1):
-            logger.debug("Request #%s", i)
-            logger.debug(self.get_random_manga())
