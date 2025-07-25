@@ -76,8 +76,9 @@ class Searcher:
                 "contentRating[]": ["safe", "suggestive", "erotica", "pornographic"],
             }
         logger.info(
-            "Searching for query '%s', Pornographic results included: %s",
+            "Searching for query '%s' on page %s. Pornographic results included: %s",
             query,
+            page,
             self.cfg.search.include_pornographic,
         )
         r = self._get_with_ratelimit(

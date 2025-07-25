@@ -25,11 +25,11 @@ use_datasaver = false
 
 [search]
 results_per_page = 10
-include_pornographic = false
+include_pornographic = true
 
 [cli]
 options_per_row = 3
-use_ansi = true         # set to false if your terminal doesn't support ANSI
+use_ansi = false         # set to false if your terminal doesn't support ANSI
 time_to_read = 1        # seconds; how long messages are displayed before being cleared
 
 [logging]

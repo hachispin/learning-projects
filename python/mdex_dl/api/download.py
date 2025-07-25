@@ -14,7 +14,6 @@ import requests
 import pycurl
 
 from mdex_dl import PROJECT_ROOT
-from mdex_dl.cli.ansi.output import ProgressBar
 from mdex_dl.errors import ApiError
 from mdex_dl.models import Chapter, Manga, Config, ChapterGetResponse, ImageReport
 from mdex_dl.api.http_config import get_retry_adapter
@@ -191,8 +190,11 @@ class Downloader:
         under the manga title and chapter number.
 
         Args:
-            progress_out (function, optional): where the current image progress
-                (e.g. 7/20) is sent. Defaults to the no-op `lambda *_: None`
+            progress_out (function, optional): where image progress
+                (float, e.g. 7/20) is sent. -1.0 is sent as the progress on failure.
+
+                Defaults to the no-op `lambda *_: None`
+
             retries (int | None): the retries left
             last_base_url (str | None): the last base url from the previous recursion
             img_start_idx (int, optional): where the last recursion ended off before
@@ -201,6 +203,8 @@ class Downloader:
         # how many times to try getting a new base url
         if retries is None:
             retries = self.cfg.retry.max_retries
+        if retries == 0:
+            raise ApiError("Failed all retries to download the chapter")
 
         logger.info("Downloading images. Retries left: %s", retries)
 
@@ -209,6 +213,14 @@ class Downloader:
         if base_url == last_base_url:
             logger.warning("Received same base URL upon failure")
             return
+        if not all(
+            (
+                cdn_data.chapter_hash,
+                cdn_data.filenames_data,
+                cdn_data.filenames_data_saver,
+            )
+        ):
+            logger.info("No downloadable chapters available. (Received empty CDN data)")
 
         urls = self._construct_image_urls(cdn_data)
         zeros = len(str(len(urls))) + 1  # +1 purely for looks
@@ -218,6 +230,7 @@ class Downloader:
             fp = self._get_image_fp(idx, zeros, ext)
             report = self._download_image(url, fp)
             if report.success is not True:
+                progress_out(-1.0)
                 logger.warning(
                     "Failed to download image (success = %s)", report.success
                 )
@@ -237,10 +250,12 @@ class Downloader:
         location, manga title and chapter number.
 
         Args:
-            progress_out (function, optional): where the current image progress
-                (e.g. 7/20) is sent. Defaults to the no-op `lambda *_: None`
+            progress_out (function, optional): where image progress
+                (float, e.g. 7/20) is sent. -1.0 is sent as the progress on failure.
+
+                Defaults to the no-op `lambda *_: None`
         """
-        progress_out(0)
+        progress_out(0.0)
         self._download_images(progress_out, retries=None, last_base_url=None)
 
     ## Right now, MangaDex's reporting system seems to be down, according to

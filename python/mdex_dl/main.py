@@ -37,7 +37,7 @@ from mdex_dl.cli.controls.constants import (
     SEARCH,
     VIEW_INFO,
 )
-from mdex_dl.cli.controls.classes import Control, ControlGroup
+from mdex_dl.cli.controls.classes import ControlGroup
 from mdex_dl.cli.ansi.output import AnsiOutput, ProgressBar
 from mdex_dl.cli.getch import getch  # type: ignore
 
@@ -113,18 +113,18 @@ else:
 
 def get_input_key() -> str:
     """Normalises input to be compared against uppercase Control.key values."""
-    print(">> ", end="")
+    print(">> ", flush=True, end="")
     option = getch().upper()
     print(option)
     return option
 
 
-def get_option(cg: ControlGroup) -> str:
+def get_option(cg: ControlGroup, message: str | None = None) -> str:
     """
     Gets a validated option from the user.
 
     Args:
-        prompt (str): the message displayed on the input field
+        message (str): the text displayed before controls are shown
         cg (ControlGroup): the controls to display and look for
 
     Returns:
@@ -133,6 +133,8 @@ def get_option(cg: ControlGroup) -> str:
     allowed = tuple(c.key for c in cg.controls)
     while True:
         clear()
+        if message:
+            print(message + "\n")
         print_controls(cg)
         user_input = get_input_key()
 
@@ -141,7 +143,7 @@ def get_option(cg: ControlGroup) -> str:
         if user_input in allowed:
             return user_input
 
-        ansi.print_err("[Invalid option]")
+        print(ansi.to_err("[Invalid option]"))
         time.sleep(cfg.cli.time_to_read)
 
 
@@ -176,7 +178,7 @@ def get_page_option(
         clear()
 
         print_manga_titles(res.results)
-        ansi.print_invert(f"Page {current_page+1} / {total_pages}\n")
+        print(ansi.to_inverse(f"Page {current_page+1} / {total_pages}\n"))
         print("Type the manga's number on the left to select, or:")
         print_controls(PAGE_CONTROLS)
 
@@ -187,9 +189,9 @@ def get_page_option(
             return user_input
         # failure cases
         if user_input.isdigit():
-            ansi.print_err("[Invalid manga index]")
+            print(ansi.to_err("[Invalid manga index]"))
         else:
-            ansi.print_err("[Invalid page control]")
+            print(ansi.to_err("[Invalid page control]"))
 
         time.sleep(cfg.cli.time_to_read)
 
@@ -224,7 +226,7 @@ def start_search() -> None:
     logger.debug(repr(res))
 
     if res.total == 0 or len(res.results) == 0:
-        ansi.print_warn("No results found")
+        print(ansi.to_warn("No results found"))
         time.sleep(cfg.cli.time_to_read)
         start_search()
 
@@ -254,7 +256,10 @@ def page_menu(user_query: str, res: SearchResults, page: int) -> None:
 
 
 def manga_menu(manga: Manga) -> None:
-    user_input = get_option(MANGA_CONTROLS)
+    user_input = get_option(
+        MANGA_CONTROLS,
+        message=f"Chosen manga: {ansi.to_underline(manga.title)}",
+    )
 
     match user_input:
         case DOWNLOAD.key:
@@ -265,14 +270,58 @@ def manga_menu(manga: Manga) -> None:
             start_search()
 
 
+def is_float(s: str) -> bool:
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
+
 def download_manga_menu(manga: Manga) -> None:
     feed = get_manga_feed(main_session, cfg, manga)
     total_chapters = feed["total"]
-    logger.debug("Found chapters: %s", total_chapters)
+    logger.info("Found chapters: %s", total_chapters)
+    logger.debug("Feed: %s", feed)
 
-    chapters = tuple(
-        Chapter(c["id"], c["attributes"]["chapter"]) for c in feed["data"]
-    )  # type: tuple[Chapter, ...]
+    chapters = [
+        Chapter(c["id"], c["attributes"]["chapter"])
+        for c in feed["data"]
+        if c["attributes"]["pages"] != 0
+    ]  # type: list[Chapter]
+
+    # Seperate into valid and invalid chapter numbers
+
+    ordered = []
+    unordered = []
+
+    for c in chapters:
+        if c.chap_num is not None and is_float(c.chap_num):
+            ordered.append(c)
+        else:
+            unordered.append(c)
+
+    ordered.sort(key=lambda c: float(c.chap_num))  # type: ignore
+    chapters = ordered + unordered
+
+    if not chapters:
+        print(ansi.to_warn("No available chapters found"))
+        start_search()
+
+    print_chapter_titles(tuple(chapters))
+
+    chapter_range = input("Enter a range of chapters: ")
+    start, end = chapter_range.split("-")
+
+    for i in range(int(start) - 1, int(end)):
+        pb = ProgressBar(cfg.cli, f"Downloading [{i+1}]")
+        dl = Downloader(manga, chapters[i], cfg)
+
+        dl.download_images(progress_out=pb.display)
+
+    print(ansi.to_success("Download complete"))
+    time.sleep(cfg.cli.time_to_read)
+    main_menu()
 
 
 def main():
