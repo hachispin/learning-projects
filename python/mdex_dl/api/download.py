@@ -130,7 +130,7 @@ class Downloader:
             PROJECT_ROOT
             / self.cfg.save.location
             / self.manga_title
-            / (self.chapter.chap_num or "?")
+            / self.chapter.title
             / f"{idx_zp}{ext}"
         )
         image_fp.parent.mkdir(parents=True, exist_ok=True)

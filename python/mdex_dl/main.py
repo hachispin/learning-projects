@@ -297,8 +297,8 @@ def download_manga_menu(manga: Manga) -> None:
 
     # Seperate into valid and invalid chapter numbers
 
-    ordered = []
-    unordered = []
+    ordered = []  # type: list[Chapter]
+    unordered = []  # type: list[Chapter]
 
     for c in chapters:
         if c.chap_num is not None and is_float(c.chap_num):
@@ -306,8 +306,12 @@ def download_manga_menu(manga: Manga) -> None:
         else:
             unordered.append(c)
 
+    # Index unordered chapter titles to prevent naming conflicts
+    for i, c in enumerate(unordered):
+        c.title = f"{c.title} [{i}]"
+
     ordered.sort(key=lambda c: float(c.chap_num))  # type: ignore
-    chapters = ordered + unordered
+    chapters = ordered + unordered  # unordered goes to last page
 
     if not chapters:
         print(ansi.to_warn("No available chapters found"))
