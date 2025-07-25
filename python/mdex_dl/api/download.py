@@ -180,6 +180,24 @@ class Downloader:
 
         return stats
 
+    def _download_images_loop(
+        self,
+        progress_out: Callable[[float], None],
+        retries: int,
+        img_url: str,
+    ):
+        ext = Path(img_url).suffix
+        zeros = len(str(len(urls))) + 1  # +1 purely for looks
+        fp = self._get_image_fp(idx, zeros, ext)
+        report = self._download_image(img_url, fp)
+        if report.success is not True:
+            progress_out(-1.0)  # invokes error form of progress bar
+            logger.warning("Failed to download image (success = %s)", report.success)
+            self._download_images(progress_out, retries - 1, base_url, idx)
+        # self._send_image_report(*report)
+        # ^ Check ahead for why this is commented out!
+        progress_out((idx + 1) / len(urls))
+
     def _download_images(
         self,
         progress_out: Callable[[float], None],
@@ -227,7 +245,6 @@ class Downloader:
             logger.info("No downloadable chapters available. (Received empty CDN data)")
 
         urls = self._construct_image_urls(cdn_data)
-        zeros = len(str(len(urls))) + 1  # +1 purely for looks
 
         for idx, url in enumerate(urls[img_start_idx:]):
             ext = Path(url).suffix

@@ -1,5 +1,8 @@
 """
 Contains all the classes that are used in other modules.
+
+These classes are only meant as containers; they shouldn't
+have logic.
 """
 
 from dataclasses import dataclass
