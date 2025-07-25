@@ -36,11 +36,13 @@ def safe_to_json(r: requests.Response) -> dict[str, Any] | None:
     try:
         r_json = r.json()
     except JSONDecodeError:
-        logging.warning("Failed to parse response as JSON for url: %s", r.url)
+        logger.warning("Failed to parse response as JSON for url: %s", r.url)
+        logger.debug("API response as text: %s", r.text)
+
         return None
 
     if not isinstance(r_json, dict):
-        logging.warning(
+        logger.warning(
             "Unexpected JSON response type for url '%s': %s", r.url, type(r_json)
         )
         return None
@@ -51,6 +53,7 @@ def safe_to_json(r: requests.Response) -> dict[str, Any] | None:
 def assert_ok_response(r_json: dict[str, Any]) -> None:
     """Checks that the JSON response (MangaDex) has a result key with value "ok" """
     if r_json.get("result") != "ok":
+        logger.error("Non-ok response from API. Full JSON response: %s", r_json)
         raise ApiError("API returned non-ok response")
 
 
@@ -122,7 +125,7 @@ def get_manga_feed(
     session: requests.Session, cfg: Config, manga: Manga
 ) -> dict[str, Any]:
     """
-    Sends a GET request to `/manga/manga.id`
+    Sends a GET request to `/manga/manga.id/feed`
 
     Reference:
         https://api.mangadex.org/docs/redoc.html#tag/Manga/operation/get-manga-id
@@ -134,12 +137,19 @@ def get_manga_feed(
         r = session.get(
             feed,
             params={
-                "contentRating[]": ["safe", "suggestive", "erotica", "pornographic"]
+                "translatedLanguage[]": ["en"],
+                "contentRating[]": ["safe", "suggestive", "erotica", "pornographic"],
             },
             timeout=cfg.reqs.get_timeout,
         )
     else:
-        r = session.get(feed, timeout=cfg.reqs.get_timeout)
+        r = session.get(
+            feed,
+            timeout=cfg.reqs.get_timeout,
+            params={"translatedLanguage[]": ["en"]},
+        )
+
+    logger.debug("get_manga_feed() raw text response from API: %s", r.text)
 
     if (r_json := safe_to_json(r)) is not None:
         assert_ok_response(r_json)

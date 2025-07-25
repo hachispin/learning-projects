@@ -80,7 +80,7 @@ def require_ok_config() -> Config:
             errors=["Config file not found; expected config.toml in mdex_dl)"]
         ) from None
 
-    errors = []  # list[str]
+    errors = []  # type: list[str]
 
     # theres a lot of repetition here but I've
     # chosen not try to apply DRY because:
@@ -173,6 +173,11 @@ def require_ok_config() -> Config:
     if not is_bool(cli["use_ansi"]):
         errors.append("cli.use_ansi: must be true or false")
 
+    if not is_numeric(cli["time_to_read"]):
+        errors.append("cli.time_to_read: must be int or float")
+    elif cli["time_to_read"] < 0:
+        errors.append("cli.time_to_read: cannot be negative")
+
     logging = cfg["logging"]  # LoggingConfig
 
     if not is_bool(logging["enabled"]):
@@ -203,8 +208,3 @@ def require_ok_config() -> Config:
         cli=CliConfig(**cfg["cli"]),
         logging=LoggingConfig(**cfg["logging"]),
     )
-
-
-if __name__ == "__main__":
-    z = require_ok_config()
-    print(f"{z.search.include_pornographic=}")

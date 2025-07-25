@@ -7,12 +7,14 @@ each chapter, and not for the entire manga
 
 import logging
 from pathlib import Path
+from typing import Callable
 
 # pylint:disable=c-extension-no-member
 import requests
 import pycurl
 
 from mdex_dl import PROJECT_ROOT
+from mdex_dl.cli.ansi.output import ProgressBar
 from mdex_dl.errors import ApiError
 from mdex_dl.models import Chapter, Manga, Config, ChapterGetResponse, ImageReport
 from mdex_dl.api.http_config import get_retry_adapter
@@ -133,7 +135,10 @@ class Downloader:
         return image_fp
 
     def _get_image_stats(
-        self, url: str, headers: list[str], c: pycurl.Curl
+        self,
+        url: str,
+        headers: list[str],
+        c: pycurl.Curl,
     ) -> ImageReport:
         response_code = c.getinfo(pycurl.RESPONSE_CODE)
 
@@ -166,26 +171,32 @@ class Downloader:
 
             except pycurl.error as e:
                 logger.warning("Encountered PyCurl error: %s", e)
-                stats = ImageReport(  # error sentinels
-                    url,
-                    False,
-                    False,
-                    0,
-                    0,
-                )
+                stats = ImageReport(url, False, False, 0, 0)  # error sentinels
             finally:
                 c.close()
 
         return stats
 
     def _download_images(
-        self, retries: int | None, last_base_url: str | None, img_idx=0
+        self,
+        progress_out: Callable[[float], None],
+        retries: int | None,
+        last_base_url: str | None,
+        img_start_idx=0,
     ):
         """
         Downloads all images from the specified chapter.
 
         All images are saved under the configured save location
         under the manga title and chapter number.
+
+        Args:
+            progress_out (function, optional): where the current image progress
+                (e.g. 7/20) is sent. Defaults to the no-op `lambda *_: None`
+            retries (int | None): the retries left
+            last_base_url (str | None): the last base url from the previous recursion
+            img_start_idx (int, optional): where the last recursion ended off before
+                presumably failing. Defaults to 0.
         """
         # how many times to try getting a new base url
         if retries is None:
@@ -202,9 +213,7 @@ class Downloader:
         urls = self._construct_image_urls(cdn_data)
         zeros = len(str(len(urls))) + 1  # +1 purely for looks
 
-        for idx, url in enumerate(urls[img_idx:]):  # start from where we last left off
-            print(f"Downloading page {idx + 1}/{len(urls)}    ", end="\r", flush=True)
-
+        for idx, url in enumerate(urls[img_start_idx:]):
             ext = Path(url).suffix
             fp = self._get_image_fp(idx, zeros, ext)
             report = self._download_image(url, fp)
@@ -212,20 +221,27 @@ class Downloader:
                 logger.warning(
                     "Failed to download image (success = %s)", report.success
                 )
-                self._download_images(retries - 1, base_url, idx)
+                self._download_images(progress_out, retries - 1, base_url, idx)
             # self._send_image_report(*report)
             # ^ Check ahead for why this is commented out!
+            progress_out((idx + 1) / len(urls))
 
-        print("\nCompleted!")
-
-    def download_images(self):
+    def download_images(
+        self,
+        progress_out: Callable[[float], None] = lambda *_: None,
+    ):
         """
         Downloads all images from the stored chapter.
 
         All images are saved under the configured save
         location, manga title and chapter number.
+
+        Args:
+            progress_out (function, optional): where the current image progress
+                (e.g. 7/20) is sent. Defaults to the no-op `lambda *_: None`
         """
-        self._download_images(retries=None, last_base_url=None)
+        progress_out(0)
+        self._download_images(progress_out, retries=None, last_base_url=None)
 
     ## Right now, MangaDex's reporting system seems to be down, according to
     ## my and others' experiences, so this function will remain unused for now.

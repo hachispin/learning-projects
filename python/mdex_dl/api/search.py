@@ -35,7 +35,7 @@ class Searcher:
 
     def _get_title(self, mattributes: dict) -> str:
         """
-        Tries to get a mangas title by trying multiple langauge codes.
+        Tries to get a mangas title by trying multiple language codes.
 
         Args:
             mattributes (dict): the ["attributes"] key of a manga from `GET /manga` or search result
@@ -58,16 +58,17 @@ class Searcher:
             query (str): the search query, which should match a Manga's title
 
         Returns:
-            SearchResults
+            SearchResults: the results for the selected page as
+                `tuple[Manga, ...]` and the total number of results
         """
         params = {
             "title": query,
             "order[relevance]": "desc",
-            "hasAvailableChapters": True,
+            "hasAvailableChapters": "true",
             "availableTranslatedLanguage[]": ["en"],
             "limit": self.cfg.search.results_per_page,
             "offset": self.cfg.search.results_per_page * page,
-        }
+        }  # Ref: https://api.mangadex.org/docs/redoc.html#tag/Manga/operation/get-search-manga
 
         if self.cfg.search.include_pornographic:
             params = {
@@ -88,7 +89,7 @@ class Searcher:
             raise ApiError("Failed to convert search into JSON", r)
         assert_ok_response(r_json)
 
-        results = []  # list[Manga]
+        results = []  # type: list[Manga]
 
         for m in r_json["data"]:
             results.append(Manga(self._get_title(m["attributes"]), m["id"]))

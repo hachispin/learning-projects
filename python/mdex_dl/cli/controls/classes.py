@@ -1,15 +1,15 @@
+"""Stores `Control` and `ControlGroup` classes."""
+
 from dataclasses import dataclass
 
-from mdex_dl.cli.ansi.output import AnsiOutput
 
-
-@dataclass
+@dataclass(frozen=True)
 class Control:
     """
     Contains a control and its description used for UI navigation.
 
     Raises:
-        ValueError: if the key isn't length one
+        ValueError: if the key isn't length one and is not None
     """
 
     label: str  # e.g. "[D]ownload" or "[Q] Next page"
@@ -21,9 +21,8 @@ class Control:
         if len(self.key) != 1:
             raise ValueError("Control.key must be length one")
 
-    def render(self):
-        # Find the key in self.label to underline
-        ...
+    def __str__(self):
+        return self.label
 
 
 @dataclass
@@ -33,3 +32,6 @@ class ControlGroup:
     """
 
     controls: tuple[Control, ...]
+
+    def __str__(self):
+        return ""

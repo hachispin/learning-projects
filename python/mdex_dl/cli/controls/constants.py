@@ -5,29 +5,34 @@ from mdex_dl.cli.controls.classes import Control, ControlGroup
 # fmt: off
 # ^ for consistent arg ordering
 
-BACK = Control("[Z] Back", "Z")
-EXIT = Control("[X] Exit", "X")
+BACK = Control("[B] Back", "B")
+QUIT = Control("[Q] Quit", "Q")
+SEARCH = Control("[S] Search", "S")
+DOWNLOAD = Control("[D] Download", "D")
+NEXT_PAGE = Control("[N] Next", "N")
+LAST_PAGE = Control("[L] Last", "L")
+VIEW_INFO = Control("[V] View info", "V")
 
 MAIN_MENU_CONTROLS = ControlGroup(
     (
-        Control("[S]earch", "S"),
-        Control("[D]ownload", "D"),
-        EXIT,
+        SEARCH,
+        DOWNLOAD,
+        QUIT,
     )
 )
 PAGE_CONTROLS = ControlGroup(
     (
-        Control("[Q] Previous", "Q"),
-        Control("[E] Next", "E"),
+        LAST_PAGE,
+        NEXT_PAGE,
         BACK,
-        EXIT
+        QUIT
     )
 )
 MANGA_CONTROLS = ControlGroup(
     (
-        Control("[D]ownload", "D"),
-        Control("[V]iew info", "V"),
+        DOWNLOAD,
+        VIEW_INFO,
         BACK,
-        EXIT,
+        QUIT,
     )
 )

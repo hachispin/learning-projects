@@ -30,8 +30,9 @@ include_pornographic = false
 [cli]
 options_per_row = 3
 use_ansi = true         # set to false if your terminal doesn't support ANSI
+time_to_read = 1        # seconds; how long messages are displayed before being cleared
 
 [logging]
 enabled = true      # set to false to stop logs from being created
-level = "INFO"     # options: "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"
+level = "DEBUG"     # options: "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"
 location = "logs"

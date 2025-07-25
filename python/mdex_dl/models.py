@@ -88,6 +88,23 @@ class SearchResults:
 
 
 @dataclass
+class SearchSession:
+    """Stores SearchResults of different pages (from the same query)."""
+
+    searches: list[SearchResults]
+
+    def append(self, res: SearchResults):
+        """Appends `res` into self.searches and checks validity."""
+        self.searches.append(res)
+
+        # If their totals don't match up
+        if len(set(s.total for s in self.searches)) != 1:
+            raise ValueError(
+                "All SearchResults in SearchSession.searches must derive from the same query."
+            )
+
+
+@dataclass
 class ReqsConfig:
     """Type hints for [reqs] in config.toml"""
 
@@ -136,6 +153,7 @@ class CliConfig:
 
     options_per_row: int
     use_ansi: bool
+    time_to_read: int | float
 
 
 @dataclass
