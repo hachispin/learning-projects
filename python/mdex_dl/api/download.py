@@ -48,7 +48,7 @@ class Downloader:
         self.manga_title = manga.title[: self.cfg.save.max_title_length]
 
         if PLATFORM == "win32":
-            self.manga_title.replace('<>:"/\\|?*', "_")
+            self.manga_title = self.manga_title.replace('<>:"/\\|?*', "_")
 
     def __repr__(self):
         # Full Manga object isn't included because only the title is saved
