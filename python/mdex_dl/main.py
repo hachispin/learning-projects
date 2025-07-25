@@ -114,7 +114,12 @@ else:
 def get_input_key() -> str:
     """Normalises input to be compared against uppercase Control.key values."""
     print(">> ", flush=True, end="")
-    option = getch().upper()
+    option = getch()
+
+    if isinstance(option, bytes):
+        option = option.decode()
+
+    option = option.upper()
     print(option)
     return option
 

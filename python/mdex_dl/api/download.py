@@ -6,6 +6,7 @@ each chapter, and not for the entire manga
 """
 
 import logging
+from sys import platform as PLATFORM
 from pathlib import Path
 from typing import Callable
 
@@ -45,6 +46,9 @@ class Downloader:
         self.cfg = cfg
         self.chapter = chapter
         self.manga_title = manga.title[: self.cfg.save.max_title_length]
+
+        if PLATFORM == "win32":
+            self.manga_title.replace('<>:"/\\|?*', "_")
 
     def __repr__(self):
         # Full Manga object isn't included because only the title is saved
