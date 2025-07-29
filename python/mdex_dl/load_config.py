@@ -208,3 +208,8 @@ def require_ok_config() -> Config:
         cli=CliConfig(**cfg["cli"]),
         logging=LoggingConfig(**cfg["logging"]),
     )
+
+
+if __name__ == "__main__":
+    conf = require_ok_config()
+    print(f"Config: {conf}")

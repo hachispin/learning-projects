@@ -46,7 +46,14 @@ class Downloader:
         self.manga_title = manga.title[: self.cfg.save.max_title_length]
 
         if PLATFORM == "win32":
-            self.manga_title = self.manga_title.replace('<>:"/\\|?*', "_")
+            invalid = '<>:"/\\|?*'
+            title_mutable = list(self.manga_title)
+
+            for i, ch in enumerate(title_mutable):
+                if ch in invalid:
+                    title_mutable[i] = "_"
+
+            self.manga_title = "".join(title_mutable)
 
     def __repr__(self):
         # Full Manga object isn't included because only the title is saved
@@ -171,7 +178,8 @@ class Downloader:
         logger.debug("ImageReport for chapter '%s': %s", self.chapter.uuid, stats)
         return ImageReport(**stats)
 
-    def _download_image(self, url, fp: Path):
+    def _download_image(self, url, fp: Path) -> ImageReport:
+        """Downloads the image at the provided URL and saves it at the given filepath."""
         c = pycurl.Curl()
         headers = []
 
@@ -232,11 +240,13 @@ class Downloader:
         if base_url == last_base_url:
             logger.warning("Received same base URL upon failure")
             return
-        if not all((
-            cdn_data.chapter_hash,
-            cdn_data.filenames_data,
-            cdn_data.filenames_data_saver,
-            )):
+        if not all(
+            (
+                cdn_data.chapter_hash,
+                cdn_data.filenames_data,
+                cdn_data.filenames_data_saver,
+            )
+        ):
             logger.info("No downloadable chapters available. (Received empty CDN data)")
 
         urls = self._construct_image_urls(cdn_data)

@@ -2,14 +2,10 @@
 Contains the retry config used for requests sessions.
 """
 
-import logging
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from mdex_dl.load_config import RetryConfig
-
-
-logger = logging.getLogger(__name__)
 
 
 def get_retry_adapter(cfg: RetryConfig):
@@ -23,5 +19,4 @@ def get_retry_adapter(cfg: RetryConfig):
         allowed_methods={"GET"},
         respect_retry_after_header=False,  # MangaDex sends non-conventional "X-*" headers
     )
-    logger.debug("Created HTTPAdapter()")
     return HTTPAdapter(max_retries=retry_config)

@@ -2,8 +2,6 @@
 
 from mdex_dl.cli.controls.classes import Control, ControlGroup
 
-# fmt: off
-# ^ for consistent arg ordering
 
 BACK = Control("[B] Back", "B")
 QUIT = Control("[Q] Quit", "Q")
@@ -20,14 +18,16 @@ MAIN_MENU_CONTROLS = ControlGroup(
         QUIT,
     )
 )
+
 PAGE_CONTROLS = ControlGroup(
     (
         LAST_PAGE,
         NEXT_PAGE,
         BACK,
-        QUIT
+        QUIT,
     )
 )
+
 MANGA_CONTROLS = ControlGroup(
     (
         DOWNLOAD,

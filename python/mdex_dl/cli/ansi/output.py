@@ -10,8 +10,8 @@ from mdex_dl.cli.ansi.fg_colors import CYAN, GREEN, RED, DEFAULT, YELLOW
 class AnsiOutput:
     """Groups methods that use ANSI."""
 
-    def __init__(self, cfg: CliConfig):
-        self.use_ansi = cfg.use_ansi
+    def __init__(self, cli_cfg: CliConfig):
+        self.use_ansi = cli_cfg.use_ansi
 
     def format_ansi(
         self,

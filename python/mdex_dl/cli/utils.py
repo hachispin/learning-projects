@@ -127,36 +127,6 @@ class CliUtils:
 
             time.sleep(self.cfg.cli.time_to_read)
 
-    def print_controls(self, cg: ControlGroup) -> None:
-        """
-        Prints all controls with equal spacing and according
-        to `config.cli.options_per_row`
-
-        Args:
-            cg (ControlGroup): the controls to be printed
-        """
-        # if it's just one row
-        if len(cg.controls) <= self.cfg.cli.options_per_row:
-            print(" ".join([c.label for c in cg.controls]))
-            return
-
-        options_per_row = self.cfg.cli.options_per_row
-        labels = tuple(c.label for c in cg.controls)
-        max_len = max(len(l) for l in labels)
-
-        for idx, l in enumerate(labels):
-            spacing = (max_len + 1) - len(l)
-
-            if (idx + 1) % options_per_row == 0:  # New row
-                print(l)
-            else:  # Stay on current
-                print(l, end=" " * spacing)
-
-        if len(labels) % options_per_row != 0:
-            print()  # Newline at end of options if not already printed
-
-        return
-
     def print_manga_titles(self, manga: tuple[Manga, ...]):
         """Prints manga titles with a left index for use by the user."""
         for idx, m in enumerate(manga):

@@ -84,7 +84,7 @@ class ChapterGetResponse:
 
 @dataclass
 class SearchResults:
-    """Contains info gathered when `GET /manga` is invoked"""
+    """Contains info gathered when `GET /manga` is invoked."""
 
     results: tuple[Manga, ...]
     total: int
