@@ -81,7 +81,7 @@ class Menu:
             print(self._DESCRIPTION)
         self._show_controls()
 
-    def get_option(self):
+    def get_option(self) -> str:
         """Gets a validated option from the user."""
         while True:
             self.utils.clear()
@@ -188,7 +188,43 @@ class MainMenu(Menu):
         return super().handle_option_defaults(option)
 
 
-class SearchMenu(Menu): ...
+class SearchMenu(Menu):
+    """Searches for the user's query and redirects results to ResultsMenu."""
+
+    _USE_GETCH = False
+    _DESCRIPTION = "Search for a manga's title or enter ':B' to go back"
+
+    def __init__(self, cfg):
+        self.searcher = Searcher(cfg)
+        super().__init__(cfg)
+
+    def get_option(self) -> str:
+        return input(">> ").strip()
+
+    def handle_option(self, option: str) -> MenuAction:
+        if option.upper() == ":B":
+            return MenuAction(None, Action.POP)
+
+        res = self.searcher.search(query=option, page=0)
+        return
+
+
+class ResultsMenu(Menu):
+    """Displays and allows access to paginated results of a search query."""
+
+    _USE_GETCH = False
+    _DESCRIPTION = (
+        "Choose a manga's number, on the left, or enter one of these options:"
+    )
+    _CG = PAGE_CONTROLS
+
+    def __init__(self, first_page: SearchResults, cfg: Config):
+        # off-by-one is intentional here because of first page
+        total_pages = first_page.total // cfg.search.results_per_page
+        self.searches = [first_page]  # type: list[SearchResults | None]
+        self.searches.extend([None] * total_pages)
+
+        super().__init__(cfg)
 
 
 class DownloadMenu(Menu): ...
