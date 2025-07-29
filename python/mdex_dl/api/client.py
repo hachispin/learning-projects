@@ -13,39 +13,56 @@ from typing import Any
 import requests
 
 from mdex_dl.errors import ApiError
-from mdex_dl.models import Chapter, Manga, Config, ReqsConfig
+from mdex_dl.models import Chapter, Manga, Config
 
 
 logger = logging.getLogger(__name__)
 
 
-def safe_to_json(r: requests.Response) -> dict[str, Any] | None:
+def safe_get_json(
+    url: str,
+    session: requests.Session,
+    cfg: Config,
+    params: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """
-    Checks if the provided response can be converted to JSON.
-
-    An error is not raised to allow flexibility on caller side
-    according to how critical parsing a response to JSON would be.
+    Retrieves the JSON response using the given session by sending a GET
+    request to the provided URL.
 
     Args:
-        r (requests.Response): the response that's tested for JSON parsability
+        url (str): where to send the GET request to
+        session (requests.Session): the client used that should have a retry adapter
+        cfg (Config): used for args like timeout
+        params (dict[str, Any] | None, optional): args passed to the URL. Defaults to None.
+
+    Raises:
+        ApiError: if the response is not JSON parsable or anything else goes wrong
 
     Returns:
-    -   dict: if the JSON response conversion is successful
-    -   None: if unsuccessful
+        dict ([str, Any]): the JSON response
     """
+
+    # just a design choice, but i raise if it's not json parsable
+    # instead of retrying. i do this because errors like these
+    # are usually the client's fault.  /_ \
+
+    logger.debug("Retrieving JSON from url: %s", url)
+    r = get_with_ratelimit(url, session, cfg, params)
+    logger.debug("Raw response received: %s", r.text)
+
     try:
         r_json = r.json()
     except JSONDecodeError:
-        logger.warning("Failed to parse response as JSON for url: %s", r.url)
-        logger.debug("API response as text: %s", r.text)
+        logger.warning("Failed to decode response into JSON")
+        raise ApiError("Request failed (JSONDecodeError)", r) from None
 
-        return None
+    assert_ok_response(r_json)
 
     if not isinstance(r_json, dict):
         logger.warning(
-            "Unexpected JSON response type for url '%s': %s", r.url, type(r_json)
+            "Expected type dict for JSON response, instead got %s", type(r_json)
         )
-        return None
+        raise ApiError("Malformed response (incorrect type)", r)
 
     return r_json
 
@@ -58,7 +75,7 @@ def assert_ok_response(r_json: dict[str, Any]) -> None:
 
 
 def get_cattributes(
-    session: requests.Session, cfg: ReqsConfig, chapter: Chapter
+    session: requests.Session, cfg: Config, chapter: Chapter
 ) -> dict[str, Any]:
     """
     Sends a GET request to `api_root/chapter/chapter.id`
@@ -66,14 +83,10 @@ def get_cattributes(
     Note: cattributes is short for **c**hapter **attributes**
 
     Reference:
-        https://api.mangadex.org/docs/redoc.html#tag/Manga
+        https://api.mangadex.org/docs/redoc.html#tag/Mangas
     """
-    r = session.get(f"{cfg.api_root}/chapter/{chapter.uuid}", timeout=cfg.get_timeout)
-
-    if (r_json := safe_to_json(r)) is not None:
-        assert_ok_response(r_json)
-        return r_json["data"]["attributes"]
-    raise ApiError("API returned a response that couldn't be parsed as JSON", r)
+    endpoint = f"{cfg.reqs.api_root}/chapter/{chapter.uuid}"
+    return safe_get_json(endpoint, session, cfg)
 
 
 def get_with_ratelimit(
@@ -113,6 +126,7 @@ def get_with_ratelimit(
             f"Expected type int from X-RateLimit-Retry-After, instead got {type(retry_after)}"
         ) from None
 
+    # imitating Retry() behaviour
     logger.info("Time to sleep: %s seconds", tts)
     print(f"Ratelimited! Please wait {tts} seconds...")
     time.sleep(tts)
@@ -122,7 +136,7 @@ def get_with_ratelimit(
 
 
 def get_manga_feed(
-    session: requests.Session, cfg: Config, manga: Manga
+    session: requests.Session, manga: Manga, cfg: Config
 ) -> dict[str, Any]:
     """
     Sends a GET request to `/manga/manga.id/feed`
@@ -133,25 +147,14 @@ def get_manga_feed(
 
     feed = f"{cfg.reqs.api_root}/manga/{manga.uuid}/feed"
 
-    if cfg.search.include_pornographic:
-        r = session.get(
-            feed,
-            params={
-                "translatedLanguage[]": ["en"],
-                "contentRating[]": ["safe", "suggestive", "erotica", "pornographic"],
-            },
-            timeout=cfg.reqs.get_timeout,
-        )
-    else:
-        r = session.get(
-            feed,
-            timeout=cfg.reqs.get_timeout,
-            params={"translatedLanguage[]": ["en"]},
-        )
+    r_json = safe_get_json(
+        feed,
+        session,
+        cfg,
+        params={  # always include 18+ because filtering is done at the search level
+            "translatedLanguage[]": ["en"],
+            "contentRating[]": ["safe", "suggestive", "erotica", "pornographic"],
+        },
+    )
 
-    logger.debug("get_manga_feed() raw text response from API: %s", r.text)
-
-    if (r_json := safe_to_json(r)) is not None:
-        assert_ok_response(r_json)
-        return r_json
-    raise ApiError("API returned a response that couldn't be parsed as JSON", r)
+    return r_json

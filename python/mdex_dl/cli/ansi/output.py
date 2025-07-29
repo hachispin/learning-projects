@@ -121,9 +121,6 @@ class ProgressBar(AnsiOutput):
                 and not equal to -1.0
         """
         if progress == -1.0:
-            if not self.use_ansi:
-                self._display_err_no_ansi()
-                return
             self._display_err()
             return
 
@@ -137,10 +134,7 @@ class ProgressBar(AnsiOutput):
         if progress > 1.0:
             raise ValueError("Progress cannot be greater than 100% (1.0)")
         if progress < 0.0:
-            raise ValueError(
-                "Progress cannot be less than 0% (0.0) if "
-                "it's not representing the error sentinel -1.0"
-            )
+            raise ValueError("Progress cannot be less than 0% (0.0) if it's not -1.0")
 
         complete_bars = int(self.bars * progress)
         progress_bar = ProgressBar._GREENBAR * complete_bars
@@ -158,6 +152,11 @@ class ProgressBar(AnsiOutput):
 
     def _display_err(self):
         """Prints a progress bar's error form"""
+
+        if not self.use_ansi:
+            self._display_err_no_ansi()
+            return
+
         self.print_ansi(self.label, fg_color=CYAN, end=" ")
         self.print_ansi("FAILED", text_styles=(INVERSE,), fg_color=RED, end=" ")
         # Shorten bars to keep line-width consistent if possible

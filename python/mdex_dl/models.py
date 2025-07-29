@@ -69,8 +69,8 @@ class ChapterGetResponse:
     Contains the expected response data from the
     `GET /at-home/server/:chapterId` endpoint.
 
-    - filenames_data means normal quality images.
-    - filenames_data_saver means compressed images.
+    - `filenames_data` means normal quality images.
+    - `filenames_data_saver` means compressed images.
 
     Reference:
         https://api.mangadex.org/docs/04-chapter/retrieving-chapter/#howto
@@ -103,7 +103,7 @@ class SearchSession:
         # If their totals don't match up
         if len(set(s.total for s in self.searches)) != 1:
             raise ValueError(
-                "All SearchResults in SearchSession.searches must derive from the same query."
+                "SearchResults in SearchSession.searches must be from the same query"
             )
 
 

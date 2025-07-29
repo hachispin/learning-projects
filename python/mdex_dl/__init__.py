@@ -1,4 +1,4 @@
-"""(__init__) Only acts as the source of truth for the project root as of now."""
+"""The project root. Stores the (Path) `PROJECT_ROOT` variable"""
 
 from pathlib import Path
 

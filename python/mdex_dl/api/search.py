@@ -5,10 +5,9 @@ from typing import Any
 
 import requests
 
-from mdex_dl.errors import ApiError
 from mdex_dl.models import Config, Manga, SearchResults
 from mdex_dl.api.http_config import get_retry_adapter
-from mdex_dl.api.client import assert_ok_response, get_with_ratelimit, safe_to_json
+from mdex_dl.api.client import safe_get_json
 
 logger = logging.getLogger(__name__)
 
@@ -29,9 +28,9 @@ class Searcher:
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
 
-    def _get_with_ratelimit(self, url: str, params: dict[str, Any] | None = None):
-        """Packages get_with_ratelimit() from .api.client into a method"""
-        return get_with_ratelimit(url, self.session, self.cfg, params)
+    def _safe_get_json(self, url: str, params: dict[str, Any] | None = None):
+        """Packages safe_get_json() from .api.client into a method"""
+        return safe_get_json(url, self.session, self.cfg, params)
 
     def _get_title(self, mattributes: dict) -> str:
         """
@@ -50,7 +49,9 @@ class Searcher:
     def search(self, query: str, page: int = 0) -> SearchResults:
         """
         Searches for the given query and returns a list of Manga UUIDs.
-        By default, this sorts by descending relevance to the query.
+
+        By default, this sorts by descending relevance to the query, along
+        with other search parameters for better UX when downloading.
 
         Pornographic results will only be included if configured as such.
 
@@ -81,15 +82,9 @@ class Searcher:
             page,
             self.cfg.search.include_pornographic,
         )
-        r = self._get_with_ratelimit(
-            f"{self.cfg.reqs.api_root}/manga",
-            params=params,  # type: ignore[arg-type]
-        )
 
-        if (r_json := safe_to_json(r)) is None:
-            raise ApiError("Failed to convert search into JSON", r)
-        assert_ok_response(r_json)
-
+        endpoint = f"{self.cfg.reqs.api_root}/manga"
+        r_json = self._safe_get_json(endpoint, params)
         results = []  # type: list[Manga]
 
         for m in r_json["data"]:
@@ -105,14 +100,9 @@ class Searcher:
         -   Manga: if response is json-parsable
         -   None: if not
         """
-        r = self._get_with_ratelimit(f"{self.cfg.reqs.api_root}/manga/random")
+        endpoint = f"{self.cfg.reqs.api_root}/manga/random"
 
-        if (r_json := safe_to_json(r)) is None:
-            logger.warning(
-                "Failed to get a valid JSON response from the `GET /manga/random` endpoint"
-            )
-            return None
-        assert_ok_response(r_json)
+        r_json = self._safe_get_json(endpoint)
 
         return Manga(
             self._get_title(r_json["data"]["attributes"]), r_json["data"]["id"]

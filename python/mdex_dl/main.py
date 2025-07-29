@@ -4,12 +4,16 @@ where `mdex_dl.load_config` is used. All other modules then
 inherit the config from here.
 """
 
+if __name__ == "__main__":
+    raise RuntimeError("run me as a module with the -m flag :)")
+
 import logging
 import os
 import sys
 import time
 
 from requests import session
+
 
 # API; Requests
 from mdex_dl.api.client import get_manga_feed
@@ -52,160 +56,7 @@ main_session.mount("http://", adapter)
 main_session.mount("https://", adapter)
 
 logger.debug("Hello, world!")
-
-
-def print_controls(cg: ControlGroup) -> None:
-    """
-    Prints all controls with equal spacing and according
-    to `config.cli.options_per_row`
-
-    Args:
-        cg (ControlGroup): the controls to be printed
-    """
-    # if it's just one row
-    if len(cg.controls) <= cfg.cli.options_per_row:
-        print(" ".join([c.label for c in cg.controls]))
-        return
-
-    options_per_row = cfg.cli.options_per_row
-    labels = tuple(c.label for c in cg.controls)
-    max_len = max(len(l) for l in labels)
-
-    for idx, l in enumerate(labels):
-        spacing = (max_len + 1) - len(l)
-
-        if (idx + 1) % options_per_row == 0:  # New row
-            print(l)
-        else:  # Stay on current
-            print(l, end=" " * spacing)
-
-    if len(labels) % options_per_row != 0:
-        print()  # Newline at end of options if not already printed
-
-    return
-
-
-def print_manga_titles(manga: tuple[Manga, ...]):
-    """Prints manga titles with a left index for use by the user."""
-    for idx, m in enumerate(manga):
-        print(f"[{idx+1}]: {m.title}")
-
-
-def print_chapter_titles(chapters: tuple[Chapter, ...]):
-    """Prints chapter titles with a left index for use by the user."""
-    for idx, c in enumerate(chapters):
-        print(f"[{idx+1}]: {c.title}")
-
-
 logger.debug("User platform: %s", sys.platform)
-if sys.platform == "win32":
-
-    def clear():
-        """Clears the terminal."""
-        os.system("cls")
-
-else:
-
-    def clear():
-        """Clears the terminal."""
-        os.system("clear")
-
-
-def get_input_key() -> str:
-    """Normalises input to be compared against uppercase Control.key values."""
-    print(">> ", flush=True, end="")
-    option = getch()
-
-    if isinstance(option, bytes):
-        option = option.decode()
-
-    option = option.upper()
-    print(option)
-    return option
-
-
-def get_option(cg: ControlGroup, message: str | None = None) -> str:
-    """
-    Gets a validated option from the user.
-
-    Args:
-        message (str): the text displayed before controls are shown
-        cg (ControlGroup): the controls to display and look for
-
-    Returns:
-        str: the key entered by the user
-    """
-    allowed = tuple(c.key for c in cg.controls)
-    while True:
-        clear()
-        if message:
-            print(message + "\n")
-        print_controls(cg)
-        user_input = get_input_key()
-
-        if user_input == QUIT.key:
-            sys.exit(0)
-        if user_input in allowed:
-            return user_input
-
-        print(ansi.to_err("[Invalid option]"))
-        time.sleep(cfg.cli.time_to_read)
-
-
-# getch() isn't used here since manga indices can be two characters (e.g. "10")
-def get_page_option(
-    res: SearchResults,
-    current_page: int,
-    total_pages: int,
-    last_index: int = cfg.search.results_per_page,
-) -> str:
-    """
-    Gets a valid page option or manga index from the user.
-
-    This also prints the
-    necessary information needed for the user to choose their option.
-
-    Args:
-        last_index (int, optional): the last index that the user can pick.
-            **This should be one-indexed** as the index is user-facing.
-
-            Defaults to cfg.search.results_per_page.
-
-    Returns:
-        str: the validated option the user picked; may be a manga index or
-            a page control.
-    """
-    allowed = [c.key for c in PAGE_CONTROLS.controls]
-    allowed += list(str(i) for i in range(1, last_index + 1))
-    total_pages = (res.total // cfg.search.results_per_page) + 1
-
-    while True:
-        clear()
-
-        print_manga_titles(res.results)
-        print(ansi.to_inverse(f"Page {current_page+1} / {total_pages}\n"))
-        print("Type the manga's number on the left to select, or:")
-        print_controls(PAGE_CONTROLS)
-
-        user_input = input(">> ").upper()
-        if user_input == QUIT.key:
-            sys.exit(0)
-        if user_input in allowed:
-            return user_input
-        # failure cases
-        if user_input.isdigit():
-            print(ansi.to_err("[Invalid manga index]"))
-        else:
-            print(ansi.to_err("[Invalid page control]"))
-
-        time.sleep(cfg.cli.time_to_read)
-
-
-# Menus
-# - NOTE: QUIT.key should be checked for in the input validator.
-# pylint:disable=missing-function-docstring
-searcher = Searcher(cfg)
-ansi = AnsiOutput(cfg.cli)  # for ANSI formatted messages
 
 
 def main_menu() -> None:
@@ -273,14 +124,6 @@ def manga_menu(manga: Manga) -> None:
             raise NotImplementedError()
         case BACK.key:
             start_search()
-
-
-def is_float(s: str) -> bool:
-    try:
-        float(s)
-        return True
-    except ValueError:
-        return False
 
 
 def download_manga_menu(manga: Manga) -> None:

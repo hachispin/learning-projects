@@ -10,11 +10,17 @@ Only CLI left to go.
 
 A basic CLI app that can search for and download manga from [MangaDex](https://mangadex.org).
 
-### Ratelimit handling
+Some quick links that may be useful:
+
+- https://api.mangadex.org/docs/
+- https://api.mangadex.org/docs/redoc.html
+- https://api.mangadex.org/docs/swagger.html
+
+## Ratelimit handling
 
 Example debug level log; simplified for brevity. This is calling the `GET /manga/random` endpoint.
 
-This endpoint has a ratelimit of [60 requests per minute](https://api.mangadex.org/docs/2-limitations/#endpoint-specific-rate-limits).
+This endpoint returns a random manga and has a ratelimit of [60 requests per minute](https://api.mangadex.org/docs/2-limitations/#endpoint-specific-rate-limits). More info about what this endpoint returns is on the [redoc](https://api.mangadex.org/docs/redoc.html#tag/Manga/operation/get-manga-random).
 
 ```
 15:26 Request #61
@@ -27,9 +33,12 @@ This endpoint has a ratelimit of [60 requests per minute](https://api.mangadex.o
 16:08 [mdex_dl.api.search] Muni no Ichigeki
 ```
 
+- The header, `X-Ratelimit-Retry_after`, is a UNIX timestamp
+- Timestamps on the left are in `MIN:SEC`; the time change between lines 5-6 is expected.
+
 Full log [here](https://gist.github.com/hachispin/845e71905a2ae6e4c0be989ea07a8750) along with the [code used](https://gist.github.com/hachispin/5b6895ae2c7fd02774352f3c789829be).
 
-### Config
+## Config
 
 **WIP**
 

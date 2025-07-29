@@ -8,7 +8,7 @@ each chapter, and not for the entire manga
 import logging
 from sys import platform as PLATFORM
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
 # pylint:disable=c-extension-no-member
 import requests
@@ -19,10 +19,8 @@ from mdex_dl.errors import ApiError
 from mdex_dl.models import Chapter, Manga, Config, ChapterGetResponse, ImageReport
 from mdex_dl.api.http_config import get_retry_adapter
 from mdex_dl.api.client import (
-    get_with_ratelimit,
     get_cattributes,
-    safe_to_json,
-    assert_ok_response,
+    safe_get_json,
 )
 
 logger = logging.getLogger(__name__)
@@ -54,51 +52,68 @@ class Downloader:
         # Full Manga object isn't included because only the title is saved
         return f"Downloader(Manga({self.manga_title}, ...), {self.chapter})"
 
-    def _get_with_ratelimit(self, url: str):
+    def _safe_get_json(self, url: str):
         """Packages get_with_ratelimit() from .api.client into a method"""
-        return get_with_ratelimit(url, self.session, self.cfg)
+        return safe_get_json(url, self.session, self.cfg)
 
-    def _send_chapter_get(self) -> ChapterGetResponse:
-        r = self.session.get(
-            f"{self.cfg.reqs.api_root}/at-home/server/{self.chapter.uuid}",
-            timeout=self.cfg.reqs.get_timeout,
-        )
+    def _unpack_cdn_data(self, r_json: dict[str, Any]) -> ChapterGetResponse:
+        """
+        Unpacks the CDN data from the `GET /at-home/server/:chapterId`
+        endpoint into a `ChapterGetResponse` object.
 
-        if (r_json := safe_to_json(r)) is None:
-            raise ApiError(
-                "Could not convert `GET /at-home/server/:chapterId` "
-                "response from _send_chapter_get() to JSON",
-                r,
-            )
-        assert_ok_response(r_json)
+        Args:
+            r_json (dict[str, Any]): the JSON response received when the
+                endpoint was hit.
 
+        Returns:
+            ChapterGetResponse: the cdn data.
+        """
+        logger.debug("Unpacking JSON response for CDN data: %s", r_json)
         try:
-            cdn_data = {
-                "base_url": r_json["baseUrl"],
-                "chapter_hash": r_json["chapter"]["hash"],
-                "filenames_data": tuple(r_json["chapter"]["data"]),
-                "filenames_data_saver": tuple(r_json["chapter"]["dataSaver"]),
-            }
-        except KeyError:
+            base_url = r_json["baseUrl"]
+            chapter_hash = r_json["chapter"]["hash"]
+            filenames_data = tuple(r_json["chapter"]["data"])
+            filenames_data_saver = tuple(r_json["chapter"]["dataSaver"])
+
+        except KeyError as e:
+            logger.warning("Missing key '%s' in _unpack_cdn_data()", e)
             raise ApiError(
                 "Missing keys for `GET /at-home/server/:chapterId` "
                 "response from _send_chapter_get()",
-                r,
-            ) from None
-        logger.debug("`GET /at-home/server/:chapterId` CDN data: %s", cdn_data)
-        chapter_get = ChapterGetResponse(**cdn_data)
+            ) from e
 
-        cattrs = get_cattributes(self.session, self.cfg.reqs, self.chapter)
+        cdn_data = ChapterGetResponse(
+            base_url,
+            chapter_hash,
+            filenames_data,
+            filenames_data_saver,
+        )
 
-        if len(chapter_get.filenames_data) != cattrs["pages"]:
-            logger.warning(
-                "Possible missing pages: number of image URLs "
-                "vs pages in chapter attributes = %s, %s",
-                len(chapter_get.filenames_data),
-                cattrs["pages"],
-            )
+        logger.debug("CDN data: %s", cdn_data)
+        return cdn_data
 
-        return ChapterGetResponse(**cdn_data)
+    def _send_chapter_get(self) -> ChapterGetResponse:
+        """
+        Sends a GET request to `/at-home/server/:chapterId` and returns
+        the CDN data needed for image downloads.
+        """
+        endpoint = f"{self.cfg.reqs.api_root}/at-home/server/{self.chapter.uuid}"
+        r_json = safe_get_json(endpoint, self.session, self.cfg)
+
+        cdn_data = self._unpack_cdn_data(r_json)
+        cattrs = get_cattributes(self.session, self.cfg, self.chapter)
+
+        if len(cdn_data.filenames_data) == cattrs["pages"]:
+            return cdn_data
+
+        logger.warning(  # I should be handling this, but I don't know how :(
+            "Possible missing pages: number of image URLs "
+            "vs pages in chapter attributes = %s, %s",
+            len(cdn_data.filenames_data),
+            cattrs["pages"],
+        )
+
+        return cdn_data
 
     def _construct_image_urls(self, cdn_data: ChapterGetResponse) -> tuple[str, ...]:
         if self.cfg.images.use_datasaver:
@@ -180,24 +195,6 @@ class Downloader:
 
         return stats
 
-    def _download_images_loop(
-        self,
-        progress_out: Callable[[float], None],
-        retries: int,
-        img_url: str,
-    ):
-        ext = Path(img_url).suffix
-        zeros = len(str(len(urls))) + 1  # +1 purely for looks
-        fp = self._get_image_fp(idx, zeros, ext)
-        report = self._download_image(img_url, fp)
-        if report.success is not True:
-            progress_out(-1.0)  # invokes error form of progress bar
-            logger.warning("Failed to download image (success = %s)", report.success)
-            self._download_images(progress_out, retries - 1, base_url, idx)
-        # self._send_image_report(*report)
-        # ^ Check ahead for why this is commented out!
-        progress_out((idx + 1) / len(urls))
-
     def _download_images(
         self,
         progress_out: Callable[[float], None],
@@ -235,30 +232,29 @@ class Downloader:
         if base_url == last_base_url:
             logger.warning("Received same base URL upon failure")
             return
-        if not all(
-            (
-                cdn_data.chapter_hash,
-                cdn_data.filenames_data,
-                cdn_data.filenames_data_saver,
-            )
-        ):
+        if not all((
+            cdn_data.chapter_hash,
+            cdn_data.filenames_data,
+            cdn_data.filenames_data_saver,
+            )):
             logger.info("No downloadable chapters available. (Received empty CDN data)")
 
         urls = self._construct_image_urls(cdn_data)
+        zeros = len(str(len(urls))) + 1  # +1 purely for looks
 
         for idx, url in enumerate(urls[img_start_idx:]):
             ext = Path(url).suffix
             fp = self._get_image_fp(idx, zeros, ext)
             report = self._download_image(url, fp)
-            if report.success is not True:
-                progress_out(-1.0)
-                logger.warning(
-                    "Failed to download image (success = %s)", report.success
-                )
-                self._download_images(progress_out, retries - 1, base_url, idx)
+            if report.success:
+                progress_out((idx + 1) / len(urls))
+                continue
+
+            progress_out(-1.0)  # fail
+            logger.warning("Failed to download image (success = %s)", report.success)
+            self._download_images(progress_out, retries - 1, base_url, idx)
             # self._send_image_report(*report)
             # ^ Check ahead for why this is commented out!
-            progress_out((idx + 1) / len(urls))
 
     def download_images(
         self,

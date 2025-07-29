@@ -5,7 +5,7 @@
 # all time units (like reqs.get_timeout) are in seconds
 
 [reqs]
-api_root = "https://api.mangadex.org"                   
+api_root = "https://api.mangadex.org"
 report_endpoint = "https://api.mangadex.network/report"
 get_timeout = 10
 post_timeout = 20
