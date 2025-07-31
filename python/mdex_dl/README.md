@@ -52,5 +52,7 @@ Full log [here](https://gist.github.com/hachispin/845e71905a2ae6e4c0be989ea07a87
 - [x] Add a config file &rarr; _uses config.toml_
 - [x] Switch to [requests-futures](https://github.com/ross/requests-futures) or pipe through `curl` for faster download speeds &rarr; _uses [PyCurl](https://github.com/pycurl/pycurl)_
 - [ ] **Async image downloading**
+- [ ] Configurable language filtering ("en" is used internally)
+- [ ] Refactor `Manga` and `Chapter` classes to store attributes
 - [ ] Sorting by tags and other characteristics of note
 - [ ] Chapter sorting by scanlation group and date

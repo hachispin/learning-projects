@@ -83,7 +83,7 @@ class ChapterGetResponse:
 
 
 @dataclass
-class SearchResults:
+class MangaResults:
     """Contains info gathered when `GET /manga` is invoked."""
 
     results: tuple[Manga, ...]

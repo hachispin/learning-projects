@@ -6,13 +6,11 @@ under the CliUtils class.
 
 import os
 import sys
-import time
+from typing import Callable
 
 from mdex_dl.cli.ansi.output import AnsiOutput
-from mdex_dl.cli.controls.classes import ControlGroup
-from mdex_dl.cli.controls.constants import PAGE_CONTROLS, QUIT
 from mdex_dl.cli.getch import getch  # type: ignore
-from mdex_dl.models import Chapter, Config, Manga, SearchResults
+from mdex_dl.models import Chapter, Config, Manga
 
 
 class CliUtils:
@@ -46,86 +44,66 @@ class CliUtils:
         print(option)
         return option
 
-    def get_option(self, cg: ControlGroup, message: str | None = None) -> str:
+    def parse_chapter_selection(
+        self, user_input: str, error_out: Callable[[str], None]
+    ) -> list[int]:
         """
-        Gets a validated option from the user.
+        Parses selections such as:
+
+            - A chapter: "2"
+            - Multiple chapters: "2, 5, 8"
+            - Range of chapters: "3-8"
+            - Multiple ranges of chapters: "3-8, 11-13, 15-17"
+
+        into a list of integers.
+
+        If the selection is invalid, an empty list is returned.
 
         Args:
-            message (str): the text displayed before controls are shown
-            cg (ControlGroup): the controls to display and look for
+            user_input (str): the selection
 
         Returns:
-            str: the key entered by the user
+            list[int]: the numbers that the selection covers
         """
-        allowed = tuple(c.key for c in cg.controls)
-        while True:
-            self.clear()
-            if message:
-                print(message + "\n")
-            self.print_controls(cg)
-            user_input = self.get_input_key()
+        user_input = user_input.replace(" ", "")
+        if not user_input:
+            error_out("Selection cannot be blank")
+            return []
+        if user_input[-1] == ",":  # Remove trailing comma
+            user_input = user_input[:-1]
 
-            if user_input == QUIT.key:
-                sys.exit(0)
-            if user_input in allowed:
-                return user_input
+        # Regex for the homeless
+        if not all(ch.isdigit() or ch in {"-", ","} for ch in user_input):
+            error_out(
+                "Selection must only consist of spaces, dashes, commas and numbers"
+            )
+            return []
 
-            print(self.ansi.to_err("[Invalid option]"))
-            time.sleep(self.cfg.cli.time_to_read)
+        selections = user_input.split(",")
+        ranges = []  # type: list[str]
+        nums = []  # type: list[int]
 
-        # getch() isn't used here since manga indices can be two characters (e.g. "10")
-
-    def get_page_option(
-        self,
-        res: SearchResults,
-        current_page: int,
-        total_pages: int,
-        last_index: int | None = None,
-    ) -> str:
-        """
-        Gets a valid page option or manga index from the user for the page menu.
-
-        This also prints the
-        necessary information needed for the user to choose their option.
-
-        Args:
-            last_index (int, optional): the last index that the user can pick.
-                **This should be one-indexed** as the index is user-facing.
-
-                Defaults to cfg.search.results_per_page, which should be the
-                last index given a full page.
-
-        Returns:
-            str: the validated option the user picked; may be a manga index or
-                a page control.
-        """
-        if last_index is None:
-            last_index = self.cfg.search.results_per_page
-
-        allowed = [c.key for c in PAGE_CONTROLS.controls]
-        allowed += list(str(i) for i in range(1, last_index + 1))
-        total_pages = (res.total // self.cfg.search.results_per_page) + 1
-
-        while True:
-            self.clear()
-
-            self.print_manga_titles(res.results)
-            print(self.ansi.to_inverse(f"Page {current_page+1} / {total_pages}\n"))
-            print("Type the manga's number on the left to select, or:")
-            self.print_controls(PAGE_CONTROLS)
-
-            user_input = input(">> ").upper()
-            if user_input == QUIT.key:
-                sys.exit(0)
-            if user_input in allowed:
-                return user_input
-            # failure cases
-            if user_input.isdigit():
-                print(self.ansi.to_err("[Invalid manga index]"))
+        for s in selections:
+            if s.isdigit():
+                nums.append(int(s))
             else:
-                print(self.ansi.to_err("[Invalid page control]"))
+                ranges.append(s)
 
-            time.sleep(self.cfg.cli.time_to_read)
+        for r in ranges:
+            if r.count("-") != 1:
+
+                error_out("Invalid range syntax: must be in the format {start}-{stop}")
+                return []
+            start, stop = r.split("-")
+            assert start.isdigit() and stop.isdigit()
+            if int(start) > int(stop):
+                error_out(
+                    "Invalid range: starting number cannot be greater than the ending number"
+                )
+                return []
+            nums += list(range(int(start), int(stop) + 1))
+
+        return list(set(nums))
 
     def print_manga_titles(self, manga: tuple[Manga, ...]):
         """Prints manga titles with a left index for use by the user."""

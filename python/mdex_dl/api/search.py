@@ -5,7 +5,7 @@ from typing import Any
 
 import requests
 
-from mdex_dl.models import Config, Manga, SearchResults
+from mdex_dl.models import Config, Manga, MangaResults
 from mdex_dl.api.http_config import get_retry_adapter
 from mdex_dl.api.client import safe_get_json
 
@@ -29,7 +29,7 @@ class Searcher:
         self.session.mount("https://", adapter)
 
     def _safe_get_json(self, url: str, params: dict[str, Any] | None = None):
-        """Packages safe_get_json() from .api.client into a method"""
+        """Packages safe_get_json() from .api.client into a method."""
         return safe_get_json(url, self.session, self.cfg, params)
 
     def _get_title(self, mattributes: dict) -> str:
@@ -46,7 +46,7 @@ class Searcher:
 
         return titles.get("en") or titles.get("ja-ro") or titles.get("ja") or "Untitled"
 
-    def search(self, query: str, page: int = 0) -> SearchResults:
+    def search(self, query: str, page: int = 0) -> MangaResults:
         """
         Searches for the given query and returns a list of Manga UUIDs.
 
@@ -56,10 +56,14 @@ class Searcher:
         Pornographic results will only be included if configured as such.
 
         Args:
-            query (str): the search query, which should match a Manga's title
+            query (str): the search query, which should match a manga's title
+            page (int, optional): which page to query.
+
+                The number of chapters returned is
+                dependent on `cfg.search.results_per_page` (config).
 
         Returns:
-            SearchResults: the results for the selected page as
+            MangaResults: the results for the selected page as
                 `tuple[Manga, ...]` and the total number of results
         """
         params = {
@@ -90,7 +94,7 @@ class Searcher:
         for m in r_json["data"]:
             results.append(Manga(self._get_title(m["attributes"]), m["id"]))
 
-        return SearchResults(tuple(results), total=r_json["total"])
+        return MangaResults(tuple(results), total=r_json["total"])
 
     def get_random_manga(self) -> Manga | None:
         """
@@ -101,7 +105,6 @@ class Searcher:
         -   None: if not
         """
         endpoint = f"{self.cfg.reqs.api_root}/manga/random"
-
         r_json = self._safe_get_json(endpoint)
 
         return Manga(

@@ -133,28 +133,3 @@ def get_with_ratelimit(
     time.sleep(random.uniform(0, cfg.retry.backoff_jitter))
 
     return session.get(url, timeout=cfg.reqs.get_timeout)
-
-
-def get_manga_feed(
-    session: requests.Session, manga: Manga, cfg: Config
-) -> dict[str, Any]:
-    """
-    Sends a GET request to `/manga/manga.id/feed`
-
-    Reference:
-        https://api.mangadex.org/docs/redoc.html#tag/Manga/operation/get-manga-id
-    """
-
-    feed = f"{cfg.reqs.api_root}/manga/{manga.uuid}/feed"
-
-    r_json = safe_get_json(
-        feed,
-        session,
-        cfg,
-        params={  # always include 18+ because filtering is done at the search level
-            "translatedLanguage[]": ["en"],
-            "contentRating[]": ["safe", "suggestive", "erotica", "pornographic"],
-        },
-    )
-
-    return r_json
