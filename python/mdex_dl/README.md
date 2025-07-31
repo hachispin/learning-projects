@@ -48,7 +48,9 @@ Full log [here](https://gist.github.com/hachispin/845e71905a2ae6e4c0be989ea07a87
 
 ## To-do
 
-- [ ] **Give better feedback on when chapters can't be downloaded**
+- [x] **Give better feedback on when chapters can't be downloaded**
 - [x] Add a config file &rarr; _uses config.toml_
-- [ ] Allow sorting by tags and other characteristics of note
 - [x] Switch to [requests-futures](https://github.com/ross/requests-futures) or pipe through `curl` for faster download speeds &rarr; _uses [PyCurl](https://github.com/pycurl/pycurl)_
+- [ ] **Async image downloading**
+- [ ] Sorting by tags and other characteristics of note
+- [ ] Chapter sorting by scanlation group and date

@@ -1,27 +1,30 @@
 """Stores classes used to handle menus"""
 
-# pylint:disable=unused-import
 from dataclasses import dataclass
 from enum import Enum, auto
 import sys
+import textwrap
 import time
 import logging
 
-from requests import session
-
+from mdex_dl.models import Config, Manga, SearchResults
 from mdex_dl.api.search import Searcher
+from mdex_dl.api.search_session import SearchSession
 from mdex_dl.cli.ansi.output import AnsiOutput
-from mdex_dl.cli.controls.classes import Control, ControlGroup
-from mdex_dl.models import Config, SearchResults
 from mdex_dl.cli.utils import CliUtils
-from mdex_dl.api.http_config import get_retry_adapter
+from mdex_dl.cli.controls.classes import Control, ControlGroup
 from mdex_dl.cli.controls.constants import (
     BACK,
     DOWNLOAD,
+    LAST_PAGE,
     MAIN_MENU_CONTROLS,
+    MANGA_CONTROLS,
+    NEXT_PAGE,
     PAGE_CONTROLS,
+    PAGE_CONTROLS_CHAPTERS,
     QUIT,
     SEARCH,
+    VIEW_INFO,
 )
 
 logger = logging.getLogger(__name__)
@@ -35,14 +38,14 @@ class Menu:
     instead as an interface (abstract base class).
     """
 
-    _USE_GETCH = True
+    USE_GETCH = True
 
     # These options should **always** be overriden
-    _DESCRIPTION = "_OVERRIDE_ME_"
-    _CG = ControlGroup((Control("?", "?"),))
+    CG = ControlGroup((Control("Unknown control", "?"),))
+    description = "_OVERRIDE_ME_"
 
     def __init__(self, cfg: Config):
-        self.keys = {c.key for c in self._CG.controls}
+        self.keys = {c.key for c in self.CG.controls}
         self.cfg = cfg
         self.utils = CliUtils(cfg)
         self.ansi = AnsiOutput(cfg.cli)
@@ -56,12 +59,12 @@ class Menu:
             cg (ControlGroup): the controls to be printed
         """
         # if it's just one row
-        if len(self._CG.controls) <= self.cfg.cli.options_per_row:
-            print(" ".join([c.label for c in self._CG.controls]))
+        if len(self.CG.controls) <= self.cfg.cli.options_per_row:
+            print(" ".join([c.label for c in self.CG.controls]))
             return
 
         options_per_row = self.cfg.cli.options_per_row
-        labels = tuple(c.label for c in self._CG.controls)
+        labels = tuple(c.label for c in self.CG.controls)
         max_len = max(len(l) for l in labels)
 
         for idx, l in enumerate(labels):
@@ -77,8 +80,8 @@ class Menu:
 
     def show(self):
         """Prints the menu's description and controls."""
-        if self._DESCRIPTION:
-            print(self._DESCRIPTION)
+        if self.description:
+            print(self.description)
         self._show_controls()
 
     def get_option(self) -> str:
@@ -86,7 +89,7 @@ class Menu:
         while True:
             self.utils.clear()
             self.show()
-            if self._USE_GETCH:
+            if self.USE_GETCH:
                 user_input = self.utils.get_input_key()
             else:
                 user_input = input().strip().upper()
@@ -107,7 +110,7 @@ class Menu:
             return MenuAction(None, Action.POP)
         return MenuAction(None, Action.NONE)
 
-    def handle_option(self, option: str):
+    def handle_option(self, option: str) -> "MenuAction":
         """
         Handles all non-default options.
 
@@ -175,15 +178,29 @@ class MenuStack:
 class MainMenu(Menu):
     """The menu shown upon startup."""
 
-    _DESCRIPTION = "What to do?"
-    _CG = MAIN_MENU_CONTROLS
+    CG = MAIN_MENU_CONTROLS
+    description = textwrap.dedent(
+        """\
+        Welcome!
+        
+        Guide: enter the bracketed key to perform the labeled action.
+        e.g. "[Q] Quit" means that if you enter "Q", the program will
+        exit!
+        
+        Enter an action key:
+        """
+    )
+
+    def show(self):
+        self.utils.clear()
+        super().show()
 
     def handle_option(self, option: str) -> MenuAction:
         match option:
             case SEARCH.key:
                 return MenuAction(SearchMenu(self.cfg), Action.PUSH)
             case DOWNLOAD.key:
-                return MenuAction(DownloadMenu(self.cfg), Action.PUSH)
+                return MenuAction(DownloadMangaMenu(self.cfg), Action.PUSH)
 
         return super().handle_option_defaults(option)
 
@@ -191,12 +208,16 @@ class MainMenu(Menu):
 class SearchMenu(Menu):
     """Searches for the user's query and redirects results to ResultsMenu."""
 
-    _USE_GETCH = False
-    _DESCRIPTION = "Search for a manga's title or enter ':B' to go back"
+    USE_GETCH = False
+    description = "Search for a manga's title or enter ':B' to go back"
 
     def __init__(self, cfg):
         self.searcher = Searcher(cfg)
         super().__init__(cfg)
+
+    def show(self):
+        self.utils.clear()
+        print(self.description)
 
     def get_option(self) -> str:
         return input(">> ").strip()
@@ -206,53 +227,160 @@ class SearchMenu(Menu):
             return MenuAction(None, Action.POP)
 
         res = self.searcher.search(query=option, page=0)
-        return
+
+        if not res.results:
+            print(self.ansi.to_warn("No manga found"))
+            time.sleep(self.cfg.cli.time_to_read)
+            return MenuAction(None, Action.NONE)
+
+        return MenuAction(
+            ResultsMenu(self.searcher, option, res, self.cfg),
+            Action.PUSH,
+        )
 
 
 class ResultsMenu(Menu):
-    """Displays and allows access to paginated results of a search query."""
+    """
+    Displays and allows access to paginated results of a search query.
 
-    _USE_GETCH = False
-    _DESCRIPTION = (
-        "Choose a manga's number, on the left, or enter one of these options:"
+    Note that the manga index chosen by the user is one-indexed.
+    """
+
+    USE_GETCH = False
+    CG = PAGE_CONTROLS
+    description = (
+        "Choose a manga's number, on the left, or enter one of these action keys:"
     )
-    _CG = PAGE_CONTROLS
 
-    def __init__(self, first_page: SearchResults, cfg: Config):
-        # off-by-one is intentional here because of first page
-        total_pages = first_page.total // cfg.search.results_per_page
-        self.searches = [first_page]  # type: list[SearchResults | None]
-        self.searches.extend([None] * total_pages)
-
+    def __init__(
+        self,
+        searcher: Searcher,
+        query: str,
+        first_page: SearchResults,
+        cfg: Config,
+    ):
+        self.ss = SearchSession(query, searcher, first_page, cfg)
         super().__init__(cfg)
 
+    def show(self):
+        self.utils.clear()
+        page = self.ss.load_page()
+        self.utils.print_manga_titles(page.results)
+        super().show()
 
-class DownloadMenu(Menu): ...
+    def get_option(self) -> str:
+        max_manga_index = len(self.ss.load_page().results)
+        allowed = self.keys.union({str(i) for i in range(1, max_manga_index)})
+
+        while True:
+            option = input(">> ").strip().upper()
+            if option not in allowed:
+                print(self.ansi.to_err("\nInvalid input"))
+                time.sleep(self.cfg.cli.time_to_read)
+            else:
+                return option
+
+    def handle_option(self, option: str) -> MenuAction:
+        if option == NEXT_PAGE.key:
+            self.ss.page += 1
+            self.ss.load_page()
+            return MenuAction(None, Action.NONE)
+        if option == LAST_PAGE.key:
+            self.ss.page -= 1
+            self.ss.load_page()
+            return MenuAction(None, Action.NONE)
+
+        if option.isdigit():
+            # validated in get input; no indexerror possible
+            current_page = self.ss.load_page().results
+            return MenuAction(
+                MangaMenu(current_page[int(option)], self.cfg), Action.PUSH
+            )
+
+        return super().handle_option_defaults(option)
 
 
-if __name__ == "__main__":
-    # pylint:disable= wildcard-import unused-wildcard-import
-    from mdex_dl.load_config import *
+class MangaMenu(Menu):
+    """Where the user can perform actions on their chosen Manga."""
 
-    test_config = Config(
-        reqs=ReqsConfig(
-            api_root="https://api.mangadex.org",
-            report_endpoint="https://api.mangadex.network/report",
-            get_timeout=10,
-            post_timeout=20,
-        ),
-        save=SaveConfig(location="mdex_save", max_title_length=60),
-        retry=RetryConfig(
-            max_retries=5, backoff_factor=1, backoff_jitter=0.5, backoff_max=30
-        ),
-        images=ImagesConfig(use_datasaver=False),
-        search=SearchConfig(results_per_page=10, include_pornographic=False),
-        cli=CliConfig(options_per_row=3, use_ansi=True, time_to_read=1),
-        logging=LoggingConfig(enabled=True, level=20, location="logs"),
+    description = "Chosen manga: "
+    _CG = MANGA_CONTROLS
+
+    def __init__(self, chosen_manga: Manga, cfg: Config):
+        super().__init__(cfg)
+        self.manga = chosen_manga
+        title_display = self.ansi.to_underline(chosen_manga.title)
+        self.description += title_display
+
+    def handle_option(self, option: str) -> MenuAction:
+        if option == DOWNLOAD.key:
+            return MenuAction(
+                DownloadMangaMenu(self.cfg, manga=self.manga), Action.PUSH
+            )
+        if option == VIEW_INFO.key:
+            print("WORK IN PROGRESS")
+            return MenuAction(None, Action.NONE)
+
+        return super().handle_option_defaults(option)
+
+
+class MangaFeedMenu(Menu):
+    """
+    Displays chapters that the user can select for downloading.
+
+    (This is displayed following `MangaMenu` or manga URL download).
+    """
+
+    USE_GETCH = False
+    _CG = PAGE_CONTROLS_CHAPTERS
+    description = "Use 'Help' to view info on how to select chapters."
+    selection_help = textwrap.dedent(
+        """\
+        Ways to select chapters to download:
+        
+        - A chapter: "2"
+        - Multiple chapters: "2, 5, 8"
+        - Range of chapters: "3-8"
+        - Multiple ranges of chapters: "3-8, 11-13, 15-17"
+        
+        Ranges of chapters also include the starting and ending number.
+        e.g. "5-8" = Chapter 5, 6, 7, 8
+        
+        Make sure to use the indices (numbers) on the left, not the
+        chapter numbers themselves!
+        """
     )
-    main_menu = MainMenu(test_config)
-    nav = MenuStack([main_menu])
-    current = nav.peek()
-    assert current is not None
-    current.show()
-    print(current.get_option())
+
+    def __init__(self, chosen_manga: Manga, cfg: Config):
+        super().__init__(cfg)
+        self.manga = chosen_manga
+        title_display = f"Chosen manga: {self.ansi.to_underline(chosen_manga.title)}\n"
+        self.description = title_display + self.description
+
+    def show(self):
+        self.utils.print_chapter_titles()
+        print(self.description)
+        self._show_controls()
+
+    def handle_option(self, option: str) -> MenuAction: ...
+
+
+class DownloadMangaMenu(Menu):
+    """
+    Where downloads with `Manga` objects are performed.
+
+    Chapters are also paginated here
+    """
+
+    USE_GETCH = False
+    description = "Enter a range of chapters to download or ':B' to go back:"
+
+
+class DownloadUrlMenu(Menu):
+    """
+    Where downloads from manga or chapter URLs are performed.
+
+    If a manga link is given, the `MangaFeedMenu` is shown.
+    """
+
+    ...

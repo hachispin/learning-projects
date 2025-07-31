@@ -65,7 +65,7 @@ class Searcher:
         params = {
             "title": query,
             "order[relevance]": "desc",
-            "hasAvailableChapters": "true",
+            "hasAvailableChapters": "true",  # not perfect; chapters w/ 0 pages exist
             "availableTranslatedLanguage[]": ["en"],
             "limit": self.cfg.search.results_per_page,
             "offset": self.cfg.search.results_per_page * page,
