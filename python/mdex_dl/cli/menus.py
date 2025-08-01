@@ -9,7 +9,7 @@ import logging
 
 from mdex_dl.models import Config, Manga, MangaResults
 from mdex_dl.api.search import Searcher
-from mdex_dl.api.pagination import MangaFeed, SearchSession
+from mdex_dl.api.pagination import ChapterPaginator, MangaPaginator
 from mdex_dl.cli.ansi.output import AnsiOutput
 from mdex_dl.cli.utils import CliUtils
 from mdex_dl.cli.controls.classes import Control, ControlGroup
@@ -273,7 +273,7 @@ class ResultsMenu(Menu):
         first_page: MangaResults,
         cfg: Config,
     ):
-        self.ss = SearchSession(query, searcher, first_page, cfg)
+        self.ss = MangaPaginator(query, searcher, first_page, cfg)
         super().__init__(cfg)
 
     def show(self):
@@ -380,7 +380,7 @@ class MangaFeedMenu(Menu):
         self.manga = chosen_manga
         title_display = f"Chosen manga: {self.ansi.to_underline(chosen_manga.title)}\n"
         self.description = title_display + self.description
-        self.mf = MangaFeed(chosen_manga, cfg)
+        self.mf = ChapterPaginator(chosen_manga, cfg)
 
         super().__init__(cfg)
 

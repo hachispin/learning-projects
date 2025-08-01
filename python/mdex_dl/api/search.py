@@ -34,7 +34,7 @@ class Searcher:
 
     def _get_title(self, mattributes: dict) -> str:
         """
-        Tries to get a mangas title by trying multiple language codes.
+        Tries to get a manga's title by trying multiple language codes.
 
         Args:
             mattributes (dict): the ["attributes"] key of a manga from `GET /manga` or search result

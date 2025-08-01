@@ -8,42 +8,32 @@ have logic.
 from dataclasses import dataclass
 
 
+@dataclass
 class Manga:
     """
-    Parameters:
+    Args:
         title (str, required): the manga title as given by the API
-        id (str, required): UUID used for GET requests
-        tags (list[str], optional): list of genres used for searching
+        uuid (str, required): UUID used for GET requests
     """
 
-    def __init__(self, title: str, uuid: str):  # TODO: add tags
-        self.title = title
-        self.uuid = uuid
-
-    def __str__(self):
-        return f"{self.title}"
-
-    def __repr__(self):
-        return f"Manga({repr(self.title)}, {repr(self.uuid)}"
+    title: str
+    uuid: str
+    # TODO: add tags
 
 
+@dataclass
 class Chapter:
     """
-    Parameters:
-        id (str): UUID used for GET requests
+    Args:
+        uuid (str): UUID used for GET requests
         chap_num (str | None): used to name dirs upon download
     """
 
-    def __init__(self, uuid: str, chap_num: str | None):
-        self.title = f"Ch. {chap_num or "Unknown"}"
-        self.uuid = uuid
-        self.chap_num = chap_num
+    uuid: str
+    chap_num: str | None = None
 
-    def __repr__(self) -> str:
-        return f"{repr(self.uuid), repr(self.chap_num)}"
-
-    def __str__(self):
-        return self.title
+    def __post_init__(self):
+        self.title = f"Ch. {self.chap_num or 'Unknown'}"
 
 
 @dataclass
@@ -92,7 +82,7 @@ class MangaResults:
 
 @dataclass
 class ReqsConfig:
-    """Type hints for [reqs] in config.toml"""
+    """Stores settings for [reqs] in config.toml"""
 
     api_root: str
     report_endpoint: str
@@ -102,7 +92,7 @@ class ReqsConfig:
 
 @dataclass
 class RetryConfig:
-    """Type hints for [retry] in config.toml"""
+    """Stores settings for [retry] in config.toml"""
 
     max_retries: int
     backoff_factor: int | float
@@ -112,7 +102,7 @@ class RetryConfig:
 
 @dataclass
 class SaveConfig:
-    """Type hints for [save] in config.toml"""
+    """Stores settings for [save] in config.toml"""
 
     location: str
     max_title_length: int
@@ -120,14 +110,14 @@ class SaveConfig:
 
 @dataclass
 class ImagesConfig:
-    """Type hints for [images] in config.toml"""
+    """Stores settings for [images] in config.toml"""
 
     use_datasaver: bool
 
 
 @dataclass
 class SearchConfig:
-    """Type hints for [search] in config.toml"""
+    """Stores settings for [search] in config.toml"""
 
     results_per_page: int
     include_pornographic: bool
@@ -135,7 +125,7 @@ class SearchConfig:
 
 @dataclass
 class CliConfig:
-    """Type hints for [cli] in config.toml"""
+    """Stores settings for [cli] in config.toml"""
 
     options_per_row: int
     use_ansi: bool
@@ -144,7 +134,7 @@ class CliConfig:
 
 @dataclass
 class LoggingConfig:
-    """Type hints for [logging] in config.toml"""
+    """Stores settings for [logging] in config.toml"""
 
     enabled: bool
     level: str | int  # converted from string literal (e.g. "CRITICAL")
@@ -153,7 +143,7 @@ class LoggingConfig:
 
 @dataclass
 class Config:
-    """Full type hints for config.toml"""
+    """Full config for config.toml"""
 
     reqs: ReqsConfig
     save: SaveConfig

@@ -17,7 +17,7 @@ from mdex_dl.models import Chapter, Config, Manga, MangaResults
 logger = logging.getLogger(__name__)
 
 
-class SearchSession:
+class MangaPaginator:
     """
     Handles pagination and caching for a given query.
 
@@ -40,7 +40,6 @@ class SearchSession:
         self.total_pages = (first_page.total + page_limit - 1) // page_limit
         self.pages = [first_page]  # type: list[MangaResults | None]
         self.pages.extend([None] * (self.total_pages - 1))
-        logger.debug("First page: %s", first_page)
 
     # pylint:disable=missing-function-docstring
     @property
@@ -80,7 +79,7 @@ class SearchSession:
         return res
 
 
-class MangaFeed:
+class ChapterPaginator:
     """
     A paginator for manga feed (chapters of a manga). This is created per-manga.
 

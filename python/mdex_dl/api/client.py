@@ -13,7 +13,7 @@ from typing import Any
 import requests
 
 from mdex_dl.errors import ApiError
-from mdex_dl.models import Chapter, Config
+from mdex_dl.models import Config
 
 
 logger = logging.getLogger(__name__)
@@ -48,12 +48,12 @@ def safe_get_json(
 
     logger.debug("Retrieving JSON from url: %s", url)
     r = get_with_ratelimit(url, session, cfg, params)
-    logger.debug("Raw response received: %s", r.text)
 
     try:
         r_json = r.json()
     except JSONDecodeError:
         logger.warning("Failed to decode response into JSON")
+        logger.debug("Raw response received: %s", r.text)
         raise ApiError("Request failed (JSONDecodeError)", r) from None
 
     assert_ok_response(r_json)
@@ -72,21 +72,6 @@ def assert_ok_response(r_json: dict[str, Any]) -> None:
     if r_json.get("result") != "ok":
         logger.error("Non-ok response from API. Full JSON response: %s", r_json)
         raise ApiError("API returned non-ok response")
-
-
-def get_cattributes(
-    session: requests.Session, cfg: Config, chapter: Chapter
-) -> dict[str, Any]:
-    """
-    Sends a GET request to `api_root/chapter/chapter.id`
-
-    Note: cattributes is short for **c**hapter **attributes**
-
-    Reference:
-        https://api.mangadex.org/docs/redoc.html#tag/Mangas
-    """
-    endpoint = f"{cfg.reqs.api_root}/chapter/{chapter.uuid}"
-    return safe_get_json(endpoint, session, cfg)
 
 
 def get_with_ratelimit(

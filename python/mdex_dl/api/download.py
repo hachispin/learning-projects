@@ -18,10 +18,7 @@ from mdex_dl import PROJECT_ROOT
 from mdex_dl.errors import ApiError
 from mdex_dl.models import Chapter, Manga, Config, ChapterGetResponse, ImageReport
 from mdex_dl.api.http_config import get_retry_adapter
-from mdex_dl.api.client import (
-    get_cattributes,
-    safe_get_json,
-)
+from mdex_dl.api.client import safe_get_json
 
 logger = logging.getLogger(__name__)
 
