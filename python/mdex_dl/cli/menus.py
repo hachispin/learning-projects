@@ -7,16 +7,16 @@ import textwrap
 import time
 import logging
 
-from mdex_dl.api.client import get_manga_feed
 from mdex_dl.models import Config, Manga, MangaResults
 from mdex_dl.api.search import Searcher
-from mdex_dl.api.pagination import SearchSession
+from mdex_dl.api.pagination import MangaFeed, SearchSession
 from mdex_dl.cli.ansi.output import AnsiOutput
 from mdex_dl.cli.utils import CliUtils
 from mdex_dl.cli.controls.classes import Control, ControlGroup
 from mdex_dl.cli.controls.constants import (
     BACK,
     DOWNLOAD,
+    HELP,
     LAST_PAGE,
     MAIN_MENU_CONTROLS,
     MANGA_CONTROLS,
@@ -27,6 +27,7 @@ from mdex_dl.cli.controls.constants import (
     SEARCH,
     VIEW_INFO,
 )
+
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,12 @@ class Menu:
             print()  # Newline at end of options if not already printed
 
     def show(self):
-        """Prints the menu's description and controls."""
+        """
+        Prints the menu's description and controls.
+
+        Subclasses should override this to clear the terminal.
+        This isn't present in the superclass to allow for flexibility.
+        """
         if self.description:
             print(self.description)
         self._show_controls()
@@ -164,6 +170,11 @@ class MenuStack:
 
     def handle_action(self, menu_action: MenuAction):
         """Handles MenuAction instances returned by Menu subclasses."""
+        logger.debug(
+            "Received MenuAction: %s, %s",
+            type(menu_action.menu).__name__,
+            menu_action.action.name,
+        )
         match menu_action.action:
             case Action.PUSH:
                 self.push(menu_action.menu)  # type: ignore
@@ -188,7 +199,7 @@ class MainMenu(Menu):
         e.g. "[Q] Quit" means that if you enter "Q", the program will
         exit!
         
-        Enter an action key:
+        Enter an action key:\
         """
     )
 
@@ -197,13 +208,15 @@ class MainMenu(Menu):
         super().show()
 
     def handle_option(self, option: str) -> MenuAction:
-        match option:
-            case SEARCH.key:
-                return MenuAction(SearchMenu(self.cfg), Action.PUSH)
-            case DOWNLOAD.key:
-                return MenuAction(DownloadMangaMenu(self.cfg), Action.PUSH)
+        if option == SEARCH.key:
+            return MenuAction(SearchMenu(self.cfg), Action.PUSH)
+        if option == DOWNLOAD.key:
+            return MenuAction(DownloadMangaMenu(self.cfg), Action.PUSH)
 
-        return super().handle_option_defaults(option)
+        return self.handle_option_defaults(option)
+
+    def __repr__(self) -> str:
+        return f"MainMenu(cfg={repr(self.cfg)})"
 
 
 class SearchMenu(Menu):
@@ -267,17 +280,21 @@ class ResultsMenu(Menu):
         self.utils.clear()
         page = self.ss.load_page()
         self.utils.print_manga_titles(page.results)
+        print(
+            self.ansi.to_inverse(f"  Page {self.ss.page + 1}/{self.ss.total_pages}  ")
+        )
         super().show()
 
     def get_option(self) -> str:
         max_manga_index = len(self.ss.load_page().results)
-        allowed = self.keys.union({str(i) for i in range(1, max_manga_index)})
+        allowed = self.keys.union({str(i) for i in range(1, max_manga_index + 1)})
 
         while True:
             option = input(">> ").strip().upper()
             if option not in allowed:
                 print(self.ansi.to_err("\nInvalid input"))
                 time.sleep(self.cfg.cli.time_to_read)
+                self.show()
             else:
                 return option
 
@@ -295,10 +312,10 @@ class ResultsMenu(Menu):
             # validated in get input; no indexerror possible
             current_page = self.ss.load_page().results
             return MenuAction(
-                MangaMenu(current_page[int(option)], self.cfg), Action.PUSH
+                MangaMenu(current_page[int(option) - 1], self.cfg), Action.PUSH
             )
 
-        return super().handle_option_defaults(option)
+        return self.handle_option_defaults(option)
 
 
 class MangaMenu(Menu):
@@ -313,16 +330,18 @@ class MangaMenu(Menu):
         title_display = self.ansi.to_underline(chosen_manga.title)
         self.description += title_display
 
+    def show(self):
+        self.utils.clear()
+        super().show()
+
     def handle_option(self, option: str) -> MenuAction:
         if option == DOWNLOAD.key:
-            return MenuAction(
-                DownloadMangaMenu(self.cfg, manga=self.manga), Action.PUSH
-            )
+            return MenuAction(MangaFeedMenu(self.manga, self.cfg), Action.PUSH)
         if option == VIEW_INFO.key:
             print("WORK IN PROGRESS")
             return MenuAction(None, Action.NONE)
 
-        return super().handle_option_defaults(option)
+        return self.handle_option_defaults(option)
 
 
 class MangaFeedMenu(Menu):
@@ -349,6 +368,11 @@ class MangaFeedMenu(Menu):
         
         Make sure to use the indices (numbers) on the left, not the
         chapter numbers themselves!
+        
+        If you're new to terminals, you can press the up arrow (↑)
+        to retrieve your last input.
+        
+        Press any key to continue...\
         """
     )
 
@@ -356,18 +380,29 @@ class MangaFeedMenu(Menu):
         self.manga = chosen_manga
         title_display = f"Chosen manga: {self.ansi.to_underline(chosen_manga.title)}\n"
         self.description = title_display + self.description
-
-        # Fetch manga chapters
-        get_manga_feed
+        self.mf = MangaFeed(chosen_manga, cfg)
 
         super().__init__(cfg)
 
     def show(self):
-        self.utils.print_chapter_titles()
-        print(self.description)
-        self._show_controls()
+        self.utils.clear()
+        self.utils.print_chapter_titles(self.mf.load_page())
+        super().show()
 
-    def handle_option(self, option: str) -> MenuAction: ...
+    def handle_option(self, option: str) -> MenuAction:
+        if option == LAST_PAGE.key:
+            self.mf.page -= 1
+            return MenuAction(None, Action.NONE)
+        if option == NEXT_PAGE.key:
+            self.mf.page += 1
+            return MenuAction(None, Action.NONE)
+        if option == HELP.key:
+            self.utils.clear()
+            print(self.selection_help)
+            self.utils.get_input_key()
+            return MenuAction(None, Action.NONE)
+
+        return self.handle_option_defaults(option)
 
 
 class DownloadMangaMenu(Menu):

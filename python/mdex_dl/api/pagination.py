@@ -10,6 +10,7 @@ from typing import Any
 import requests
 
 from mdex_dl.api.client import safe_get_json
+from mdex_dl.api.http_config import get_retry_adapter
 from mdex_dl.api.search import Searcher
 from mdex_dl.models import Chapter, Config, Manga, MangaResults
 
@@ -39,6 +40,7 @@ class SearchSession:
         self.total_pages = (first_page.total + page_limit - 1) // page_limit
         self.pages = [first_page]  # type: list[MangaResults | None]
         self.pages.extend([None] * (self.total_pages - 1))
+        logger.debug("First page: %s", first_page)
 
     # pylint:disable=missing-function-docstring
     @property
@@ -61,9 +63,6 @@ class SearchSession:
 
         This checks if the page is already cached before fetching it from
         MangaDex.
-
-        Args:
-            page (int): the page index to access
 
         Raises:
             IndexError: if the page index is out of range
@@ -89,10 +88,14 @@ class MangaFeed:
     are fetched upon creation and then paginated internally for UX.
     """
 
-    def __init__(self, session: requests.Session, manga: Manga, cfg: Config):
-        self.session = session
+    def __init__(self, manga: Manga, cfg: Config):
         self.manga = manga
         self.cfg = cfg
+
+        self.session = requests.session()
+        adapter = get_retry_adapter(cfg.retry)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
 
         chapters = self.get_manga_feed()
         self.pages = tuple(batched(chapters, self.cfg.search.results_per_page))
@@ -120,19 +123,10 @@ class MangaFeed:
         **This fetches ALL chapters** using the largest allowed pagination
         by MangaDex (500).
 
-        The chapters returned (through `ChapterResults`) are also
-        sanitised through the helper function clean_manga_feed().
-
-        Args:
-            session (requests.Session): the client used to send request
-            manga (Manga): the manga to fetch chapters from
-            cfg (Config): the config used
-
         Returns:
-            ChapterResults: a tuple of chapters
+            (tuple[Chapter, ...]): all chapters of the manga
         """
         feed = f"{self.cfg.reqs.api_root}/manga/{self.manga.uuid}/feed"
-        offset = 0
         chapter_data = []  # type: list[dict[str, Any]]
 
         # 18+ filtering should be done upstream in the Searcher class
@@ -142,18 +136,21 @@ class MangaFeed:
             "order[chapter]": "asc",
             "includeEmptyPages": 0,
             "limit": 500,  # the max that MangaDex allows
-            "offset": offset,
-        }
+            "offset": 0,
+        }  # type: dict[str, Any]
 
         # Keep fetching until no results
         while True:
-            if offset >= 9500:
+            if params["offset"] >= 9500:
                 logger.warning("Max pagination reached (offset + limit) > 10'000")
                 break
 
             logger.info(
-                "Fetching chapters for '%s', page=%s", self.manga.title, offset // 500
+                "Fetching chapters for '%s', page=%s",
+                self.manga.title,
+                params["offset"] // 500,
             )
+
             r_json = safe_get_json(feed, self.session, self.cfg, params)
             r_json_no_data = {k: v for k, v in r_json.items() if k != "data"}
             logger.debug("Pagination info: %s", r_json_no_data)
@@ -162,8 +159,7 @@ class MangaFeed:
                 break
 
             chapter_data += r_json["data"]
-            offset += 500
-            params["offset"] = offset
+            params["offset"] += 500
 
         return tuple(
             Chapter(cd["id"], cd["chapter"])

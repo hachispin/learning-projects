@@ -15,7 +15,7 @@ than one config field)
 
 import tomllib
 from pathlib import Path
-from logging import _nameToLevel  # Private but it's fine I think
+from logging import getLogger, _nameToLevel
 
 from mdex_dl import PROJECT_ROOT
 from mdex_dl.errors import ConfigError
@@ -29,6 +29,8 @@ from mdex_dl.models import (
     CliConfig,
     LoggingConfig,
 )
+
+logger = getLogger(__name__)
 
 
 # pylint: disable=missing-function-docstring
@@ -70,8 +72,10 @@ def require_ok_config() -> Config:
         fail constraints
     """
     cfg_fp = Path(PROJECT_ROOT / "config.toml")
-    print(cfg_fp)
 
+    # Logging requires the config to be loaded, so
+    # we log in stdout for now, then clear later
+    print(f"Looking for config in: {cfg_fp}")
     try:
         with cfg_fp.open("rb") as f:
             cfg = tomllib.load(f)  # type: ignore
@@ -79,6 +83,7 @@ def require_ok_config() -> Config:
         raise ConfigError(
             errors=["Config file not found; expected config.toml in mdex_dl)"]
         ) from None
+    print(f"Config: {repr(cfg)}")
 
     errors = []  # type: list[str]
 
@@ -191,14 +196,17 @@ def require_ok_config() -> Config:
             "logging.level: invalid option, must be: "
             "'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'"
         )
-    else:  # Convert to internal numerical representation
-        logging["level"] = _nameToLevel.get(logging["level"])  # type: ignore
+    else:  # Convert to enum value
+        logging_enum = _nameToLevel.get(logging["level"])
+        print(f"Converting logging level {logging["level"]} to {logging_enum}")
+        logging["level"] = logging_enum  # type: ignore
 
     if p := get_dirname_problems("logging.location", logging["location"]):
         errors.append(p)
 
     if errors:
         raise ConfigError(errors=errors)
+
     return Config(
         reqs=ReqsConfig(**cfg["reqs"]),  # Consider writing a function for this
         save=SaveConfig(**cfg["save"]),  # if config gets more complex
@@ -208,8 +216,3 @@ def require_ok_config() -> Config:
         cli=CliConfig(**cfg["cli"]),
         logging=LoggingConfig(**cfg["logging"]),
     )
-
-
-if __name__ == "__main__":
-    conf = require_ok_config()
-    print(f"Config: {conf}")

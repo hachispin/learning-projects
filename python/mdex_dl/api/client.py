@@ -13,7 +13,7 @@ from typing import Any
 import requests
 
 from mdex_dl.errors import ApiError
-from mdex_dl.models import Chapter, Manga, Config
+from mdex_dl.models import Chapter, Config
 
 
 logger = logging.getLogger(__name__)
