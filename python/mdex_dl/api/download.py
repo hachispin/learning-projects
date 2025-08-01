@@ -104,20 +104,7 @@ class Downloader:
         endpoint = f"{self.cfg.reqs.api_root}/at-home/server/{self.chapter.uuid}"
         r_json = safe_get_json(endpoint, self.session, self.cfg)
 
-        cdn_data = self._unpack_cdn_data(r_json)
-        cattrs = get_cattributes(self.session, self.cfg, self.chapter)
-
-        if len(cdn_data.filenames_data) == cattrs["pages"]:
-            return cdn_data
-
-        logger.warning(  # I should be handling this, but I don't know how :(
-            "Possible missing pages: number of image URLs "
-            "vs pages in chapter attributes = %s, %s",
-            len(cdn_data.filenames_data),
-            cattrs["pages"],
-        )
-
-        return cdn_data
+        return self._unpack_cdn_data(r_json)
 
     def _construct_image_urls(self, cdn_data: ChapterGetResponse) -> tuple[str, ...]:
         if self.cfg.images.use_datasaver:

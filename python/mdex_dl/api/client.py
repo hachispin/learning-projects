@@ -84,6 +84,9 @@ def get_with_ratelimit(
     Sends a GET request with the specified session and handles ratelimiting
     with the custom header `X-RateLimit-Retry-After`
 
+    `safe_get_json` should be used over this if the response is
+    going to be converted to JSON.
+
     This essentially acts as a wrapper for `sessions.get(url, ...)`
     """
 

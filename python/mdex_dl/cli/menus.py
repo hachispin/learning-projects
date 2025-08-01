@@ -54,11 +54,8 @@ class Menu:
 
     def _show_controls(self):
         """
-        Prints all controls with equal spacing and according
-        to `config.cli.options_per_row`
-
-        Args:
-            cg (ControlGroup): the controls to be printed
+        Prints all the controls within `self.CG` with equal
+        spacing and according to `config.cli.options_per_row`
         """
         # if it's just one row
         if len(self.CG.controls) <= self.cfg.cli.options_per_row:

@@ -97,13 +97,7 @@ class Searcher:
         return MangaResults(tuple(results), total=r_json["total"])
 
     def get_random_manga(self) -> Manga | None:
-        """
-        Fetches a random manga from the `GET /manga/random` endpoint.
-
-        Returns:
-        -   Manga: if response is json-parsable
-        -   None: if not
-        """
+        """Fetches a random manga from the `GET /manga/random` endpoint."""
         endpoint = f"{self.cfg.reqs.api_root}/manga/random"
         r_json = self._safe_get_json(endpoint)
 

@@ -5,7 +5,7 @@ raised with `ConfigError` if found, along with proper reasons.
 This also contains the fully type-hinted config as Config, which
 consists of its parts: ReqsConfig, SaveConfig, etc.
 
-For this project, the whole config should be passed if more than
+For a class/function, the whole config should be passed if more than
 one field is used (e.g. cfg.reqs and cfg.search), else, it's
 preferred to only pass the needed field (e.g. cfg.save)
 
