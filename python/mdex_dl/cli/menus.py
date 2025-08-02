@@ -96,7 +96,11 @@ class Menu:
             if self.USE_GETCH:
                 user_input = self.utils.get_input_key()
             else:
-                user_input = input().strip().upper()
+                user_input = input(">> ").strip().upper()
+
+            logger.debug(
+                "User input '%s' from class: %s", user_input, type(self).__name__
+            )
 
             if user_input in self.keys:
                 return user_input
@@ -208,12 +212,9 @@ class MainMenu(Menu):
         if option == SEARCH.key:
             return MenuAction(SearchMenu(self.cfg), Action.PUSH)
         if option == DOWNLOAD.key:
-            return MenuAction(DownloadMangaMenu(self.cfg), Action.PUSH)
+            raise NotImplementedError("WIP")
 
         return self.handle_option_defaults(option)
-
-    def __repr__(self) -> str:
-        return f"MainMenu(cfg={repr(self.cfg)})"
 
 
 class SearchMenu(Menu):
@@ -318,12 +319,13 @@ class ResultsMenu(Menu):
 class MangaMenu(Menu):
     """Where the user can perform actions on their chosen Manga."""
 
+    USE_GETCH = False
     description = "Chosen manga: "
-    _CG = MANGA_CONTROLS
+    CG = MANGA_CONTROLS
 
     def __init__(self, chosen_manga: Manga, cfg: Config):
-        super().__init__(cfg)
         self.manga = chosen_manga
+        super().__init__(cfg)  # To init self.ansi
         title_display = self.ansi.to_underline(chosen_manga.title)
         self.description += title_display
 
@@ -351,6 +353,7 @@ class MangaFeedMenu(Menu):
     USE_GETCH = False
     _CG = PAGE_CONTROLS_CHAPTERS
     description = "Use 'Help' to view info on how to select chapters."
+
     selection_help = textwrap.dedent(
         """\
         Ways to select chapters to download:
@@ -375,23 +378,22 @@ class MangaFeedMenu(Menu):
 
     def __init__(self, chosen_manga: Manga, cfg: Config):
         self.manga = chosen_manga
+        super().__init__(cfg)  # to init self.ansi
         title_display = f"Chosen manga: {self.ansi.to_underline(chosen_manga.title)}\n"
         self.description = title_display + self.description
-        self.mf = ChapterPaginator(chosen_manga, cfg)
-
-        super().__init__(cfg)
+        self.cp = ChapterPaginator(chosen_manga, cfg)
 
     def show(self):
         self.utils.clear()
-        self.utils.print_chapter_titles(self.mf.load_page())
+        self.utils.print_chapter_titles(self.cp.load_page())
         super().show()
 
     def handle_option(self, option: str) -> MenuAction:
         if option == LAST_PAGE.key:
-            self.mf.page -= 1
+            self.cp.page -= 1
             return MenuAction(None, Action.NONE)
         if option == NEXT_PAGE.key:
-            self.mf.page += 1
+            self.cp.page += 1
             return MenuAction(None, Action.NONE)
         if option == HELP.key:
             self.utils.clear()
@@ -400,24 +402,3 @@ class MangaFeedMenu(Menu):
             return MenuAction(None, Action.NONE)
 
         return self.handle_option_defaults(option)
-
-
-class DownloadMangaMenu(Menu):
-    """
-    Where downloads with `Manga` objects are performed.
-
-    Chapters are also paginated here
-    """
-
-    USE_GETCH = False
-    description = "Enter a range of chapters to download or ':B' to go back:"
-
-
-class DownloadUrlMenu(Menu):
-    """
-    Where downloads from manga or chapter URLs are performed.
-
-    If a manga link is given, the `MangaFeedMenu` is shown.
-    """
-
-    ...

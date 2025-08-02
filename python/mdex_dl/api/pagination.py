@@ -155,13 +155,14 @@ class ChapterPaginator:
             logger.debug("Pagination info: %s", r_json_no_data)
 
             if not r_json["data"]:
+                logger.debug("Received blank data; fetching stopped")
                 break
 
             chapter_data += r_json["data"]
             params["offset"] += 500
 
         return tuple(
-            Chapter(cd["id"], cd["chapter"])
+            Chapter(cd["id"], cd.get("chapter"))
             for cd in chapter_data
             if cd["attributes"]["externalUrl"] is None
         )  # ^ if chapter is readable on MangaDex
