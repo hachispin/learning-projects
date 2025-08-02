@@ -5,9 +5,9 @@ from typing import Any
 
 import requests
 
-from mdex_dl.models import Config, Manga, MangaResults
-from mdex_dl.api.http_config import get_retry_adapter
-from mdex_dl.api.client import safe_get_json
+from mdex_tool.models import Config, Manga, MangaResults
+from mdex_tool.api.http_config import get_retry_adapter
+from mdex_tool.api.client import safe_get_json
 
 logger = logging.getLogger(__name__)
 

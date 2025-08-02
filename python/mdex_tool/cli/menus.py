@@ -7,17 +7,17 @@ import textwrap
 import time
 import logging
 
-from mdex_dl.models import Config, Manga, MangaResults
-from mdex_dl.api.search import Searcher
-from mdex_dl.api.pagination import ChapterPaginator, MangaPaginator
-from mdex_dl.cli.ansi.output import AnsiOutput
-from mdex_dl.cli.utils import CliUtils
-from mdex_dl.cli.controls.classes import Control, ControlGroup
-from mdex_dl.cli.controls.constants import (
+from mdex_tool.models import Config, Manga, MangaResults
+from mdex_tool.api.search import Searcher
+from mdex_tool.api.pagination import ChapterPaginator, MangaPaginator
+from mdex_tool.cli.ansi.output import AnsiOutput
+from mdex_tool.cli.utils import CliUtils
+from mdex_tool.cli.controls.classes import Control, ControlGroup
+from mdex_tool.cli.controls.constants import (
     BACK,
     DOWNLOAD,
     HELP,
-    LAST_PAGE,
+    PREV_PAGE,
     MAIN_MENU_CONTROLS,
     MANGA_CONTROLS,
     NEXT_PAGE,
@@ -59,7 +59,7 @@ class Menu:
         """
         # if it's just one row
         if len(self.CG.controls) <= self.cfg.cli.options_per_row:
-            print(" ".join([c.label for c in self.CG.controls]))
+            print("  ".join([c.label for c in self.CG.controls]))
             return
 
         options_per_row = self.cfg.cli.options_per_row
@@ -85,7 +85,7 @@ class Menu:
         This isn't present in the superclass to allow for flexibility.
         """
         if self.description:
-            print(self.description)
+            print(self.description + "\n")
         self._show_controls()
 
     def get_option(self) -> str:
@@ -258,7 +258,6 @@ class ResultsMenu(Menu):
     Note that the manga index chosen by the user is one-indexed.
     """
 
-    USE_GETCH = False
     CG = PAGE_CONTROLS
     description = (
         "Choose a manga's number, on the left, or enter one of these action keys:"
@@ -271,6 +270,9 @@ class ResultsMenu(Menu):
         first_page: MangaResults,
         cfg: Config,
     ):
+        if cfg.search.results_per_page >= 10:
+            self.USE_GETCH = False  # pylint:disable=invalid-name
+
         self.ss = MangaPaginator(query, searcher, first_page, cfg)
         super().__init__(cfg)
 
@@ -301,7 +303,7 @@ class ResultsMenu(Menu):
             self.ss.page += 1
             self.ss.load_page()
             return MenuAction(None, Action.NONE)
-        if option == LAST_PAGE.key:
+        if option == PREV_PAGE.key:
             self.ss.page -= 1
             self.ss.load_page()
             return MenuAction(None, Action.NONE)
@@ -319,7 +321,6 @@ class ResultsMenu(Menu):
 class MangaMenu(Menu):
     """Where the user can perform actions on their chosen Manga."""
 
-    USE_GETCH = False
     description = "Chosen manga: "
     CG = MANGA_CONTROLS
 
@@ -351,16 +352,16 @@ class MangaFeedMenu(Menu):
     """
 
     USE_GETCH = False
-    _CG = PAGE_CONTROLS_CHAPTERS
+    CG = PAGE_CONTROLS_CHAPTERS
     description = "Use 'Help' to view info on how to select chapters."
 
-    selection_help = textwrap.dedent(
+    selection_help = textwrap.dedent(  # TODO: style this with ANSI
         """\
         Ways to select chapters to download:
         
         - A chapter: "2"
         - Multiple chapters: "2, 5, 8"
-        - Range of chapters: "3-8"
+        - A range of chapters: "3-8"
         - Multiple ranges of chapters: "3-8, 11-13, 15-17"
         
         Ranges of chapters also include the starting and ending number.
@@ -385,11 +386,35 @@ class MangaFeedMenu(Menu):
 
     def show(self):
         self.utils.clear()
+        print(self.description)
         self.utils.print_chapter_titles(self.cp.load_page())
-        super().show()
+        print(
+            self.ansi.to_inverse(f"  Page {self.cp.page + 1}/{self.cp.total_pages}  ")
+        )
+        print()
+        self._show_controls()
+
+    def _error_in(self, error_msg: str):
+        self.ansi.to_err(error_msg)
+
+    def get_option(self) -> str:
+        """Gets a validated option from the user."""
+        while True:
+            self.utils.clear()
+            self.show()
+            user_input = input(">> ").strip().upper()
+
+            logger.debug(
+                "User input '%s' from class: %s", user_input, type(self).__name__
+            )
+
+            if user_input in self.keys:
+                return user_input
+            print(self.ansi.to_err("\nInvalid input"))
+            time.sleep(self.cfg.cli.time_to_read)
 
     def handle_option(self, option: str) -> MenuAction:
-        if option == LAST_PAGE.key:
+        if option == PREV_PAGE.key:
             self.cp.page -= 1
             return MenuAction(None, Action.NONE)
         if option == NEXT_PAGE.key:

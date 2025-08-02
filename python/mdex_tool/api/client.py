@@ -1,6 +1,6 @@
 """
 Contains API utilities such as get_with_ratelimit(), which wraps the
-Retry() session in mdex_dl.api.http_config to listen for MangaDex's
+Retry() session in mdex_tool.api.http_config to listen for MangaDex's
 custom ratelimit headers (X-Ratelimit-*)
 """
 
@@ -12,8 +12,8 @@ from typing import Any
 
 import requests
 
-from mdex_dl.errors import ApiError
-from mdex_dl.models import Config
+from mdex_tool.errors import ApiError
+from mdex_tool.models import Config
 
 
 logger = logging.getLogger(__name__)

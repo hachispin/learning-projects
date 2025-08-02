@@ -14,11 +14,11 @@ from typing import Any, Callable
 import requests
 import pycurl
 
-from mdex_dl import PROJECT_ROOT
-from mdex_dl.errors import ApiError
-from mdex_dl.models import Chapter, Manga, Config, ChapterGetResponse, ImageReport
-from mdex_dl.api.http_config import get_retry_adapter
-from mdex_dl.api.client import safe_get_json
+from mdex_tool import PROJECT_ROOT
+from mdex_tool.errors import ApiError
+from mdex_tool.models import Chapter, Manga, Config, ChapterGetResponse, ImageReport
+from mdex_tool.api.http_config import get_retry_adapter
+from mdex_tool.api.client import safe_get_json
 
 logger = logging.getLogger(__name__)
 

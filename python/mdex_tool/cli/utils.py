@@ -8,9 +8,9 @@ import os
 import sys
 from typing import Callable
 
-from mdex_dl.cli.ansi.output import AnsiOutput
-from mdex_dl.cli.getch import getch  # type: ignore
-from mdex_dl.models import Chapter, Config, Manga
+from mdex_tool.cli.ansi.output import AnsiOutput
+from mdex_tool.cli.getch import getch  # type: ignore
+from mdex_tool.models import Chapter, Config, Manga
 
 
 class CliUtils:
@@ -65,45 +65,25 @@ class CliUtils:
         Returns:
             list[int]: the numbers that the selection covers
         """
-        user_input = user_input.replace(" ", "")
-        if not user_input:
-            error_out("Selection cannot be blank")
-            return []
-        if user_input[-1] == ",":  # Remove trailing comma
-            user_input = user_input[:-1]
+        user_input = user_input.strip(",")  # Remove trailing
+        selections = tuple(s.strip() for s in user_input.split(","))
+        nums = []
 
-        # Regex for the homeless
-        if not all(ch.isdigit() or ch in {"-", ","} for ch in user_input):
-            error_out(
-                "Selection must only consist of spaces, dashes, commas and numbers"
-            )
+        if not selections:
+            error_out("Selection can't be blank")
             return []
 
-        selections = user_input.split(",")
-        ranges = []  # type: list[str]
-        nums = []  # type: list[int]
+        if any(ch not in "0123456789-" for s in selections for ch in s):
+            ...
 
         for s in selections:
+            if not s:
+                error_out("No selection found between comma (e.g. '4,,2')")
+                return []
             if s.isdigit():
                 nums.append(int(s))
-            else:
-                ranges.append(s)
 
-        for r in ranges:
-            if r.count("-") != 1:
-
-                error_out("Invalid range syntax: must be in the format {start}-{stop}")
-                return []
-            start, stop = r.split("-")
-            assert start.isdigit() and stop.isdigit()
-            if int(start) > int(stop):
-                error_out(
-                    "Invalid range: starting number cannot be greater than the ending number"
-                )
-                return []
-            nums += list(range(int(start), int(stop) + 1))
-
-        return list(set(nums))
+        return []
 
     def print_manga_titles(self, manga: tuple[Manga, ...]):
         """Prints manga titles with a left index for use by the user."""
@@ -112,5 +92,10 @@ class CliUtils:
 
     def print_chapter_titles(self, chapters: tuple[Chapter, ...]):
         """Prints chapter titles with a left index for use by the user."""
+        print()
         for idx, c in enumerate(chapters):
-            print(f"[{idx+1}]: {c.title}")
+            if c.chap_num is None:
+                print(f"[{idx+1}]: {c.title}")
+            else:
+                print(f"[{idx+1}]: Ch. {c.chap_num}")
+        print()

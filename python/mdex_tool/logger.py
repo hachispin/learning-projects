@@ -9,8 +9,8 @@ from pathlib import Path
 import logging
 from datetime import datetime
 
-from mdex_dl import PROJECT_ROOT
-from mdex_dl.models import LoggingConfig
+from mdex_tool import PROJECT_ROOT
+from mdex_tool.models import LoggingConfig
 
 
 def setup_logging(logging_cfg: LoggingConfig) -> None:
@@ -23,7 +23,7 @@ def setup_logging(logging_cfg: LoggingConfig) -> None:
         log_dir = Path(PROJECT_ROOT / cfg.location)
         log_dir.mkdir(parents=True, exist_ok=True)
         logging.basicConfig(
-            filename=f"{log_dir}/mdex_dl_{datetime.now():%Y-%m-%d_%H-%M-%S}.log",  # noqa
+            filename=f"{log_dir}/mdex_tool_{datetime.now():%Y-%m-%d_%H-%M-%S}.log",  # noqa
             filemode="w",
             level=cfg.level,
             format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s",

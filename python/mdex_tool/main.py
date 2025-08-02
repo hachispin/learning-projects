@@ -2,9 +2,9 @@
 
 import logging
 
-from mdex_dl.cli.menus import MainMenu, MenuStack
-from mdex_dl.load_config import require_ok_config
-from mdex_dl.logger import setup_logging
+from mdex_tool.cli.menus import MainMenu, MenuStack
+from mdex_tool.load_config import require_ok_config
+from mdex_tool.logger import setup_logging
 
 cfg = require_ok_config()
 setup_logging(cfg.logging)

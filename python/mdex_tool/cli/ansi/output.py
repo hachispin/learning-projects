@@ -2,9 +2,9 @@
 Where the AnsiOutput class is stored.
 """
 
-from mdex_dl.models import CliConfig
-from mdex_dl.cli.ansi.text_styles import BOLD, DIM, INVERSE, ITALIC, RESET, UNDERLINE
-from mdex_dl.cli.ansi.fg_colors import CYAN, GREEN, RED, DEFAULT, YELLOW
+from mdex_tool.models import CliConfig
+from mdex_tool.cli.ansi.text_styles import BOLD, DIM, INVERSE, ITALIC, RESET, UNDERLINE
+from mdex_tool.cli.ansi.fg_colors import CYAN, GREEN, RED, DEFAULT, YELLOW
 
 
 class AnsiOutput:

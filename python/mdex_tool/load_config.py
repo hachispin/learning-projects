@@ -17,9 +17,9 @@ import tomllib
 from pathlib import Path
 from logging import getLogger, _nameToLevel
 
-from mdex_dl import PROJECT_ROOT
-from mdex_dl.errors import ConfigError
-from mdex_dl.models import (
+from mdex_tool import PROJECT_ROOT
+from mdex_tool.errors import ConfigError
+from mdex_tool.models import (
     Config,
     ReqsConfig,
     RetryConfig,
@@ -81,7 +81,7 @@ def require_ok_config() -> Config:
             cfg = tomllib.load(f)  # type: ignore
     except FileNotFoundError:
         raise ConfigError(
-            errors=["Config file not found; expected config.toml in mdex_dl)"]
+            errors=["Config file not found; expected config.toml in mdex_tool)"]
         ) from None
     print(f"Config: {repr(cfg)}")
 

@@ -5,7 +5,7 @@ Contains the retry config used for requests sessions.
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from mdex_dl.load_config import RetryConfig
+from mdex_tool.load_config import RetryConfig
 
 
 def get_retry_adapter(retry_cfg: RetryConfig):

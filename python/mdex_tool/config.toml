@@ -1,5 +1,5 @@
 # Default config is at repo:
-# learning-projects/python/mdex_dl/config.toml
+# learning-projects/python/mdex_tool/config.toml
 
 # NOTE: dirs like `save.location` are made from project root
 # all time units (like reqs.get_timeout) are in seconds
@@ -7,12 +7,12 @@
 [reqs]
 api_root = "https://api.mangadex.org"
 report_endpoint = "https://api.mangadex.network/report"
-get_timeout = 10
-post_timeout = 20
+get_timeout = -4
+post_timeout = "20"
 
 [retry]
 max_retries = 5
-backoff_factor = 1
+backoff_factor = 0
 backoff_jitter = 0.5
 backoff_max = 30
 
@@ -24,15 +24,15 @@ max_title_length = 60       # max: 255
 use_datasaver = false
 
 [search]
-results_per_page = 10
-include_pornographic = false
+results_per_page = 9            # changing this to 10 or above disables getch() since
+include_pornographic = "false"    # you can't pick e.g. "10" with one-char flushing
 
 [cli]
-options_per_row = 3
+options_per_row = 5
 use_ansi = true         # set to false if your terminal doesn't support ANSI
 time_to_read = 1        # seconds; how long messages are displayed before being cleared
 
 [logging]
 enabled = true      # set to false to stop logs from being created
-level = "INFO"     # options: "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"
+level = "DEEbug"     # options: "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"
 location = "logs"
