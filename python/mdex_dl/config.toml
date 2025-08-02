@@ -34,5 +34,5 @@ time_to_read = 1        # seconds; how long messages are displayed before being 
 
 [logging]
 enabled = true      # set to false to stop logs from being created
-level = "DEBUG"     # options: "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"
+level = "INFO"     # options: "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"
 location = "logs"

@@ -99,6 +99,7 @@ class ChapterPaginator:
         chapters = self.get_manga_feed()
         self.pages = tuple(batched(chapters, self.cfg.search.results_per_page))
         self.total_pages = len(self.pages)
+        self._page = 0
 
     # These properties are the same as SearchSession but
     # this class is too different to be a subclass
@@ -114,6 +115,53 @@ class ChapterPaginator:
     def page(self, value: int):
         # wraparound
         self._page = value % self.total_pages
+
+    def _format_chapter_titles(
+        self, chapter_data: list[dict[str, Any]]
+    ) -> tuple[Chapter, ...]:
+        """Zero-pads chapter titles and gives unknown chapter titles more info."""
+        chapters = []  # type: list[Chapter]
+
+        def is_float_coercible(x) -> bool:
+            try:
+                float(x)
+                return True
+            except (ValueError, TypeError):
+                return False
+
+        unknown_idx = 1  # to prevent naming conflicts
+        zeros = len(str(len(chapter_data)))
+        for cd in chapter_data:
+            uuid = cd["id"]
+            chap_num = cd["attributes"]["chapter"]
+            chapter = Chapter(uuid, chap_num)
+
+            if is_float_coercible(chap_num) and "." in chap_num:
+                left, sep, right = chap_num.partition(".")
+                # ljust to zeropad decimal part; e.g. 0.1 -> 0.10
+                padded = left.zfill(zeros) + sep + right.ljust(2, "0")
+                chapter.title = f"Ch. {padded}"
+                chapters.append(chapter)
+                continue
+
+            if is_float_coercible(chap_num):  # int-like
+                chapter.title = f"Ch. {str(chap_num).zfill(zeros)}"
+                chapters.append(chapter)
+                continue
+
+            # try to gather more info
+            # example:
+            #   Ch. Unknown #3 (title: 'Special')
+            title = cd["attributes"]["title"]
+            chapter.title += f" #{str(unknown_idx).zfill(zeros)}"
+
+            if isinstance(title, str) and title.strip():
+                chapter.title += f" (title: '{title}')"
+
+            unknown_idx += 1
+            chapters.append(chapter)
+
+        return tuple(chapters)
 
     def get_manga_feed(self) -> tuple[Chapter, ...]:
         """
@@ -151,21 +199,18 @@ class ChapterPaginator:
             )
 
             r_json = safe_get_json(feed, self.session, self.cfg, params)
-            r_json_no_data = {k: v for k, v in r_json.items() if k != "data"}
-            logger.debug("Pagination info: %s", r_json_no_data)
+            logger.debug(  # this produces overhead; keep the dict comp here
+                "Pagination info: %s", {k: v for k, v in r_json.items() if k != "data"}
+            )
 
             if not r_json["data"]:
-                logger.debug("Received blank data; fetching stopped")
+                logger.info("Received blank data; fetching stopped")
                 break
 
             chapter_data += r_json["data"]
             params["offset"] += 500
 
-        return tuple(
-            Chapter(cd["id"], cd.get("chapter"))
-            for cd in chapter_data
-            if cd["attributes"]["externalUrl"] is None
-        )  # ^ if chapter is readable on MangaDex
+        return self._format_chapter_titles(chapter_data)
 
     def load_page(self) -> tuple[Chapter, ...]:
         """Returns the chapters at the current page."""

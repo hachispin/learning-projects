@@ -234,14 +234,14 @@ class Downloader:
             logger.info("No downloadable chapters available. (Received empty CDN data)")
 
         urls = self._construct_image_urls(cdn_data)
-        zeros = len(str(len(urls))) + 1  # +1 purely for looks
+        zeros = len(str(len(urls)))
 
-        for idx, url in enumerate(urls[img_start_idx:]):
+        for idx, url in enumerate(urls[img_start_idx:], start=1):
             ext = Path(url).suffix
             fp = self._get_image_fp(idx, zeros, ext)
             report = self._download_image(url, fp)
             if report.success:
-                progress_out((idx + 1) / len(urls))
+                progress_out((idx) / len(urls))
                 continue
 
             progress_out(-1.0)  # fail
