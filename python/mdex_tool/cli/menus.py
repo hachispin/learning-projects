@@ -202,7 +202,11 @@ class MainMenu(Menu):
         
         Guide: enter the bracketed key to perform the labeled action.
         e.g. "[Q] Quit" means that if you enter "Q", the program will
-        exit!
+        exit.
+        
+        Note that some menus aren't implemented yet, such as:
+        - [V] View
+        - [D] Download (from main menu)
         
         Enter an action key:\
         """
@@ -216,7 +220,7 @@ class MainMenu(Menu):
         if option == SEARCH.key:
             return MenuAction(SearchMenu(self.cfg), Action.PUSH)
         if option == DOWNLOAD.key:
-            raise NotImplementedError("WIP")
+            return MenuAction(None, Action.NONE)  # TODO: add downloads from URLs
 
         return self.handle_option_defaults(option)
 
@@ -347,8 +351,7 @@ class MangaMenu(Menu):
         if option == DOWNLOAD.key:
             return MenuAction(MangaFeedMenu(self.manga, self.cfg), Action.PUSH)
         if option == VIEW_INFO.key:
-            print("WORK IN PROGRESS")
-            return MenuAction(None, Action.NONE)
+            return MenuAction(None, Action.NONE)  # TODO: add manga info view
 
         return self.handle_option_defaults(option)
 
@@ -396,7 +399,7 @@ class MangaFeedMenu(Menu):
     def show(self):
         self.utils.clear()
         print(self.description)
-        self.utils.print_chapter_titles(self.cp.load_page())
+        self.utils.print_chapter_titles(self.cp.load_page(), self.cp.page)
         print(
             self.ansi.to_inverse(f"  Page {self.cp.page + 1}/{self.cp.total_pages}  ")
         )
@@ -404,7 +407,7 @@ class MangaFeedMenu(Menu):
         self._show_controls()
 
     def _error_in(self, error_msg: str):
-        self.ansi.to_err(error_msg)
+        print(self.ansi.to_err(error_msg))
         print("Press any key to continue...")
         self.utils.get_input_key()
 
@@ -412,11 +415,14 @@ class MangaFeedMenu(Menu):
         if not chapter_indices:
             return
 
+        logger.debug("Downloading chapter indices: %r", chapter_indices)
         unpacked_chapters = tuple(c for ct in self.cp.pages for c in ct)
+
         for c in chapter_indices:
-            d = Downloader(self.manga, unpacked_chapters[c], self.cfg)
+            d = Downloader(self.manga, unpacked_chapters[c - 1], self.cfg)
             pb = ProgressBar(self.cfg.cli, f"Downloading [{c}]")
             d.download_images(pb.display)
+
         print(self.ansi.to_success("Downloading complete"))
         time.sleep(self.cfg.cli.time_to_read)
 

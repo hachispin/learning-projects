@@ -120,12 +120,13 @@ class CliUtils:
         for idx, m in enumerate(manga):
             print(f"[{idx+1}]: {m.title}")
 
-    def print_chapter_titles(self, chapters: tuple[Chapter, ...]):
+    def print_chapter_titles(self, chapters: tuple[Chapter, ...], page: int = 0):
         """Prints chapter titles with a left index for use by the user."""
         print()
+        offset = page * self.cfg.search.results_per_page
         for idx, c in enumerate(chapters):
             if c.chap_num is None:
-                print(f"[{idx+1}]: {c.title}")
+                print(f"[{offset+idx+1}]: {c.title}")
             else:
-                print(f"[{idx+1}]: Ch. {c.chap_num}")
+                print(f"[{offset+idx+1}]: Ch. {c.chap_num}")
         print()
