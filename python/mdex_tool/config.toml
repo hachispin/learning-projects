@@ -25,7 +25,7 @@ use_datasaver = false
 
 [search]
 results_per_page = 9            # << changing this to 10 or above disables getch() for some
-include_pornographic = true     # menus because you can't pick e.g. "10" with one-char flushing
+include_pornographic = false    # menus because you can't pick e.g. "10" with one-char flushing
 
 [cli]
 options_per_row = 5
@@ -34,5 +34,5 @@ time_to_read = 1        # seconds; how long messages are displayed before being 
 
 [logging]
 enabled = true      # set to false to stop logs from being created
-level = "DEBUG"     # options: "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"
+level = "INFO"      # options: "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"
 location = "logs"
