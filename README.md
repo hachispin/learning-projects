@@ -1,6 +1,6 @@
 # learning-projects
 
-Currently working on: `mdex-dl`'s [to-do list](python/mdex_dl/README.md#to-do)
+Currently working on: `mdex-tool`'s [to-do list](python/mdex_tool/README.md#to-do)
 
 ## Description
 
