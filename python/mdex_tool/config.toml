@@ -7,8 +7,8 @@
 [reqs]
 api_root = "https://api.mangadex.org"
 report_endpoint = "https://api.mangadex.network/report"
-get_timeout = -4
-post_timeout = "20"
+get_timeout = 10
+post_timeout = 20
 
 [retry]
 max_retries = 5
@@ -24,8 +24,8 @@ max_title_length = 60       # max: 255
 use_datasaver = false
 
 [search]
-results_per_page = 9            # changing this to 10 or above disables getch() since
-include_pornographic = "false"    # you can't pick e.g. "10" with one-char flushing
+results_per_page = 9            # << changing this to 10 or above disables getch() for some
+include_pornographic = true     # menus because you can't pick e.g. "10" with one-char flushing
 
 [cli]
 options_per_row = 5
@@ -34,5 +34,5 @@ time_to_read = 1        # seconds; how long messages are displayed before being 
 
 [logging]
 enabled = true      # set to false to stop logs from being created
-level = "DEEbug"     # options: "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"
+level = "DEBUG"     # options: "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"
 location = "logs"

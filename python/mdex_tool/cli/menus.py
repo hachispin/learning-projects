@@ -7,10 +7,11 @@ import textwrap
 import time
 import logging
 
+from mdex_tool.api.download import Downloader
 from mdex_tool.models import Config, Manga, MangaResults
 from mdex_tool.api.search import Searcher
 from mdex_tool.api.pagination import ChapterPaginator, MangaPaginator
-from mdex_tool.cli.ansi.output import AnsiOutput
+from mdex_tool.cli.ansi.output import AnsiOutput, ProgressBar
 from mdex_tool.cli.utils import CliUtils
 from mdex_tool.cli.controls.classes import Control, ControlGroup
 from mdex_tool.cli.controls.constants import (
@@ -98,14 +99,17 @@ class Menu:
             else:
                 user_input = input(">> ").strip().upper()
 
-            logger.debug(
+            logger.debug(  # This message won't appear if this is overriden
                 "User input '%s' from class: %s", user_input, type(self).__name__
             )
 
             if user_input in self.keys:
                 return user_input
 
-            print(self.ansi.to_err("\nInvalid input"))
+            if self.USE_GETCH:
+                print(self.ansi.to_err(f"\nInvalid menu key: {repr(user_input)}"))
+            else:
+                print(self.ansi.to_err(f"\nInvalid input: {repr(user_input)}"))
             time.sleep(self.cfg.cli.time_to_read)
 
     def handle_option_defaults(self, option: str) -> "MenuAction":
@@ -258,6 +262,7 @@ class ResultsMenu(Menu):
     Note that the manga index chosen by the user is one-indexed.
     """
 
+    USE_GETCH = True
     CG = PAGE_CONTROLS
     description = (
         "Choose a manga's number, on the left, or enter one of these action keys:"
@@ -290,7 +295,11 @@ class ResultsMenu(Menu):
         allowed = self.keys.union({str(i) for i in range(1, max_manga_index + 1)})
 
         while True:
-            option = input(">> ").strip().upper()
+            if self.USE_GETCH:
+                option = self.utils.get_input_key()
+            else:
+                option = input(">> ").strip().upper()
+
             if option not in allowed:
                 print(self.ansi.to_err("\nInvalid input"))
                 time.sleep(self.cfg.cli.time_to_read)
@@ -353,7 +362,7 @@ class MangaFeedMenu(Menu):
 
     USE_GETCH = False
     CG = PAGE_CONTROLS_CHAPTERS
-    description = "Use 'Help' to view info on how to select chapters."
+    description = "Use 'Help' to view info on how to batch-select chapters."
 
     selection_help = textwrap.dedent(  # TODO: style this with ANSI
         """\
@@ -396,6 +405,20 @@ class MangaFeedMenu(Menu):
 
     def _error_in(self, error_msg: str):
         self.ansi.to_err(error_msg)
+        print("Press any key to continue...")
+        self.utils.get_input_key()
+
+    def _download_chapters(self, chapter_indices: list[int]):
+        if not chapter_indices:
+            return
+
+        unpacked_chapters = tuple(c for ct in self.cp.pages for c in ct)
+        for c in chapter_indices:
+            d = Downloader(self.manga, unpacked_chapters[c], self.cfg)
+            pb = ProgressBar(self.cfg.cli, f"Downloading [{c}]")
+            d.download_images(pb.display)
+        print(self.ansi.to_success("Downloading complete"))
+        time.sleep(self.cfg.cli.time_to_read)
 
     def get_option(self) -> str:
         """Gets a validated option from the user."""
@@ -410,6 +433,9 @@ class MangaFeedMenu(Menu):
 
             if user_input in self.keys:
                 return user_input
+            if user_input and user_input[0].isdigit():
+                return user_input  # for selection bit
+
             print(self.ansi.to_err("\nInvalid input"))
             time.sleep(self.cfg.cli.time_to_read)
 
@@ -424,6 +450,10 @@ class MangaFeedMenu(Menu):
             self.utils.clear()
             print(self.selection_help)
             self.utils.get_input_key()
+            return MenuAction(None, Action.NONE)
+        if option[0].isdigit():
+            chapters = self.utils.parse_selection(option, self._error_in)
+            self._download_chapters(chapters)
             return MenuAction(None, Action.NONE)
 
         return self.handle_option_defaults(option)

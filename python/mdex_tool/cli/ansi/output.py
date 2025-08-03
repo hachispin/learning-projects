@@ -86,10 +86,10 @@ class ProgressBar(AnsiOutput):
     _REDBAR = "\033[31m━\033[0m"
     _GREENBAR = "\033[32m━\033[0m"
 
-    def __init__(self, cfg: CliConfig, label: str = "Loading...", bars: int = 20):
+    def __init__(self, cli_cfg: CliConfig, label: str = "Loading...", bars: int = 20):
         self.label = label
         self.bars = bars
-        super().__init__(cfg)
+        super().__init__(cli_cfg)
 
     def _display_no_ansi(self, percentage: str):
         """Prints a progress bar without ANSI."""

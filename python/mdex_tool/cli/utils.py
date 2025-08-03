@@ -33,7 +33,11 @@ class CliUtils:
         self.ansi = AnsiOutput(cfg.cli)
 
     def get_input_key(self) -> str:
-        """Normalises input to be compared against uppercase Control.key values."""
+        """
+        Normalises input to be compared against uppercase Control.key values.
+
+        Note that this uses getch(), flushing user input on first character.
+        """
         print(">> ", flush=True, end="")
         option = getch()
 
@@ -44,7 +48,7 @@ class CliUtils:
         print(option)
         return option
 
-    def parse_chapter_selection(  # pylint:disable=too-many-return-statements
+    def parse_selection(  # pylint:disable=too-many-return-statements
         self, user_input: str, error_out: Callable[[str], None]
     ) -> list[int]:
         """
