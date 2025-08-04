@@ -1,10 +1,4 @@
-# `mdex_tool` (_Rewrite in progress!_)
-
-Only CLI left to go.
-
-## Usage
-
-**WIP**
+# `mdex_tool`
 
 ## Description
 
@@ -15,6 +9,42 @@ Some quick links that may be useful:
 - https://api.mangadex.org/docs/
 - https://api.mangadex.org/docs/redoc.html
 - https://api.mangadex.org/docs/swagger.html
+
+## Usage
+
+First, clone this repo and checkout `mdex_tool` if you don't wish to include other unrelated projects:
+
+```
+git clone --no-checkout https://github.com/hachispin/learning-projects
+cd learning-projects
+git sparse-checkout init --cone
+git sparse-checkout set python/mdex_tool
+git checkout main
+```
+
+If you wish, you can also tweak the config, `config.toml`, to your liking, which includes important options such as:
+
+- `use_datasaver`
+- `include_pornographic`
+- `use_ansi`
+
+Info about other options can be found within the config as comments.
+
+Secondly, install the dependencies (3) in `mdex_tool/requirements.txt` like so:
+
+```
+pip install -r mdex_tool/requirements.txt
+```
+
+Finally, run `mdex_tool/main.py` as a module with the `-m` flag:
+
+```
+python3 -m mdex_tool.main
+```
+
+Note that this must be done from the parent directory of where `mdex_tool` is located. Windows users should use `py` instead of `python3` here.
+
+You will then be displayed the main menu and further usage instructions.
 
 ## Ratelimit handling
 
@@ -38,13 +68,15 @@ This endpoint returns a random manga and has a ratelimit of [60 requests per min
 
 Full log [here](https://gist.github.com/hachispin/845e71905a2ae6e4c0be989ea07a8750) along with the [code used](https://gist.github.com/hachispin/5b6895ae2c7fd02774352f3c789829be).
 
-## Config
-
-**WIP**
-
 ## Notes
 
-**WIP**
+- Currently, no language other than English is supported. Sorry!
+
+- If you see odd escape codes like `\033[31m━\033[0m`, you're using a terminal that doesn't support [ANSI](https://en.wikipedia.org/wiki/ANSI_escape_code). To fix this, disable ANSI in `config.toml`, labeled `use_ansi`
+
+- As I haven't implemented [log rotations](https://en.wikipedia.org/wiki/Log_rotation) yet, it may be useful to disable logging entirely using the config.
+
+- Chapters with blank chapter number fields are labeled `Ch. Unknown` along with the chapter's title, if it exists. You'll most often see this with [Oneshot](<https://en.wikipedia.org/wiki/One-shot_(comics)>) genre.
 
 ## To-do
 
