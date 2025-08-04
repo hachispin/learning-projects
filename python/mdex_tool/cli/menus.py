@@ -418,7 +418,7 @@ class MangaFeedMenu(Menu):
         logger.debug("Downloading chapter indices: %r", chapter_indices)
         unpacked_chapters = tuple(c for ct in self.cp.pages for c in ct)
         chapter_indices = [  # prevent out of bounds
-            c for c in chapter_indices if (0 <= c < len(unpacked_chapters))
+            c for c in chapter_indices if (1 <= c <= len(unpacked_chapters))
         ]
 
         for c in chapter_indices:
