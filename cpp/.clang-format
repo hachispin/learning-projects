@@ -1,19 +1,42 @@
-BasedOnStyle: LLVM
+# These style rules are very flexible, mainly
+# due to `ColumnLimit` being unlimited. 
+
+# i.e. it may accept two different styles like
+# case statements being one-liners or not
+
 IndentWidth: 4
 TabWidth: 4
 UseTab: Never
-BraceWrapping:
-  AfterFunction: false
-  AfterClass: false
-  AfterNamespace: false
-  AfterControlStatement: false
-PointerAlignment: Left
-BreakBeforeBinaryOperators: NonAssignment
-AllowAllParametersOfDeclarationOnNextLine: true
-BinPackParameters: false
-ColumnLimit: 100
-Cpp11BracedListStyle: false
-AllowShortFunctionsOnASingleLine: None
-AllowShortBlocksOnASingleLine: false
 NamespaceIndentation: All
+
+PointerAlignment: Left
+AlignArrayOfStructures: Left
+AlignConsecutiveAssignments: Consecutive
+AlignConsecutiveDeclarations: Consecutive
+
+AlignConsecutiveShortCaseStatements: 
+  Enabled: true
+  AcrossEmptyLines: true
+  AcrossComments: true
+
+AlignTrailingComments:
+  Kind: Always
+  OverEmptyLines: 1
+
+AllowShortCaseLabelsOnASingleLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortBlocksOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+# InsertBraces: true -- conflicts with option above
+
+BreakBeforeBinaryOperators: NonAssignment
+BreakConstructorInitializers: BeforeComma
+BreakAfterReturnType: Automatic
+BreakBeforeBraces: Attach
+
+PackConstructorInitializers: Never
+BinPackParameters: OnePerLine
+ColumnLimit: 0
+Cpp11BracedListStyle: false
 FixNamespaceComments: false

@@ -1,0 +1,18 @@
+CompileFlags:
+  Add: [
+    -fdiagnostics-color=always,
+    -g,
+    -std=c++20,
+    -Wall,
+    -Wextra,
+    -Wshadow,
+    -Wconversion,
+    -Wsign-conversion,
+    -Werror,
+    -pedantic-errors
+  ]
+  Compiler: g++
+  
+InlayHints:
+  Designators: false
+  DeducedTypes: false
