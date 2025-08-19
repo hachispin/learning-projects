@@ -103,7 +103,7 @@ double doOperation(std::string_view expr) {
     // all of this is done assuming valid expr!
     size_t opIdx{ findOperatorIndex(expr) };
     auto [left, right] = splitByIndex(expr, opIdx);
-    double leftDouble = std::stod(left);
+    double leftDouble  = std::stod(left);
     double rightDouble = std::stod(right);
 
     switch (expr[opIdx]) { // i.e. the operator
@@ -155,7 +155,7 @@ int main() {
             continue;
         }
 
-        size_t opIdx = findOperatorIndex(input);
+        size_t opIdx       = findOperatorIndex(input);
         auto [left, right] = splitByIndex(input, opIdx);
 
         if (!isStodSafe(left) || !isStodSafe(right)) {
