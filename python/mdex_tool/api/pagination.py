@@ -7,10 +7,8 @@ from itertools import batched
 import logging
 from typing import Any
 
-import requests
-
 from mdex_tool.api.client import safe_get_json
-from mdex_tool.api.http_config import get_retry_adapter
+from mdex_tool.api.http_config import get_retry_session
 from mdex_tool.api.search import Searcher
 from mdex_tool.models import Chapter, Config, Manga, MangaResults
 
@@ -88,13 +86,9 @@ class ChapterPaginator:
     """
 
     def __init__(self, manga: Manga, cfg: Config):
+        self.session = get_retry_session(cfg.retry)
         self.manga = manga
         self.cfg = cfg
-
-        self.session = requests.session()
-        adapter = get_retry_adapter(cfg.retry)
-        self.session.mount("http://", adapter)
-        self.session.mount("https://", adapter)
 
         chapters = self.get_manga_feed()
         self.pages = tuple(batched(chapters, self.cfg.search.results_per_page))

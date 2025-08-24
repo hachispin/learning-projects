@@ -3,10 +3,8 @@
 import logging
 from typing import Any
 
-import requests
-
 from mdex_tool.models import Config, Manga, MangaResults
-from mdex_tool.api.http_config import get_retry_adapter
+from mdex_tool.api.http_config import get_retry_session
 from mdex_tool.api.client import safe_get_json
 
 logger = logging.getLogger(__name__)
@@ -21,12 +19,8 @@ class Searcher:
     """
 
     def __init__(self, cfg: Config):
+        self.session = get_retry_session(cfg.retry)
         self.cfg = cfg
-
-        self.session = requests.session()
-        adapter = get_retry_adapter(cfg.retry)
-        self.session.mount("http://", adapter)
-        self.session.mount("https://", adapter)
 
     def _safe_get_json(self, url: str, params: dict[str, Any] | None = None):
         """Packages safe_get_json() from .api.client into a method."""

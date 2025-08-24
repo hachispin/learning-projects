@@ -11,13 +11,13 @@ from pathlib import Path
 from typing import Any, Callable
 
 # pylint:disable=c-extension-no-member
-import requests
 import pycurl
 
+from mdex_tool.cli.ansi.output import ProgressBar
 from mdex_tool import PROJECT_ROOT
 from mdex_tool.errors import ApiError
 from mdex_tool.models import Chapter, Manga, Config, ChapterGetResponse, ImageReport
-from mdex_tool.api.http_config import get_retry_adapter
+from mdex_tool.api.http_config import get_retry_session
 from mdex_tool.api.client import safe_get_json
 
 logger = logging.getLogger(__name__)
@@ -32,12 +32,7 @@ class Downloader:
     def __init__(self, manga: Manga, chapter: Chapter, cfg: Config):
         logger.debug("Created Downloader() instance with chapter id: %s", chapter.uuid)
 
-        # Create session binded to Retry() logic
-        self.session = requests.session()
-        adapter = get_retry_adapter(cfg.retry)
-        self.session.mount("http://", adapter)
-        self.session.mount("https://", adapter)
-
+        self.session = get_retry_session(cfg.retry)
         self.cfg = cfg
         self.chapter = chapter
         self.manga_title = manga.title[: self.cfg.save.max_title_length]
@@ -202,7 +197,7 @@ class Downloader:
 
         Args:
             progress_out (function, optional): where image progress
-                (float, e.g. 7/20) is sent. -1.0 is sent as the progress on failure.
+                (float, e.g. 7/20) is sent.
 
                 Defaults to the no-op `lambda *_: None`
 
@@ -244,7 +239,7 @@ class Downloader:
                 progress_out((idx) / len(urls))
                 continue
 
-            progress_out(-1.0)  # fail
+            progress_out(ProgressBar.FAIL)
             logger.warning("Failed to download image (success = %s)", report.success)
             self._download_images(progress_out, retries - 1, base_url, idx)
             # self._send_image_report(*report)
@@ -262,7 +257,7 @@ class Downloader:
 
         Args:
             progress_out (function, optional): where image progress
-                (float, e.g. 7/20) is sent. -1.0 is sent as the progress on failure.
+                (float, e.g. 7/20) is sent.
 
                 Defaults to the no-op `lambda *_: None`
         """

@@ -55,7 +55,7 @@ namespace messages { // the "Guess#X: " message is in getGuess() because it's qu
 }
 
 int randInt() {
-    static std::mt19937 mt{ std::random_device{}() };
+    static std::mt19937           mt{ std::random_device{}() };
     std::uniform_int_distribution gen{ hiloConfig::lowerBound, hiloConfig::upperBound };
 
     return gen(mt);
@@ -71,7 +71,7 @@ void checkEOF() {
 bool isValidGuess(std::string input) {
     using namespace hiloConfig;
 
-    int n{};      // these two are used to verify that whole input
+    int    n{};   // these two are used to verify that whole input
     size_t idx{}; // is read and that it falls within bounds
 
     try {
@@ -86,7 +86,7 @@ bool isValidGuess(std::string input) {
 }
 
 int getGuess(std::string_view prompt) {
-    int guess{};
+    int         guess{};
     std::string input{};
 
     while (true) {
@@ -125,7 +125,7 @@ void doHiloRound() {
 
 bool getPlayAgainResponse() {
     std::string response{};
-    char option{};
+    char        option{};
 
     while (true) {
         std::cout << messages::playAgain << '\n';

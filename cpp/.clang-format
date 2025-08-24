@@ -11,8 +11,13 @@ NamespaceIndentation: All
 
 PointerAlignment: Left
 AlignArrayOfStructures: Left
-AlignConsecutiveAssignments: Consecutive
 AlignConsecutiveDeclarations: Consecutive
+
+AlignConsecutiveAssignments:
+  Enabled: true
+  AlignFunctionDeclarations: true
+  AcrossEmptyLines: false
+  AcrossComments: false
 
 AlignConsecutiveShortCaseStatements: 
   Enabled: true
@@ -25,6 +30,7 @@ AlignTrailingComments:
 
 AllowShortCaseLabelsOnASingleLine: true
 AllowAllParametersOfDeclarationOnNextLine: true
+AllowShortEnumsOnASingleLine: true
 AllowShortFunctionsOnASingleLine: Inline
 AllowShortBlocksOnASingleLine: Empty
 AllowShortIfStatementsOnASingleLine: AllIfsAndElse
@@ -40,3 +46,4 @@ BinPackParameters: OnePerLine
 ColumnLimit: 0
 Cpp11BracedListStyle: false
 FixNamespaceComments: false
+

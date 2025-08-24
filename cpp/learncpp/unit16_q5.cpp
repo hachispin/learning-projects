@@ -64,7 +64,6 @@ class GameWord {
         , builtWord{ std::string(completeWord.size(), '_') } {
         assert(completeWord.size() == builtWord.size());
     }
-
     enum GuessStatus {
         alreadyGuessed,
         correct,
@@ -80,16 +79,17 @@ class GameWord {
             '+');
 
         auto v{ wrongGuesses };
-        std::sort(v.begin(), v.end(), [](auto x, auto y) { return x < y; });
-
+        std::sort(v.begin(), v.end());
         std::string attemptsDisplay{ pluses };
-        std::for_each( // add wrong guesses to `attemptsDisplay`
-            v.begin(), v.end(),
-            [&attemptsDisplay](auto x) { attemptsDisplay += x; });
+
+        for (const auto& x : v) {
+            attemptsDisplay += x;
+        }
 
         return std::format(
             "The word: {}   Wrong guesses: {}", builtWord, attemptsDisplay);
     }
+
     GuessStatus guessLetter(char letter) {
         if (attempts <= 0) throw std::logic_error(
             "Attempted to make guess with no attempts left");
@@ -102,28 +102,27 @@ class GameWord {
             --attempts;
             return incorrect;
         }
+
         revealLetter(letter);
         updateWinStatus();
         return correct;
     }
 
     static char getGuess();
-
     auto        getAttempts() const { return attempts; }
     const auto& getWrongGuesses() const { return wrongGuesses; }
     const auto& getBuiltWord() const { return builtWord; }
     const auto& getCompleteWord() const { return completeWord; }
     auto        getWinState() const { return winState; }
 };
-
 namespace Messages {
     constexpr char intro[]{
         "Welcome to C++man (a variant of Hangman)\n"
         "To win: guess the word.  To lose: run out of pluses."
     };
-    constexpr char letterPrompt[]{ "Enter your next letter: " };
 
-    std::string describeGuessStatus(GameWord::GuessStatus gs, char letter) {
+    constexpr char letterPrompt[]{ "Enter your next letter: " };
+    std::string    describeGuessStatus(GameWord::GuessStatus gs, char letter) {
         using enum GameWord::GuessStatus;
 
         switch (gs) {
@@ -140,7 +139,6 @@ namespace Messages {
         }
     }
 }
-
 // note that this doesn't check if input was already guessed
 char GameWord::getGuess() {
     using namespace Messages;
@@ -162,7 +160,6 @@ char GameWord::getGuess() {
     }
     return input[0];
 }
-
 int main() {
     using namespace Messages;
 

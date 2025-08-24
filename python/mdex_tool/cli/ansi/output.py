@@ -80,6 +80,7 @@ class AnsiOutput:
 class ProgressBar(AnsiOutput):
     """A class used to display a progress bar with display()"""
 
+    FAIL = -1.0
     _CARRIAGE_RETURN_PAD = " " * 4
     _HIDE_CURSOR = "\033[?25l"
     _SHOW_CURSOR = "\033[?25h"
@@ -107,9 +108,8 @@ class ProgressBar(AnsiOutput):
         """
         Prints a progress bar.
 
-        If the argument `progress` is -1.0, the process (that's being
-        displayed by the progress bar) is considered to have failed,
-        so the display_err() method is called instead.
+        If the argument `progress` is `ProgressBar.FAIL`
+        the display_err() method is called instead.
 
         Args:
             progress (float): from 1.0 to 0.0; how close something is to being complete
@@ -118,9 +118,9 @@ class ProgressBar(AnsiOutput):
 
         Raises:
             ValueError: if `progress` is not within the range 0.0 <= x <= 1
-                and not equal to -1.0
+                and not equal to `ProgressBar.FAIL`
         """
-        if progress == -1.0:
+        if progress == ProgressBar.FAIL:
             self._display_err()
             return
 
@@ -131,10 +131,14 @@ class ProgressBar(AnsiOutput):
 
         print(ProgressBar._HIDE_CURSOR, end="")
 
+        # Assuming `ProgressBar.FAIL` is negative (should be -1.0)
         if progress > 1.0:
             raise ValueError("Progress cannot be greater than 100% (1.0)")
         if progress < 0.0:
-            raise ValueError("Progress cannot be less than 0% (0.0) if it's not -1.0")
+            raise ValueError(
+                "Progress cannot be less than 0% "
+                f"(0.0) if it's not {ProgressBar.FAIL}"
+            )
 
         complete_bars = int(self.bars * progress)
         progress_bar = ProgressBar._GREENBAR * complete_bars
