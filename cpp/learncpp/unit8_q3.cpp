@@ -31,11 +31,12 @@ namespace hiloConfig {
 }
 
 namespace messages { // the "Guess#X: " message is in getGuess() because it's quite short
-    const std::string gameRules{ std::format("Let's play a game. I'm thinking of a number between "
-                                             "{} and {}. You have {} tries to guess what it is.",
-                                             hiloConfig::lowerBound,
-                                             hiloConfig::upperBound,
-                                             hiloConfig::maxTries) };
+    const std::string gameRules{ std::format(
+        "Let's play a game. I'm thinking of a number between "
+        "{} and {}. You have {} tries to guess what it is.",
+        hiloConfig::lowerBound,
+        hiloConfig::upperBound,
+        hiloConfig::maxTries) };
 
     const std::string lose(int ans) {
         return std::format("Sorry, you lose. The correct number was {}.", ans);

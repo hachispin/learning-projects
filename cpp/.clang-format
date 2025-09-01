@@ -41,8 +41,11 @@ BreakConstructorInitializers: BeforeComma
 BreakAfterReturnType: Automatic
 BreakBeforeBraces: Attach
 
-PackConstructorInitializers: Never
-BinPackParameters: OnePerLine
+# BinPack allows you to break params/args
+# at any point (with unlimited `ColumnLimit`)
+PackConstructorInitializers: BinPack
+BinPackArguments: true
+BinPackParameters: BinPack
 ColumnLimit: 0
 Cpp11BracedListStyle: false
 FixNamespaceComments: false

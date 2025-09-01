@@ -37,11 +37,6 @@ class GameWord {
     }
     /* helper functions for `guessletter()` */
 
-    bool isAlreadyGuessed(char letter) const {
-        if (guesses.contains(letter))
-            return true;
-        return false;
-    }
     // guaranteed to be a unique guess upstream
     bool isCorrectGuess(char letter) const {
         for (const auto& i : completeWord) {
@@ -87,14 +82,15 @@ class GameWord {
         }
 
         return std::format(
-            "The word: {}   Wrong guesses: {}", builtWord, attemptsDisplay);
+            "The word: {}   Wrong guesses: {}",
+            builtWord, attemptsDisplay);
     }
 
     GuessStatus guessLetter(char letter) {
         if (attempts <= 0) throw std::logic_error(
             "Attempted to make guess with no attempts left");
 
-        if (isAlreadyGuessed(letter)) return alreadyGuessed;
+        if (guesses.contains(letter)) return alreadyGuessed;
         guesses.insert(letter);
 
         if (!isCorrectGuess(letter)) {
@@ -158,7 +154,7 @@ char GameWord::getGuess() {
         else
             break;
     }
-    return input[0];
+    return static_cast<char>(std::tolower(input[0]));
 }
 int main() {
     using namespace Messages;
