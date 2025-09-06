@@ -1,6 +1,6 @@
 # learning-projects
 
-Currently working on: The C++ course [learncpp](https://www.learncpp.com/).
+Currently working on: Trying not to fail my A-levels :)
 
 I don't plan on working on any TO-DO lists or existing projects for now.
 

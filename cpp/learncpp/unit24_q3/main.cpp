@@ -113,39 +113,48 @@ Choice getPlayerChoice() {
 // - has fled
 // - has killed the monster
 // - has been killed by the monster
-void handleChoice(Choice c, Player& p, Monster& m) {
+void handleChoice(Choice c, Player& p, Monster& m, bool extCall = false) {
     using namespace Messages;
 
     static bool persist{ true };
+
+    if (extCall)        // `extCall` means function call was
+        persist = true; // made externally, not by recursion
+
+    if (!persist) return;
 
     if (c == Choice::run) { // 50% chance to escape
         if (Random::get(1, 2) == 1) {
             std::cout << monsterAttack(m, m.attack(p)) << '\n'
                       << runFail << '\n';
+            persist = true;
             handleChoice(getPlayerChoice(), p, m);
         } else {
             std::cout << runSuccess << '\n';
+            persist = false;
             return;
         }
     }
 
-    if (!persist) return;
-
     if (c == Choice::fight)
         std::cout << playerAttack(m, p.attack(m)) << '\n';
 
-    if (m.isDead()) {
+    if (m.isDead()) { // stop the encounter
         p.addGold(m.getGold());
         std::cout << monsterKilled(m) << '\n'
                   << newLevel(p.levelUp()) << '\n'
                   << foundGold(m.getGold()) << '\n';
-    } else {
+        persist = false;
+    } else { // monster attacks player
         std::cout << monsterAttack(m, m.attack(p)) << '\n';
-        if (p.isDead())
-            return;
-        handleChoice(getPlayerChoice(), p, m);
+
+        if (p.isDead()) { // if player dies after being attacked
+            persist = false;
+        } else {
+            persist = true;
+            handleChoice(getPlayerChoice(), p, m);
+        }
     }
-    if (!persist) return;
 }
 
 int main() {
@@ -162,7 +171,7 @@ int main() {
     while (!p.hasWon() && !p.isDead()) {
         Monster m{ Monster::getRandomMonster() };
         std::cout << encounter(m) << '\n';
-        handleChoice(getPlayerChoice(), p, m);
+        handleChoice(getPlayerChoice(), p, m, true);
     }
 
     if (p.isDead())

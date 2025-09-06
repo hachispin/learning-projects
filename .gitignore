@@ -5,11 +5,11 @@
 __pycache__/
 
 # Build / save dirs
-cpp/builds/
+**/builds/
 **/sandbox/
 python/mdex_tool/mdex_save/
 python/notepad/data.json
+rust/target/
 
 # Logs
 python/mdex_tool/logs/
-

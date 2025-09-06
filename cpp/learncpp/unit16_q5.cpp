@@ -77,9 +77,8 @@ class GameWord {
         std::sort(v.begin(), v.end());
         std::string attemptsDisplay{ pluses };
 
-        for (const auto& x : v) {
+        for (const auto& x : v)
             attemptsDisplay += x;
-        }
 
         return std::format(
             "The word: {}   Wrong guesses: {}",
