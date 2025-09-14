@@ -1,8 +1,9 @@
 [package]
-name = "guessing_game"
+name = "selection_parsing"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 miette = { version = "7.6.0", features = ["fancy"] }
-rand = "0.8.5"
+rustyline = "17.0.1"
+thiserror = "2.0.16"
