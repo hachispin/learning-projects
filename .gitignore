@@ -1,15 +1,19 @@
-# Python
+# General
+**/sandbox/
 .vscode/
 .env
+
+# Python
 *.pyc
 __pycache__/
-
-# Build / save dirs
-**/builds/
-**/sandbox/
 python/mdex_tool/mdex_save/
-python/notepad/data.json
-rust/target/
-
-# Logs
 python/mdex_tool/logs/
+python/notepad/data.json
+
+
+# C++
+**/builds/
+
+# Rust
+rust/target/
+rust/crates/rust_mdex_dl/images/
