@@ -66,8 +66,9 @@ fn get_progress_bar(length: usize) -> ProgressBar {
 /// Downloads the provided `urls` into `./images/` from cargo root
 pub async fn download_images(images: &Vec<Url>) -> Result<()> {
     // semaphore with a clamp between `urls.len()` and 25
-    let sema: Arc<Semaphore> = Semaphore::new(images.len().clamp(1, 25)).into();
-    eprintln!("Using {} tasks", sema.available_permits());
+    let num_tasks = images.len().clamp(1, 25).into();
+    let sema: Arc<Semaphore> = Semaphore::new(num_tasks).into();
+    eprintln!("Using {num_tasks} task(s)");
     let pb: Arc<ProgressBar> = get_progress_bar(images.len()).into();
 
     // make minimal `reqwest::Client` for downloads
@@ -84,7 +85,7 @@ pub async fn download_images(images: &Vec<Url>) -> Result<()> {
         fs::create_dir(&save_dir).await.into_diagnostic()?;
     }
 
-    let mut handles = Vec::with_capacity(sema.available_permits());
+    let mut handles = Vec::with_capacity(num_tasks);
     for (i, url) in images.iter().enumerate() {
         let sema = sema.clone();
         let pb = pb.clone();
