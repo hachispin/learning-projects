@@ -1,102 +1,58 @@
+mod api;
+mod config;
+mod errors;
+mod paths;
+
+use api::{
+    client::ApiClient,
+    downloader::{self, ChapterCdnInfo},
+    endpoints::*,
+};
+use config::load_config;
+
 use std::time::Instant;
 
-mod client;
-mod downloader;
-mod errors;
-
-use crate::client::ChapterCdnInfo;
-use client::Client;
-use errors::UuidError;
-
 use miette::{self, ErrReport, IntoDiagnostic, Result};
-use rustyline::history::FileHistory;
 use tokio;
+use uuid::Uuid;
 
-/// caller should've converted `uuid` into lowercase prior
-fn validate_uuid(uuid: &str) -> Result<&str> {
-    if uuid.len() != 36 {
-        return Err(ErrReport::from(UuidError::invalid_length(uuid)));
-    }
-
-    // `char::is_ascii_hexdigit()` isn't used because
-    // mangadex doesn't accept capital letters in uuids.
-    for (i, c) in uuid.chars().enumerate() {
-        if !"0123456789abcdef-".contains(c) {
-            return Err(ErrReport::from(UuidError::invalid_token(uuid, i)));
-        }
-    }
-
-    let parts_lengths: Vec<usize> = uuid.split("-").map(|p| p.len()).collect();
-
-    if parts_lengths.len() != 5 {
-        return Err(ErrReport::from(UuidError::invalid_chunk_count(
-            uuid,
-            parts_lengths.len(),
-        )));
-    }
-
-    let mut pos = 0usize;
-    for (part_length, expected_length) in parts_lengths.iter().zip(UuidError::CHUNK_SIZES) {
-        if part_length != &expected_length {
-            return Err(ErrReport::from(UuidError::invalid_chunk_length(
-                uuid,
-                (pos, *part_length),
-                expected_length,
-                *part_length,
-            )));
-        }
-
-        pos += part_length + 1; // for hyphen
-    }
-
-    Ok(uuid)
-}
-
-/// Prompts the user continuously until a valid UUID is provided.
-///
-/// Note that this doesn't mean the UUID actually exists.
-fn get_valid_uuid(
-    rl: &mut rustyline::Editor<(), FileHistory>,
-    prompt: Option<&str>,
-) -> Result<String> {
+/// Continuously prompts the user until a valid UUID is entered.
+fn get_valid_uuid(rl: &mut rustyline::DefaultEditor) -> Result<Uuid> {
     loop {
-        let read = rl.readline(prompt.unwrap_or("Enter a UUID: "));
-        let uuid = read
-            .into_diagnostic()?
-            .to_ascii_lowercase()
-            .trim()
-            .to_string();
+        let input = rl.readline(">> ").into_diagnostic()?;
+        rl.add_history_entry(&input).into_diagnostic()?;
 
-        rl.add_history_entry(&uuid).into_diagnostic()?;
+        let uuid = Uuid::parse_str(&input);
 
-        match validate_uuid(&uuid) {
-            Ok(_) => return Ok(uuid),
-            Err(e) => eprintln!("{:?}", e),
+        if let Ok(v) = uuid {
+            return Ok(v);
         }
+
+        println!("{:?}", ErrReport::from_err(uuid.unwrap_err()));
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     miette::set_panic_hook();
+    let cfg = load_config()?;
 
-    let c = Client::new("https://api.mangadex.org", None)?;
     let mut rl = rustyline::DefaultEditor::new().into_diagnostic()?;
+    let chapter_uuid = get_valid_uuid(&mut rl)?;
+    let api = ApiClient::new(&cfg.client)?;
 
-    println!("here's a test uuid: a54c491c-8e4c-4e97-8873-5b79e59da210");
-    let chapter_uuid = get_valid_uuid(&mut rl, None)?;
-
-    let r_json = c
-        .get_ok_json(&format!("/at-home/server/{chapter_uuid}"))
+    let cdn_json = api
+        .get_ok_json(Endpoint::GetChapterCdn(chapter_uuid))
         .await?;
 
-    let cdn_info = ChapterCdnInfo::new(&r_json);
-    let urls = cdn_info.construct_image_urls(false)?;
+    let cdn_data = ChapterCdnInfo::new(&cdn_json);
+    let image_urls = cdn_data.construct_image_urls(false)?;
 
     let start = Instant::now();
-    downloader::download_images(&urls).await?;
-    eprintln!("{}", start.elapsed().as_millis());
-    eprintln!("image 1: {}", urls.first().unwrap());
+    downloader::download_images(&image_urls, &cfg).await?;
+    let elapsed = Instant::now() - start;
+
+    println!("milliseconds: {}", elapsed.as_millis());
 
     Ok(())
 }

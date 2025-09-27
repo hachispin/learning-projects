@@ -1,0 +1,31 @@
+# ==> For rust_mdex_dl
+# Find defaults at: https://github.com/hachispin/learning-projects/blob/main/rust/config.toml
+
+# Client info used for:
+
+# * `reqwest::ClientBuilder::new()`
+# * `crate::Client` (which is just a reqwest::Client wrapper)
+
+[client]
+base_url = "https://api.mangadex.org"
+user_agent = "hachispin/learning-projects"
+
+# This how many of these can be processed (or "permitted") at the same time.
+#
+# e.g. `image_permits` means how many images can be
+# downloaded and saved at any one point in time.
+#
+# To go more in depth, these are the number of permits set on the semaphores.
+# https://en.wikipedia.org/wiki/Semaphore_(programming)
+#
+# Setting these higher may result in faster downloads at the cost
+# of possible being throttled or ratelimited by MangaDex.
+[concurrency]
+image_permits = 25      # * undocumented ratelimit but hard to hit unless done intentionally
+                        #   https://api.mangadex.org/docs/2-limitations/#non-api-rate-limits
+chapter_permits = 3     # * max is 40 reqs per minute for this endpoint
+                        #   scale this against your download speed accordingly
+                        #   https://api.mangadex.org/docs/2-limitations/#endpoint-specific-rate-limits
+[images]
+quality = "high"
+save_format = "raw"
