@@ -1,5 +1,6 @@
 mod api;
 mod config;
+mod deserialize_custom;
 mod errors;
 mod paths;
 

@@ -16,9 +16,7 @@ static CONFIG: LazyLock<PathBuf> = LazyLock::new(|| PROJECT_ROOT.join("config.to
 /// NOTE: This currently uses the `"CARGO_MANIFEST_DIR"` environment variable.
 ///
 /// This environment variable doesn't exist in release binaries.
-pub fn project_root() -> &'static Path {
-    &PROJECT_ROOT
-}
+
 pub fn manga_save_dir() -> &'static Path {
     &MANGA_SAVE
 }

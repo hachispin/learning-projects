@@ -2,6 +2,7 @@
 
 #![allow(unused)]
 
+use crate::deserialize_custom::{deserialize_enum, deserialize_url};
 use crate::paths::*;
 
 use std::fs;
@@ -53,30 +54,6 @@ impl TryFrom<String> for ImageQuality {
             ))),
         }
     }
-}
-
-/// Helper function to deserialize as [`Url`]
-fn deserialize_url<'de, D>(deserializer: D) -> Result<Url, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let input_url = String::deserialize(deserializer)?
-        .trim_matches('/')
-        .to_string();
-
-    Url::parse(&input_url).map_err(serde::de::Error::custom)
-}
-
-/// Generic helper function to deserialize enums.
-///
-/// The enum must have `TryFrom<String>` implemented.
-fn deserialize_enum<'de, 'a, D, T>(deserializer: D) -> Result<T, D::Error>
-where
-    D: serde::Deserializer<'de>,
-    T: TryFrom<String, Error = ErrReport>,
-{
-    let s = String::deserialize(deserializer)?;
-    s.try_into().map_err(serde::de::Error::custom)
 }
 
 #[derive(Deserialize, Debug, Clone)]
