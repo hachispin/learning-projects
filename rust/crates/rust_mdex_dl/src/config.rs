@@ -2,7 +2,6 @@
 
 #![allow(unused)]
 
-use crate::deserializers::{deserialize_enum, deserialize_url};
 use crate::paths::*;
 
 use std::fs;
@@ -16,49 +15,22 @@ use toml::{self};
 /* For config fields with set options       */
 /* Consider attempting to apply DRY later   */
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum SaveFormat {
     Raw,
     ComicBookZip,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum ImageQuality {
     High,
     Low,
 }
 
-impl TryFrom<String> for SaveFormat {
-    type Error = ErrReport;
-
-    fn try_from(s: String) -> Result<Self, Self::Error> {
-        match s.to_ascii_lowercase().trim() {
-            "raw" => Ok(SaveFormat::Raw),
-            "cbz" => Ok(SaveFormat::ComicBookZip),
-            _ => Err(miette::miette!(format!(
-                "expected `save_format` config field to be either \"raw\" or \"cbz\", instead got {s:?}"
-            ))),
-        }
-    }
-}
-
-impl TryFrom<String> for ImageQuality {
-    type Error = ErrReport;
-
-    fn try_from(s: String) -> Result<Self, Self::Error> {
-        match s.to_ascii_lowercase().trim() {
-            "high" => Ok(ImageQuality::High),
-            "low" => Ok(ImageQuality::Low),
-            _ => Err(miette::miette!(format!(
-                "expected `quality` config field to be either \"high\" or \"low\", instead got {s:?}"
-            ))),
-        }
-    }
-}
-
 #[derive(Deserialize, Debug, Clone)]
 pub struct Client {
-    #[serde(deserialize_with = "deserialize_url")]
     pub base_url: Url,
     pub user_agent: String,
 }
@@ -70,17 +42,16 @@ pub struct Concurrency {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct Config {
-    pub client: Client,
-    pub concurrency: Concurrency,
+pub struct Images {
+    pub quality: ImageQuality,
+    pub save_format: SaveFormat,
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct Images {
-    #[serde(deserialize_with = "deserialize_enum")]
-    pub quality: ImageQuality,
-    #[serde(deserialize_with = "deserialize_enum")]
-    pub save_format: SaveFormat,
+pub struct Config {
+    pub client: Client,
+    pub concurrency: Concurrency,
+    pub images: Images,
 }
 
 /// Loads the config stored in [`config_toml()`](`crate::paths::config_toml()`)

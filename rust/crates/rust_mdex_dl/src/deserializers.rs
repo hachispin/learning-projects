@@ -4,41 +4,8 @@ use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
 use isolang::Language;
-use miette::ErrReport;
-use reqwest::Url;
 use serde::Deserialize;
 use uuid::Uuid;
-
-/// Helper function to deserialize as [`Url`]
-pub fn deserialize_url<'de, D>(deserializer: D) -> Result<Url, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let input_url = String::deserialize(deserializer)?
-        .trim_matches('/')
-        .to_string();
-
-    Url::parse(&input_url).map_err(serde::de::Error::custom)
-}
-
-pub fn deserialize_url_maybe<'de, D>(deserializer: D) -> Result<Option<Url>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    Ok(deserialize_url(deserializer).ok())
-}
-
-/// Generic helper function to deserialize enums.
-///
-/// The enum must have [`TryFrom<String>`] implemented.
-pub fn deserialize_enum<'de, D, T>(deserializer: D) -> Result<T, D::Error>
-where
-    D: serde::Deserializer<'de>,
-    T: TryFrom<String, Error = ErrReport>,
-{
-    let s = String::deserialize(deserializer)?;
-    s.try_into().map_err(serde::de::Error::custom)
-}
 
 /// Helper function to deserialize as [`Uuid`]
 pub fn deserialize_uuid<'de, D>(deserializer: D) -> Result<Uuid, D::Error>
@@ -82,9 +49,11 @@ where
     )))
 }
 
-/// Helper function to deserialize as [`HashMap<Language, String>`]
-///
+/// Helper function to deserialize as [`HashMap<Language, String>`].
 /// This pattern appears quite often, especially in places like descriptions.
+///
+/// The input is parsed using the ISO 639-1 standard, in accordance with
+/// [what MangaDex uses](https://api.mangadex.org/docs/3-enumerations/#language-codes--localization)
 pub fn deserialize_language_code_map<'de, D>(
     deserializer: D,
 ) -> Result<HashMap<Language, String>, D::Error>

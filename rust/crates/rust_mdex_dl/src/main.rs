@@ -37,14 +37,13 @@ fn get_valid_uuid(rl: &mut rustyline::DefaultEditor) -> Result<Uuid> {
 async fn main() -> Result<()> {
     miette::set_panic_hook();
     let cfg = load_config()?;
+    println!("{cfg:?}");
 
     let mut rl = rustyline::DefaultEditor::new().into_diagnostic()?;
-    let chapter_uuid = get_valid_uuid(&mut rl)?;
+    let manga_uuid = get_valid_uuid(&mut rl)?;
     let api = ApiClient::new(&cfg.client)?;
 
-    let cdn_json = api
-        .get_ok_json(Endpoint::GetChapterCdn(chapter_uuid))
-        .await?;
+    let cdn_json = api.get_ok_json(Endpoint::GetChapterCdn(manga_uuid)).await?;
 
     let cdn_data = ChapterCdnInfo::new(&cdn_json);
     let image_urls = cdn_data.construct_image_urls(false)?;

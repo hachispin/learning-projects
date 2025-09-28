@@ -133,7 +133,7 @@ fn get_progress_bar(length: usize) -> ProgressBar {
     pb
 }
 
-/// Downloads the provided `images` into [manga_save_dir()](`crate::paths::manga_save_dir()`)
+/// Downloads the provided `images` into [`manga_save_dir()`]
 ///
 /// This uses a [`Semaphore`] to allow for concurrent image downloading.
 /// The number of permits is set in `cfg` under concurrency.

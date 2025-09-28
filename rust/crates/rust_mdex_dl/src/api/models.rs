@@ -9,10 +9,43 @@ use crate::{Endpoint, api::client::ApiClient, deserializers::*};
 
 use chrono::{DateTime, Utc};
 use isolang::Language;
-use miette::{IntoDiagnostic, Result};
+use miette::{ErrReport, IntoDiagnostic, Result};
 use reqwest::Url;
 use serde::{self, Deserialize};
 use uuid::Uuid;
+
+/// For storing `contentRating` field in [`MangaAttributes::content_rating`]
+///
+/// Reference: https://api.mangadex.org/docs/3-enumerations/#manga-content-rating
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum ContentRating {
+    Safe,
+    Suggestive,
+    Erotica,
+    Pornographic,
+}
+
+/// For storing `status` field in [`MangaAttributes::status`]
+///
+/// Reference: https://api.mangadex.org/docs/3-enumerations/#manga-status
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum Status {
+    Ongoing,
+    Completed,
+    Hiatus,
+    Cancelled,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct Relationship {
+    #[serde(deserialize_with = "deserialize_uuid")]
+    id: Uuid,
+
+    #[serde(rename = "type")]
+    pub type_: String,
+}
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -24,9 +57,7 @@ pub struct ChapterAttributes {
     #[serde(deserialize_with = "deserialize_language_code")]
     pub translated_language: Language,
 
-    #[serde(deserialize_with = "deserialize_url_maybe")]
     pub external_url: Option<Url>,
-
     pub is_unavailable: bool,
 
     #[serde(deserialize_with = "deserialize_utc_datetime")]
@@ -38,15 +69,6 @@ pub struct ChapterAttributes {
 
     pub pages: usize,
     pub version: usize,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub struct Relationship {
-    #[serde(deserialize_with = "deserialize_uuid")]
-    id: Uuid,
-
-    #[serde(rename = "type")]
-    pub type_: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -93,7 +115,7 @@ struct TagAttributes {
 /// * attributes.version
 /// * relationships
 ///
-/// These are omitted because they are nearly
+/// These are omitted because they are either
 /// always empty or store no useful information.
 #[derive(Deserialize, Debug, Clone)]
 struct Tag {
@@ -131,8 +153,8 @@ struct MangaAttributes {
     last_volume: String,
     last_chapter: String,
     publication_demographic: Option<String>,
-    status: String, // TODO: make enum
+    status: Status,
     year: usize,
-    content_rating: String, // TODO: make enum
+    content_rating: ContentRating,
     tags: Vec<Tag>,
 }
