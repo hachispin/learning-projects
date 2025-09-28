@@ -3,7 +3,7 @@
 
 #![allow(unused)]
 
-use std::collections::HashMap;
+use std::{collections::HashMap, fs};
 
 use crate::{Endpoint, api::client::ApiClient, deserializers::*};
 
@@ -12,6 +12,7 @@ use isolang::Language;
 use miette::{ErrReport, IntoDiagnostic, Result};
 use reqwest::Url;
 use serde::{self, Deserialize};
+use serde_json::Deserializer;
 use toml::value::Date;
 use uuid::Uuid;
 
@@ -20,7 +21,7 @@ use uuid::Uuid;
 /// Reference: https://api.mangadex.org/docs/3-enumerations/#manga-content-rating
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
-enum ContentRating {
+pub enum ContentRating {
     Safe,
     Suggestive,
     Erotica,
@@ -32,7 +33,7 @@ enum ContentRating {
 /// Reference: https://api.mangadex.org/docs/3-enumerations/#manga-status
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
-enum Status {
+pub enum Status {
     Ongoing,
     Completed,
     Hiatus,
@@ -44,7 +45,7 @@ enum Status {
 /// Reference: https://api.mangadex.org/docs/redoc.html#tag/Manga/operation/get-manga-id
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
-enum State {
+pub enum State {
     Draft,
     Submitted,
     Published,
@@ -67,7 +68,7 @@ pub struct ChapterAttributes {
     pub chapter: Option<String>,
     pub title: Option<String>,
 
-    #[serde(deserialize_with = "deserialize_language_code")]
+    #[serde(deserialize_with = "deserialize_langcode")]
     pub translated_language: Language,
 
     pub external_url: Option<Url>,
@@ -107,19 +108,24 @@ pub struct Chapter {
 impl Chapter {
     /// Takes the given `chapter_uuid` and makes a GET request to [`Endpoint::GetChapter`],
     /// parsing the response as a [`Chapter`] using [`serde`] and returning it.
-    pub async fn new(client: &ApiClient, chapter_uuid: Uuid) -> Result<Chapter> {
+    pub async fn new(client: &ApiClient, chapter_uuid: Uuid) -> Result<Self> {
         let r_json = client
             .get_ok_json(Endpoint::GetChapter(chapter_uuid))
             .await?;
 
-        serde_json::from_value::<Chapter>(r_json).into_diagnostic()
+        serde_json::from_value::<Self>(r_json).into_diagnostic()
+    }
+
+    /// Returns the UUID.
+    pub fn uuid(&self) -> Uuid {
+        self.data.id
     }
 }
 
 #[derive(Deserialize, Debug, Clone)]
-struct TagAttributes {
-    #[serde(deserialize_with = "deserialize_language_code_map")]
-    name: HashMap<Language, String>,
+pub struct TagAttributes {
+    #[serde(deserialize_with = "deserialize_langcode_map")]
+    pub name: HashMap<Language, String>,
 }
 
 /// Omitted fields:
@@ -131,53 +137,77 @@ struct TagAttributes {
 /// These are omitted because they are either
 /// always empty or store no useful information.
 #[derive(Deserialize, Debug, Clone)]
-struct Tag {
+pub struct Tag {
     #[serde(deserialize_with = "deserialize_uuid")]
     id: Uuid,
 
     #[serde(rename = "type")]
-    type_: String,
+    pub type_: String,
 
-    attributes: TagAttributes,
+    pub attributes: TagAttributes,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-struct MangaAttributes {
-    #[serde(deserialize_with = "deserialize_language_code_map")]
-    title: HashMap<Language, String>,
+pub struct MangaAttributes {
+    #[serde(deserialize_with = "deserialize_langcode_map")]
+    pub title: HashMap<Language, String>,
 
-    #[serde(deserialize_with = "deserialize_language_code_map")]
-    alt_titles: HashMap<Language, String>,
+    #[serde(deserialize_with = "deserialize_langcode_map_vec")]
+    pub alt_titles: Vec<HashMap<Language, String>>,
 
-    #[serde(deserialize_with = "deserialize_language_code_map")]
-    description: HashMap<Language, String>,
+    #[serde(deserialize_with = "deserialize_langcode_map")]
+    pub description: HashMap<Language, String>,
 
-    is_locked: bool,
-
+    pub is_locked: bool,
     // TODO: make this (or these?) an enum
     // https://api.mangadex.org/docs/3-enumerations/#manga-links-data
-    links: HashMap<String, String>,
-    official_links: Option<HashMap<String, String>>,
+    pub links: HashMap<String, String>,
+    pub official_links: Option<HashMap<String, String>>,
+    #[serde(deserialize_with = "deserialize_langcode")]
+    pub original_language: Language,
 
-    #[serde(deserialize_with = "deserialize_language_code")]
-    original_language: Language,
-
-    last_volume: Option<String>,
-    last_chapter: Option<String>,
-    publication_demographic: Option<String>,
-    status: Status,
-    year: Option<usize>,
-    content_rating: ContentRating,
-    tags: Vec<Tag>,
-    state: State,
-    chapter_numbers_reset_on_new_volume: bool,
-
-    #[serde(deserialize_with = "deserialize_utc_datetime")]
-    created_at: DateTime<Utc>,
+    pub last_volume: Option<String>,
+    pub last_chapter: Option<String>,
+    pub publication_demographic: Option<String>,
+    pub status: Status,
+    pub year: Option<usize>,
+    pub content_rating: ContentRating,
+    pub tags: Vec<Tag>,
+    pub state: State,
+    pub chapter_numbers_reset_on_new_volume: bool,
 
     #[serde(deserialize_with = "deserialize_utc_datetime")]
-    updated_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
 
-    version: usize,
+    #[serde(deserialize_with = "deserialize_utc_datetime")]
+    pub updated_at: DateTime<Utc>,
+
+    pub version: usize,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct MangaData {
+    #[serde(deserialize_with = "deserialize_uuid")]
+    id: Uuid,
+
+    #[serde(rename = "type")]
+    pub type_: String,
+
+    pub attributes: MangaAttributes,
+    pub relationships: Vec<Relationship>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct Manga {
+    pub data: MangaData,
+}
+
+impl Manga {
+    /// Takes the given `manga_uuid` and makes a GET request to [`Endpoint::GetChapter`],
+    /// parsing the response as a [`Chapter`] using [`serde`] and returning it.
+    pub async fn new(client: &ApiClient, manga_uuid: Uuid) -> Result<Self> {
+        let r_json = client.get_ok_json(Endpoint::GetManga(manga_uuid)).await?;
+        serde_json::from_value::<Self>(r_json).into_diagnostic()
+    }
 }

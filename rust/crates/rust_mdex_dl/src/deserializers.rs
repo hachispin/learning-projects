@@ -34,17 +34,31 @@ where
     Ok(parsed_datetime.to_utc())
 }
 
+/// for alpha-5 extensions
+///
+/// TODO: find a better way of doing this
+fn narrow_langcodes(langcode: &str) -> String {
+    match langcode {
+        "zh-ro" | "ja-ro" | "ko-ro" => "en",
+        "zh-hk" => "zh",
+        "pt-br" => "pt",
+        "es-la" => "es",
+        _ => langcode,
+    }
+    .to_string()
+}
+
 /// Helper function to deserialize as [`Language`]
 ///
 /// The input is parsed using the ISO 639-1 standard, in accordance with
 /// [what MangaDex uses](https://api.mangadex.org/docs/3-enumerations/#language-codes--localization)
-pub fn deserialize_language_code<'de, D>(deserializer: D) -> Result<Language, D::Error>
+pub fn deserialize_langcode<'de, D>(deserializer: D) -> Result<Language, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
-    let input_langcode = String::deserialize(deserializer)?;
+    let input_langcode = narrow_langcodes(&String::deserialize(deserializer)?);
 
-    Language::from_639_1(&input_langcode.as_str()).ok_or(serde::de::Error::custom(format!(
+    Language::from_639_1(input_langcode.as_str()).ok_or(serde::de::Error::custom(format!(
         "invalid iso 639-1 language code {input_langcode:?}"
     )))
 }
@@ -54,7 +68,7 @@ where
 ///
 /// The input is parsed using the ISO 639-1 standard, in accordance with
 /// [what MangaDex uses](https://api.mangadex.org/docs/3-enumerations/#language-codes--localization)
-pub fn deserialize_language_code_map<'de, D>(
+pub fn deserialize_langcode_map<'de, D>(
     deserializer: D,
 ) -> Result<HashMap<Language, String>, D::Error>
 where
@@ -67,10 +81,39 @@ where
     input_map
         .into_iter()
         .map(|(k, v)| {
+            let k = narrow_langcodes(&k);
             let lang = Language::from_639_1(&k).ok_or_else(|| {
                 serde::de::Error::custom(format!("invalid iso 639-1 language code {k:?}"))
             })?;
             Ok((lang, v))
         })
         .collect()
+}
+
+/// Deserializes to [`Vec<HashMap<Language, String>>`]
+pub fn deserialize_langcode_map_vec<'de, D>(
+    deserializer: D,
+) -> Result<Vec<HashMap<Language, String>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let mut mappings: Vec<HashMap<Language, String>> = Vec::new();
+    let input_map_vec: Vec<HashMap<String, String>> = Vec::deserialize(deserializer)?;
+
+    for m in input_map_vec {
+        let mut current = HashMap::new();
+
+        for (k, v) in m {
+            let k = narrow_langcodes(&k);
+            let lang = Language::from_639_1(&k).ok_or_else(|| {
+                serde::de::Error::custom(format!("invalid iso 639-1 language code {k:?}"))
+            })?;
+
+            current.insert(lang, v);
+        }
+
+        mappings.push(current);
+    }
+
+    Ok(mappings)
 }

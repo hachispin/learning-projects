@@ -11,13 +11,14 @@ use uuid::Uuid;
 /// "Endpoints" in this context are urls that aren't
 /// valid until prefixed with a proper base url.
 ///
-/// [`Endpoint::GetChapter`] takes a chapter uuid and returns relevant info
+/// * [`Endpoint::GetChapter`] returns chapter info given a uuid
+/// * [`Endpoint::GetChapterCdn`] returns download info
+/// * [`Endpoint::GetManga`] takes a manga's uuid and returns its info
+/// * [`Endpoint::SearchManga`] takes** a query and parameters and returns a list of manga
 ///
-/// [`Endpoint::GetChapterCdn`] takes a chapter uuid and returns info needed for downloading
+/// ** the [SearchManga](`Endpoint::SearchManga`) enum doesn't take search parameters itself.
 ///
-/// [`Endpoint::SearchManga`] takes* a query and parameters and returns a list of manga
-///
-/// \* the enum itself doesn't take these arguments
+/// The caller is expected to append them using [`reqwest::RequestBuilder::query`].
 ///
 /// ## Relevant documentation
 ///
@@ -26,11 +27,11 @@ use uuid::Uuid;
 /// https://api.mangadex.org/docs/redoc.html#tag/AtHome/operation/get-at-home-server-chapterId
 ///
 /// https://api.mangadex.org/docs/redoc.html#tag/Manga/operation/get-search-manga
-
 #[derive(Debug, Clone)]
 pub enum Endpoint {
     GetChapter(Uuid),
     GetChapterCdn(Uuid),
+    GetManga(Uuid),
     SearchManga,
 }
 
@@ -39,6 +40,7 @@ impl Endpoint {
         match self {
             Self::GetChapter(uuid) => format!("/chapter/{uuid}"),
             Self::GetChapterCdn(uuid) => format!("/at-home/server/{uuid}"),
+            Self::GetManga(uuid) => format!("/manga/{uuid}"),
             Self::SearchManga => "/manga".to_string(),
         }
     }

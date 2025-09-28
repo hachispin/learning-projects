@@ -17,6 +17,8 @@ use miette::{self, ErrReport, IntoDiagnostic, Result};
 use tokio;
 use uuid::Uuid;
 
+use crate::api::models::Manga;
+
 /// Continuously prompts the user until a valid UUID is entered.
 fn get_valid_uuid(rl: &mut rustyline::DefaultEditor) -> Result<Uuid> {
     loop {
@@ -42,17 +44,9 @@ async fn main() -> Result<()> {
     let mut rl = rustyline::DefaultEditor::new().into_diagnostic()?;
     let manga_uuid = get_valid_uuid(&mut rl)?;
     let api = ApiClient::new(&cfg.client)?;
+    let manga = Manga::new(&api, manga_uuid).await?;
 
-    let cdn_json = api.get_ok_json(Endpoint::GetChapterCdn(manga_uuid)).await?;
-
-    let cdn_data = ChapterCdnInfo::new(&cdn_json);
-    let image_urls = cdn_data.construct_image_urls(false)?;
-
-    let start = Instant::now();
-    downloader::download_images(&image_urls, &cfg).await?;
-    let elapsed = Instant::now() - start;
-
-    println!("milliseconds: {}", elapsed.as_millis());
+    println!("{manga:?}");
 
     Ok(())
 }
