@@ -12,6 +12,7 @@ use isolang::Language;
 use miette::{ErrReport, IntoDiagnostic, Result};
 use reqwest::Url;
 use serde::{self, Deserialize};
+use toml::value::Date;
 use uuid::Uuid;
 
 /// For storing `contentRating` field in [`MangaAttributes::content_rating`]
@@ -36,6 +37,18 @@ enum Status {
     Completed,
     Hiatus,
     Cancelled,
+}
+
+/// For storing `state` field in [`MangaAttributes::state`]
+///
+/// Reference: https://api.mangadex.org/docs/redoc.html#tag/Manga/operation/get-manga-id
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum State {
+    Draft,
+    Submitted,
+    Published,
+    Rejected,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -150,11 +163,21 @@ struct MangaAttributes {
     #[serde(deserialize_with = "deserialize_language_code")]
     original_language: Language,
 
-    last_volume: String,
-    last_chapter: String,
+    last_volume: Option<String>,
+    last_chapter: Option<String>,
     publication_demographic: Option<String>,
     status: Status,
-    year: usize,
+    year: Option<usize>,
     content_rating: ContentRating,
     tags: Vec<Tag>,
+    state: State,
+    chapter_numbers_reset_on_new_volume: bool,
+
+    #[serde(deserialize_with = "deserialize_utc_datetime")]
+    created_at: DateTime<Utc>,
+
+    #[serde(deserialize_with = "deserialize_utc_datetime")]
+    updated_at: DateTime<Utc>,
+
+    version: usize,
 }
