@@ -1,5 +1,7 @@
 //! Contains definitons for deserialize patterns with user-defined types
 
+use std::collections::HashMap;
+
 use chrono::{DateTime, Utc};
 use isolang::Language;
 use miette::ErrReport;
@@ -78,4 +80,28 @@ where
     Language::from_639_1(&input_langcode.as_str()).ok_or(serde::de::Error::custom(format!(
         "invalid iso 639-1 language code {input_langcode:?}"
     )))
+}
+
+/// Helper function to deserialize as [`HashMap<Language, String>`]
+///
+/// This pattern appears quite often, especially in places like descriptions.
+pub fn deserialize_language_code_map<'de, D>(
+    deserializer: D,
+) -> Result<HashMap<Language, String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let input_map: HashMap<String, String> = HashMap::deserialize(deserializer)?;
+
+    // `ok_or_else()` is used because `ok_or()`
+    // requires turbofish hell with generic types
+    input_map
+        .into_iter()
+        .map(|(k, v)| {
+            let lang = Language::from_639_1(&k).ok_or_else(|| {
+                serde::de::Error::custom(format!("invalid iso 639-1 language code {k:?}"))
+            })?;
+            Ok((lang, v))
+        })
+        .collect()
 }

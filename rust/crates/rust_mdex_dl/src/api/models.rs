@@ -3,14 +3,9 @@
 
 #![allow(unused)]
 
-use crate::{
-    Endpoint,
-    api::client::ApiClient,
-    deserialize_custom::{
-        deserialize_language_code, deserialize_url, deserialize_url_maybe,
-        deserialize_utc_datetime, deserialize_uuid,
-    },
-};
+use std::collections::HashMap;
+
+use crate::{Endpoint, api::client::ApiClient, deserializers::*};
 
 use chrono::{DateTime, Utc};
 use isolang::Language;
@@ -18,29 +13,6 @@ use miette::{IntoDiagnostic, Result};
 use reqwest::Url;
 use serde::{self, Deserialize};
 use uuid::Uuid;
-
-/*
-{
-  "data": {
-    "id": "c0c57b41-4d7d-4dd3-b3e2-90aeab080db2",
-    "type": "chapter",
-    "relationships": [
-      {
-        "id": "ee472231-6e83-402c-a8eb-2ec015fb1e68",
-        "type": "scanlation_group"
-      },
-      {
-        "id": "46748d60-9b15-4647-8250-de0926b20268",
-        "type": "manga"
-      },
-      {
-        "id": "5b4c4597-96ba-48df-ac4e-4c074b607dbd",
-        "type": "user"
-      }
-    ]
-  }
-}
-*/
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -89,12 +61,17 @@ pub struct ChapterData {
     pub relationships: Vec<Relationship>,
 }
 
+/// Models the entire JSON response of [`Endpoint::GetChapter`] as a struct.
+///
+/// This also allows easy usage of [`serde::Deserialize`] for [`Self::new`].
 #[derive(Deserialize, Debug, Clone)]
 pub struct Chapter {
     pub data: ChapterData,
 }
 
 impl Chapter {
+    /// Takes the given `chapter_uuid` and makes a GET request to [`Endpoint::GetChapter`],
+    /// parsing the response as a [`Chapter`] using [`serde`] and returning it.
     pub async fn new(client: &ApiClient, chapter_uuid: Uuid) -> Result<Chapter> {
         let r_json = client
             .get_ok_json(Endpoint::GetChapter(chapter_uuid))
@@ -102,4 +79,60 @@ impl Chapter {
 
         serde_json::from_value::<Chapter>(r_json).into_diagnostic()
     }
+}
+
+#[derive(Deserialize, Debug, Clone)]
+struct TagAttributes {
+    #[serde(deserialize_with = "deserialize_language_code_map")]
+    name: HashMap<Language, String>,
+}
+
+/// Omitted fields:
+///
+/// * attributes.description
+/// * attributes.version
+/// * relationships
+///
+/// These are omitted because they are nearly
+/// always empty or store no useful information.
+#[derive(Deserialize, Debug, Clone)]
+struct Tag {
+    #[serde(deserialize_with = "deserialize_uuid")]
+    id: Uuid,
+
+    #[serde(rename = "type")]
+    type_: String,
+
+    attributes: TagAttributes,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+struct MangaAttributes {
+    #[serde(deserialize_with = "deserialize_language_code_map")]
+    title: HashMap<Language, String>,
+
+    #[serde(deserialize_with = "deserialize_language_code_map")]
+    alt_titles: HashMap<Language, String>,
+
+    #[serde(deserialize_with = "deserialize_language_code_map")]
+    description: HashMap<Language, String>,
+
+    is_locked: bool,
+
+    // TODO: make this (or these?) an enum
+    // https://api.mangadex.org/docs/3-enumerations/#manga-links-data
+    links: HashMap<String, String>,
+    official_links: Option<HashMap<String, String>>,
+
+    #[serde(deserialize_with = "deserialize_language_code")]
+    original_language: Language,
+
+    last_volume: String,
+    last_chapter: String,
+    publication_demographic: Option<String>,
+    status: String, // TODO: make enum
+    year: usize,
+    content_rating: String, // TODO: make enum
+    tags: Vec<Tag>,
 }

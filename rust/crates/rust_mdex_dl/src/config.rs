@@ -2,7 +2,7 @@
 
 #![allow(unused)]
 
-use crate::deserialize_custom::{deserialize_enum, deserialize_url};
+use crate::deserializers::{deserialize_enum, deserialize_url};
 use crate::paths::*;
 
 use std::fs;
