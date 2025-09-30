@@ -9,6 +9,8 @@
 [client]
 base_url = "https://api.mangadex.org"
 user_agent = "hachispin/learning-projects"
+language = "en"     # * must be an ISO 639-1 code, which are two letters long
+                    #   https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes
 
 # This how many of these can be processed (or "permitted") at the same time.
 #
@@ -26,6 +28,15 @@ image_permits = 25      # * undocumented ratelimit but hard to hit unless done i
 chapter_permits = 3     # * max is 40 reqs per minute for this endpoint
                         #   scale this against your download speed accordingly
                         #   https://api.mangadex.org/docs/2-limitations/#endpoint-specific-rate-limits
-[images]
-quality = "high"
-save_format = "raw"
+
+
+
+##------ NOT IMPLEMENTED ------##
+[images]                        #
+quality = "high"                #
+save_format = "raw"             #
+##-----------------------------##
+
+[logging]
+enabled = true
+level = "DEBUG"  # options: "TRACE", "DEBUG", "INFO", "WARN", "ERROR"

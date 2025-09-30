@@ -1,4 +1,4 @@
 pub mod client;
-pub mod downloader;
+pub mod download;
 pub mod endpoints;
 pub mod models;

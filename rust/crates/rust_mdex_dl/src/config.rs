@@ -1,19 +1,23 @@
 //! Loads `./config.toml` in `/src` and validates options.
+//!
+//! Since this is done before logs are set up, logging is
+//! sent to stdout, then cleared as soon as it's done.
 
-#![allow(unused)]
-
-use crate::paths::*;
+use crate::{
+    deserializers::{deserialize_langcode, deserialize_logging_level},
+    paths::*,
+};
 
 use std::fs;
-use std::path::{Path, PathBuf};
 
-use miette::{self, ErrReport, IntoDiagnostic, Result};
+use isolang::Language;
+use miette::{self, IntoDiagnostic, Result};
 use reqwest::Url;
 use serde::Deserialize;
-use toml::{self};
+use toml;
 
-/* For config fields with set options       */
-/* Consider attempting to apply DRY later   */
+/*    For config fields with set options    */
+/*  Consider attempting to apply DRY later  */
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -33,25 +37,39 @@ pub enum ImageQuality {
 pub struct Client {
     pub base_url: Url,
     pub user_agent: String,
+    #[serde(deserialize_with = "deserialize_langcode")]
+    pub language: Language,
 }
 
+#[allow(unused)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct Concurrency {
     pub image_permits: usize,
     pub chapter_permits: usize,
 }
 
+#[allow(unused)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct Images {
     pub quality: ImageQuality,
     pub save_format: SaveFormat,
 }
 
+#[allow(unused)]
+#[derive(Deserialize, Debug, Clone)]
+pub struct Logging {
+    pub enabled: bool,
+    #[serde(deserialize_with = "deserialize_logging_level")]
+    pub level: log::Level,
+}
+
+#[allow(unused)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
     pub client: Client,
     pub concurrency: Concurrency,
     pub images: Images,
+    pub logging: Logging,
 }
 
 /// Loads the config stored in [`config_toml()`](`crate::paths::config_toml()`)

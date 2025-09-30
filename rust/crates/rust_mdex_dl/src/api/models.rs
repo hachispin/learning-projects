@@ -1,19 +1,15 @@
 //! Contains the `Manga` and `Chapter` structs
 //! which model the corresponding API responses.
 
-#![allow(unused)]
-
-use std::{collections::HashMap, fs};
+use std::collections::HashMap;
 
 use crate::{Endpoint, api::client::ApiClient, deserializers::*};
 
 use chrono::{DateTime, Utc};
 use isolang::Language;
-use miette::{ErrReport, IntoDiagnostic, Result};
+use miette::{IntoDiagnostic, Result};
 use reqwest::Url;
 use serde::{self, Deserialize};
-use serde_json::Deserializer;
-use toml::value::Date;
 use uuid::Uuid;
 
 /// For storing `contentRating` field in [`MangaAttributes::content_rating`]
@@ -52,6 +48,18 @@ pub enum State {
     Rejected,
 }
 
+/// For storing `publication_demographic` field in [`MangaAttributes::publication_demographic`]
+///
+/// Reference: https://api.mangadex.org/docs/3-enumerations/#manga-publication-demographic
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PublicationDemographic {
+    Shounen,
+    Shoujo,
+    Josei,
+    Seinen,
+}
+
 #[derive(Deserialize, Debug, Clone)]
 pub struct Relationship {
     #[serde(deserialize_with = "deserialize_uuid")]
@@ -61,6 +69,13 @@ pub struct Relationship {
     pub type_: String,
 }
 
+impl Relationship {
+    pub fn uuid(&self) -> Uuid {
+        self.id
+    }
+}
+
+#[allow(unused)]
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ChapterAttributes {
@@ -85,6 +100,7 @@ pub struct ChapterAttributes {
     pub version: usize,
 }
 
+#[allow(unused)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct ChapterData {
     #[serde(deserialize_with = "deserialize_uuid")]
@@ -113,10 +129,45 @@ impl Chapter {
             .get_ok_json(Endpoint::GetChapter(chapter_uuid))
             .await?;
 
-        serde_json::from_value::<Self>(r_json).into_diagnostic()
+        let chapter = serde_json::from_value::<Self>(r_json).into_diagnostic()?;
+        assert!(chapter.data.type_ == "chapter");
+
+        Ok(chapter)
     }
 
-    /// Returns the UUID.
+    /// Returns a formatted chapter title such as:
+    ///
+    /// `[011] I broke through`
+    ///
+    /// Zero-padding is fixed to three characters because getting
+    /// the highest chapter number is a little tricky from here.
+    pub fn formatted_title(&self, language: Language) -> String {
+        let title = self.data.attributes.title.clone().unwrap_or_default();
+
+        let num = self
+            .data
+            .attributes
+            .chapter
+            .clone()
+            .unwrap_or("---".to_string());
+
+        format!("[{num:0>3}] {title}")
+    }
+    /// Iterates over [relationships](`ChapterData::relationships`) until the parent
+    /// manga is found.
+    ///
+    /// This panics with [`Option::expect`] if it can't be found.
+    pub fn parent_uuid(&self) -> Uuid {
+        // the "manga" field is usually in relationships[1] but this is more reliable
+        self.data
+            .relationships
+            .iter()
+            .find(|r| r.type_ == "manga")
+            .expect("no parent manga found") // should be unreachable
+            .uuid()
+    }
+
+    /// UUID getter
     pub fn uuid(&self) -> Uuid {
         self.data.id
     }
@@ -147,6 +198,7 @@ pub struct Tag {
     pub attributes: TagAttributes,
 }
 
+#[allow(unused)]
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct MangaAttributes {
@@ -169,7 +221,7 @@ pub struct MangaAttributes {
 
     pub last_volume: Option<String>,
     pub last_chapter: Option<String>,
-    pub publication_demographic: Option<String>,
+    pub publication_demographic: Option<PublicationDemographic>,
     pub status: Status,
     pub year: Option<usize>,
     pub content_rating: ContentRating,
@@ -186,6 +238,7 @@ pub struct MangaAttributes {
     pub version: usize,
 }
 
+#[allow(unused)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct MangaData {
     #[serde(deserialize_with = "deserialize_uuid")]
@@ -208,6 +261,34 @@ impl Manga {
     /// parsing the response as a [`Chapter`] using [`serde`] and returning it.
     pub async fn new(client: &ApiClient, manga_uuid: Uuid) -> Result<Self> {
         let r_json = client.get_ok_json(Endpoint::GetManga(manga_uuid)).await?;
-        serde_json::from_value::<Self>(r_json).into_diagnostic()
+        let manga = serde_json::from_value::<Self>(r_json).into_diagnostic()?;
+        assert!(manga.data.type_ == "manga");
+
+        Ok(manga)
+    }
+
+    /// Helper for accessing title field given a language.
+    ///
+    /// Defaults to the first title in [`MangaAttributes::title`]
+    /// if the language provided wasn't available.
+    pub fn title(&self, language: Language) -> Option<String> {
+        if let Some(v) = self.data.attributes.title.get(&language) {
+            return Some(v.to_string());
+        }
+
+        for map in &self.data.attributes.alt_titles {
+            for (k, v) in map {
+                if *k == language {
+                    return Some(v.to_string());
+                }
+            }
+        }
+
+        unreachable!()
+    }
+
+    /// UUID getter
+    pub fn uuid(&self) -> Uuid {
+        self.data.id
     }
 }

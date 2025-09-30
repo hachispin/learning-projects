@@ -4,20 +4,14 @@ mod deserializers;
 mod errors;
 mod paths;
 
-use api::{
-    client::ApiClient,
-    downloader::{self, ChapterCdnInfo},
-    endpoints::*,
-};
+use api::{client::ApiClient, endpoints::*};
 use config::load_config;
-
-use std::time::Instant;
 
 use miette::{self, ErrReport, IntoDiagnostic, Result};
 use tokio;
 use uuid::Uuid;
 
-use crate::api::models::Manga;
+use crate::api::models::{Chapter, Manga};
 
 /// Continuously prompts the user until a valid UUID is entered.
 fn get_valid_uuid(rl: &mut rustyline::DefaultEditor) -> Result<Uuid> {
@@ -42,11 +36,13 @@ async fn main() -> Result<()> {
     println!("{cfg:?}");
 
     let mut rl = rustyline::DefaultEditor::new().into_diagnostic()?;
-    let manga_uuid = get_valid_uuid(&mut rl)?;
+    let chapter_uuid = get_valid_uuid(&mut rl)?;
     let api = ApiClient::new(&cfg.client)?;
-    let manga = Manga::new(&api, manga_uuid).await?;
+    let chapter = Chapter::new(&api, chapter_uuid).await?;
+    let parent_uuid = chapter.parent_uuid();
 
-    println!("{manga:?}");
+    let parent = Manga::new(&api, parent_uuid).await?;
+    println!("{parent:?}");
 
     Ok(())
 }

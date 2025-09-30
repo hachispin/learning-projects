@@ -1,6 +1,7 @@
 use crate::{api::endpoints::Endpoint, config};
 
 use crate::errors::ApiError;
+use isolang::Language;
 use miette::{IntoDiagnostic, Result};
 use reqwest;
 use serde_json;
@@ -10,21 +11,25 @@ use serde_json;
 pub struct ApiClient {
     client: reqwest::Client,
     base_url: reqwest::Url,
+    language: Language,
 }
 
 impl ApiClient {
-    /// Creates a new [`ApiClient`] through [`reqwest::Client::builder()`]
-    ///
-    /// `client_cfg` is used to set the [base url](Self::base_url) and the user agent.
+    /// Creates a new [`ApiClient`] with [`reqwest::Client::builder()`]
     pub fn new(client_cfg: &config::Client) -> Result<Self> {
         let base_url = client_cfg.base_url.clone();
+        let language = client_cfg.language;
 
         let client = reqwest::Client::builder()
             .user_agent(client_cfg.user_agent.clone())
             .build()
             .into_diagnostic()?;
 
-        Ok(Self { client, base_url })
+        Ok(Self {
+            client,
+            base_url,
+            language,
+        })
     }
 
     /// Sends a GET request to the `endpoint` prefixed with the
