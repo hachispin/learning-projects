@@ -1,6 +1,6 @@
 # learning-projects
 
-Currently working on: Trying not to fail my A-levels :)
+Currently working on: Rust
 
 I don't plan on working on any TO-DO lists or existing projects for now.
 
