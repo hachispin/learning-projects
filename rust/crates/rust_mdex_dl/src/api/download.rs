@@ -1,25 +1,84 @@
 use crate::{
     Endpoint,
     api::models::{Chapter, Manga},
-    config::Config,
+    config::{Config, Images},
 };
 
 use std::sync::Arc;
 
+use bytes::Bytes;
+use indicatif::{ProgressBar, ProgressStyle};
 use isolang::Language;
 use miette::{IntoDiagnostic, Result};
 use reqwest::{self, Client, Url};
+use serde::Deserialize;
+use serde_json;
 use tokio::sync::Semaphore;
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ChapterCdnData {
+    hash: String,
+    data: Vec<String>,
+    data_saver: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ChapterCdn {
+    base_url: Url,
+    chapter: ChapterCdnData,
+}
+
+impl ChapterCdn {
+    /// Constructs a new [`ChapterCdn`].
+    ///
+    /// The response, `r_json` must be from [`Endpoint::GetChapterCdn`] for this to work.
+    fn new(r_json: &serde_json::Value) -> Result<Self> {
+        serde_json::from_value(r_json.clone()).into_diagnostic()
+    }
+
+    /// Constructs the image urls in the format:
+    ///
+    /// `$.baseUrl / $QUALITY / $.chapter.hash / $.chapter.$QUALITY[*]`
+    ///
+    /// Reference: https://api.mangadex.org/docs/04-chapter/retrieving-chapter/#howto
+    fn construct_image_urls(&self, use_datasaver: bool) -> Result<Vec<Url>> {
+        let quality = if use_datasaver { "data-saver" } else { "data" };
+        let image_names = if use_datasaver {
+            &self.chapter.data_saver
+        } else {
+            &self.chapter.data
+        };
+
+        let url_prefix = self
+            .base_url
+            .join(quality)
+            .into_diagnostic()?
+            .join(&self.chapter.hash)
+            .into_diagnostic()?;
+        let mut images = Vec::with_capacity(image_names.len());
+
+        for name in image_names {
+            images.push(url_prefix.join(&name).into_diagnostic()?);
+        }
+
+        Ok(images)
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct DownloadClient {
     client: Client,
-    base_url: Url,
     language: Language,
     image_semaphore: Arc<Semaphore>,
     chapter_semaphore: Arc<Semaphore>,
 }
 
 impl DownloadClient {
+    /// Constructs a new [`DownloadClient`].
+    ///
+    /// If [`Client::builder`] fails, returns Err value.
     pub fn new(cfg: &Config) -> Result<Self> {
         let user_agent = cfg.client.user_agent.clone();
         let chapter_permits = cfg.concurrency.chapter_permits;
@@ -30,22 +89,70 @@ impl DownloadClient {
             .build()
             .into_diagnostic()?;
 
-        let base_url = cfg.client.base_url.clone();
         let image_semaphore = Arc::from(Semaphore::new(image_permits));
         let language = cfg.client.language;
         let chapter_semaphore = Arc::from(Semaphore::new(chapter_permits));
 
         Ok(Self {
             client,
-            base_url,
             language,
             image_semaphore,
             chapter_semaphore,
         })
     }
 
-    // pub fn download_chapter(&self, chapter: Chapter, parent_manga: Manga) -> Result<()> {
-    //     let manga_title = parent_manga.title(self.language);
-    //     let chapter_title = chapter.formatted_title(self.language);
-    // }
+    /* Helpers for `download_chapter()` */
+
+    /// Constructs and returns a styled [`ProgressBar`]
+    fn get_progress_bar(length: usize) -> ProgressBar {
+        let length = length as u64;
+
+        let pb: ProgressBar = ProgressBar::new(length);
+        pb.set_style(
+            ProgressStyle::with_template(
+                "[{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
+            )
+            .unwrap()
+            .progress_chars("=>-"),
+        );
+
+        pb
+    }
+
+    /// Returns a tuple, `(Bytes, String)` on success.
+    ///
+    /// `Bytes` is self explanatory, while `String` contains the filename
+    /// extension **without the leading dot**. (e.g, "png", not ".png")
+    ///
+    /// Note that the extension can only be "JPEG", "PNG", or "GIF" according to ref.
+    ///
+    /// Reference: https://api.mangadex.org/docs/04-chapter/upload/#requirements-and-limitations
+    async fn download_image(&self, image_url: &Url) -> Result<(Bytes, String)> {
+        let ext = image_url.as_str().split('.').last().unwrap_or("png");
+        assert!(["png", "jpg", "jpeg", "gif"].iter().any(|v| ext == *v));
+
+        let data = self
+            .client
+            .get(image_url.as_ref())
+            .send()
+            .await
+            .into_diagnostic()?
+            .bytes()
+            .await
+            .into_diagnostic()?;
+
+        Ok((data, ext.to_string()))
+    }
+
+    async fn save_image(&self) {}
+
+    /// Downloads a chapter's images.
+    pub async fn download_chapter(
+        &self,
+        chapter: Chapter,
+        parent_manga: Manga,
+        images_cfg: &Images,
+    ) -> Result<()> {
+        Ok(())
+    }
 }
