@@ -1,25 +1,25 @@
-//! Contains definitons for deserialize patterns with user-defined types
+//! Contains definitions for deserialize patterns with user-defined types.
 
 use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
 use isolang::Language;
-use log::Level;
+use log::LevelFilter;
 use serde::Deserialize;
 use uuid::Uuid;
 
-pub fn deserialize_logging_level<'de, D>(deserializer: D) -> Result<Level, D::Error>
+pub fn deserialize_logging_filter<'de, D>(deserializer: D) -> Result<LevelFilter, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
     let input_level = String::deserialize(deserializer)?;
 
     match input_level.as_str() {
-        "TRACE" => Ok(Level::Trace),
-        "DEBUG" => Ok(Level::Debug),
-        "INFO" => Ok(Level::Info),
-        "WARN" => Ok(Level::Warn),
-        "ERROR" => Ok(Level::Error),
+        "TRACE" => Ok(LevelFilter::Trace),
+        "DEBUG" => Ok(LevelFilter::Debug),
+        "INFO" => Ok(LevelFilter::Info),
+        "WARN" => Ok(LevelFilter::Warn),
+        "ERROR" => Ok(LevelFilter::Error),
         _ => Err(serde::de::Error::custom(format!(
             "invalid logging level {input_level:?}"
         ))),
@@ -50,7 +50,7 @@ where
     Ok(parsed_datetime.to_utc())
 }
 
-/// shim for MangaDex's alpha-5 extensions
+/// shim for MangaDex's alpha-5 extensions.
 ///
 /// ref: https://api.mangadex.org/docs/3-enumerations/#language-codes--localization
 ///

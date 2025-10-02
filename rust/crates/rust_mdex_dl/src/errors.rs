@@ -1,3 +1,5 @@
+//! Contains user-defined errors. What else?
+
 use miette::Diagnostic;
 use thiserror::Error;
 

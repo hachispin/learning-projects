@@ -1,10 +1,11 @@
-//! Loads `./config.toml` in `/src` and validates options.
+//! Loads the [config](`crate::paths::config_toml`) and validates
+//! options using [`serde`] and [`toml`].
 //!
 //! Since this is done before logs are set up, logging is
 //! sent to stdout, then cleared as soon as it's done.
 
 use crate::{
-    deserializers::{deserialize_langcode, deserialize_logging_level},
+    deserializers::{deserialize_langcode, deserialize_logging_filter},
     paths::*,
 };
 
@@ -59,8 +60,8 @@ pub struct Images {
 #[derive(Deserialize, Debug, Clone)]
 pub struct Logging {
     pub enabled: bool,
-    #[serde(deserialize_with = "deserialize_logging_level")]
-    pub level: log::Level,
+    #[serde(deserialize_with = "deserialize_logging_filter")]
+    pub filter: log::LevelFilter,
 }
 
 #[allow(unused)]

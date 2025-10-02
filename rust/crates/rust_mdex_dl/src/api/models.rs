@@ -153,6 +153,7 @@ impl Chapter {
 
         format!("[{num:0>3}] {title}")
     }
+
     /// Iterates over [relationships](`ChapterData::relationships`) until the parent
     /// manga is found.
     ///
@@ -271,20 +272,29 @@ impl Manga {
     ///
     /// Defaults to the first title in [`MangaAttributes::title`]
     /// if the language provided wasn't available.
-    pub fn title(&self, language: Language) -> Option<String> {
+    pub fn title(&self, language: Language) -> String {
+        // check normal titles
         if let Some(v) = self.data.attributes.title.get(&language) {
-            return Some(v.to_string());
+            return v.to_string();
         }
 
+        // check alt titles
         for map in &self.data.attributes.alt_titles {
             for (k, v) in map {
                 if *k == language {
-                    return Some(v.to_string());
+                    return v.to_string();
                 }
             }
         }
 
-        unreachable!()
+        // fallback to first normal title
+        self.data
+            .attributes
+            .title
+            .values()
+            .next()
+            .cloned()
+            .expect("fallback title failed; no title found")
     }
 
     /// UUID getter

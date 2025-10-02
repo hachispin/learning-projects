@@ -39,4 +39,4 @@ save_format = "raw"             #
 
 [logging]
 enabled = true
-level = "DEBUG"  # options: "TRACE", "DEBUG", "INFO", "WARN", "ERROR"
+filter = "DEBUG"  # options: "TRACE", "DEBUG", "INFO", "WARN", "ERROR"
