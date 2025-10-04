@@ -13,7 +13,10 @@ use miette::{ErrReport, IntoDiagnostic, Result};
 use reqwest::{self, Client, Url};
 use serde::Deserialize;
 use serde_json;
-use tokio::{sync::Semaphore, time::Instant};
+use tokio::{
+    sync::{Mutex, Semaphore},
+    time::Instant,
+};
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -44,8 +47,6 @@ impl ChapterCdn {
     ///
     /// Reference: https://api.mangadex.org/docs/04-chapter/retrieving-chapter/#howto
     fn construct_image_urls(&self, quality: ImageQuality) -> Result<Vec<Url>> {
-        info!("Constructing image urls with quality '{quality:?}'");
-
         let quality = match quality {
             ImageQuality::Lossless => "data",
             ImageQuality::Lossy => "data-saver",
@@ -187,21 +188,27 @@ impl DownloadClient {
     }
 
     /// Downloads a chapter's images.
+    ///
+    /// Returns the total size of all pages as MiB.
     async fn download_chapter(
         &self,
         cdn: ChapterCdn,
         chapter: Chapter,
         parent_manga_title: &str,
         images_cfg: &Images,
-    ) -> Result<()> {
+    ) -> Result<f64> {
         let images_cfg = images_cfg.clone();
         let images = cdn.construct_image_urls(images_cfg.quality)?;
         let zero_pad = format!("{}", images.len()).len();
 
-        let chapter_title = chapter.formatted_title();
+        // info for logs
+        let chapter_uuid_suffix = chapter.uuid().to_string()[..8].to_string();
+        let chapter_size = Arc::new(Mutex::new(0f64));
+
+        let chapter_title = &chapter.formatted_title();
         let chapter_dir = &manga_save_dir()
             .join(parent_manga_title)
-            .join(&chapter_title);
+            .join(chapter_title);
 
         std::fs::create_dir_all(&chapter_dir).into_diagnostic()?;
         let chapter_dir = chapter_dir.canonicalize().into_diagnostic()?;
@@ -225,7 +232,8 @@ impl DownloadClient {
             let pb = pb.clone();
             let url = url.clone();
             let chapter_dir = chapter_dir.clone();
-            let chapter_title = chapter_title.clone();
+            let chapter_uuid_suffix = chapter_uuid_suffix.clone();
+            let chapter_size = chapter_size.clone();
             let h = handle_client.clone();
 
             handles.push(tokio::spawn(async move {
@@ -233,13 +241,18 @@ impl DownloadClient {
                 let page = format!("{:0>zero_pad$}", i);
                 let data = h.download_image(&url).await?;
 
+                let page_size = data.0.len() as f64 / 1_048_576.0; // MiB conversion
+
                 debug!(
-                    "{} -- Page {} downloaded in {}ms, size is {:.3} MiB",
-                    chapter_title,
+                    "({}) Page {} downloaded in {}ms, size is {:.3} MiB",
+                    chapter_uuid_suffix,
                     page,
                     (Instant::now() - start).as_millis(),
-                    data.0.len() as f64 / 1_048_576.0, // as MiB
+                    page_size,
                 );
+
+                let mut total = chapter_size.lock().await;
+                *total += page_size;
 
                 h.save_image(data, chapter_dir, &page).await?;
 
@@ -253,13 +266,14 @@ impl DownloadClient {
             .into_diagnostic()?;
 
         info!(
-            "{} -- Completed downloads in {}ms",
-            chapter_title,
-            (Instant::now() - start).as_millis()
+            "({}) Completed downloads in {}ms, total size is {:.3} MiB",
+            chapter_uuid_suffix,
+            (Instant::now() - start).as_millis(),
+            *chapter_size.lock().await,
         );
 
         pb.finish();
-        Ok(())
+        Ok(*chapter_size.lock().await)
     }
 
     /// Downloads all chapters within `chapter_cdn_pairs`.
@@ -279,6 +293,7 @@ impl DownloadClient {
         images_cfg: &Images,
     ) -> Result<()> {
         let start = Instant::now();
+        let manga_size = Arc::new(Mutex::new(0f64));
         let parent_uuid = parent_manga.uuid();
         let parent_manga_title = parent_manga.title(self.language);
         let mut handles = Vec::with_capacity(chapter_cdn_pairs.len() + 1);
@@ -297,13 +312,18 @@ impl DownloadClient {
             let semaphore = self.chapter_semaphore.clone();
             let images_cfg = images_cfg.clone();
             let parent_manga_title = parent_manga_title.clone();
+            let manga_size = manga_size.clone();
             let h = self.clone();
 
             handles.push(tokio::spawn(async move {
                 let _permit = semaphore.acquire().await.into_diagnostic()?;
 
-                h.download_chapter(cdn, chapter, &parent_manga_title, &images_cfg)
+                let chapter_size = h
+                    .download_chapter(cdn, chapter, &parent_manga_title, &images_cfg)
                     .await?;
+
+                let mut total = manga_size.lock().await;
+                *total += chapter_size;
 
                 Ok::<(), ErrReport>(())
             }));
@@ -314,8 +334,9 @@ impl DownloadClient {
             .into_diagnostic()?;
 
         info!(
-            "All downloads completed in {}ms",
-            (Instant::now() - start).as_millis()
+            "All downloads completed in {}ms, total size is {:.3} MiB",
+            (Instant::now() - start).as_millis(),
+            *manga_size.lock().await,
         );
 
         Ok(())
