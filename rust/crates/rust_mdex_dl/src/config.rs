@@ -30,8 +30,8 @@ pub enum SaveFormat {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ImageQuality {
-    High,
-    Low,
+    Lossless,
+    Lossy,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -79,11 +79,26 @@ pub struct Config {
 pub fn load_config() -> Result<Config> {
     let path = config_toml().canonicalize().into_diagnostic()?;
     let raw_config = fs::read_to_string(path).into_diagnostic()?;
+
+    println!("Raw config before deserialization:");
+    println!("\n{raw_config}");
+    println!("Deserializing config...");
+
     let config: Config = toml::de::from_str(&raw_config).into_diagnostic()?;
 
+    println!("{config:?}");
+    println!("Config loaded successfully!\n");
+
     for p in [manga_save_dir(), log_save_dir()] {
+        println!("Creating save dir {p:?}");
         fs::create_dir_all(p).into_diagnostic()?;
+        println!("Path {p:?} created successfully.")
     }
 
+    println!("\nAll paths have been created!");
+    println!("Your terminal should be clearing about now...");
+
+    // NOTE: this way of clearing may not be supported on some terminals
+    println!("{esc}c", esc = 27 as char);
     Ok(config)
 }

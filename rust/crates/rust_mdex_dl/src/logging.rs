@@ -21,8 +21,9 @@ pub fn init_logging(logging_cfg: &Logging) {
     let log_file = log_save_dir().join(format!("{now}.log"));
     let config = ConfigBuilder::new()
         .add_filter_ignore_str("rustyline")
-        .set_target_level(logging_cfg.filter)
+        .add_filter_ignore_str("reqwest::connect")
         .build();
 
-    WriteLogger::init(logging_cfg.filter, config, File::create(log_file).unwrap()).unwrap()
+    WriteLogger::init(logging_cfg.filter, config, File::create(log_file).unwrap()).unwrap();
+    info!("Hello, world!");
 }

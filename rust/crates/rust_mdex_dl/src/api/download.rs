@@ -1,19 +1,19 @@
 use crate::{
-    Endpoint,
     api::models::{Chapter, Manga},
-    config::{Config, Images},
+    config::{Config, ImageQuality, Images},
+    paths::manga_save_dir,
 };
 
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use bytes::Bytes;
 use indicatif::{ProgressBar, ProgressStyle};
 use isolang::Language;
-use miette::{IntoDiagnostic, Result};
+use miette::{ErrReport, IntoDiagnostic, Result};
 use reqwest::{self, Client, Url};
 use serde::Deserialize;
 use serde_json;
-use tokio::sync::Semaphore;
+use tokio::{sync::Semaphore, time::Instant};
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -25,7 +25,7 @@ struct ChapterCdnData {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct ChapterCdn {
+pub struct ChapterCdn {
     base_url: Url,
     chapter: ChapterCdnData,
 }
@@ -34,7 +34,7 @@ impl ChapterCdn {
     /// Constructs a new [`ChapterCdn`].
     ///
     /// The response, `r_json` must be from [`Endpoint::GetChapterCdn`] for this to work.
-    fn new(r_json: &serde_json::Value) -> Result<Self> {
+    pub fn new(r_json: &serde_json::Value) -> Result<Self> {
         serde_json::from_value(r_json.clone()).into_diagnostic()
     }
 
@@ -43,25 +43,42 @@ impl ChapterCdn {
     /// `$.baseUrl / $QUALITY / $.chapter.hash / $.chapter.$QUALITY[*]`
     ///
     /// Reference: https://api.mangadex.org/docs/04-chapter/retrieving-chapter/#howto
-    fn construct_image_urls(&self, use_datasaver: bool) -> Result<Vec<Url>> {
-        let quality = if use_datasaver { "data-saver" } else { "data" };
-        let image_names = if use_datasaver {
-            &self.chapter.data_saver
-        } else {
-            &self.chapter.data
+    fn construct_image_urls(&self, quality: ImageQuality) -> Result<Vec<Url>> {
+        info!("Constructing image urls with quality '{quality:?}'");
+
+        let quality = match quality {
+            ImageQuality::Lossless => "data",
+            ImageQuality::Lossy => "data-saver",
+        };
+
+        let image_names = match quality {
+            "data" => &self.chapter.data,
+            "data-saver" => &self.chapter.data_saver,
+            _ => unreachable!(),
         };
 
         let url_prefix = self
             .base_url
-            .join(quality)
+            .join(&format!("{quality}/"))
             .into_diagnostic()?
-            .join(&self.chapter.hash)
+            .join(&format!("{}/", &self.chapter.hash))
             .into_diagnostic()?;
-        let mut images = Vec::with_capacity(image_names.len());
+        debug!("Image url prefix {:?}", url_prefix.as_str());
 
+        let mut images = Vec::with_capacity(image_names.len() + 1);
         for name in image_names {
             images.push(url_prefix.join(&name).into_diagnostic()?);
         }
+
+        debug!(
+            "First image url: {:?}",
+            images.iter().next().and_then(|u| Some(u.as_str()))
+        );
+
+        trace!(
+            "All image urls: {:?}",
+            images.iter().map(|u| u.as_str()).collect::<Vec<&str>>()
+        );
 
         Ok(images)
     }
@@ -103,8 +120,8 @@ impl DownloadClient {
 
     /* Helpers for `download_chapter()` */
 
-    /// Constructs and returns a styled [`ProgressBar`]
-    fn get_progress_bar(length: usize) -> ProgressBar {
+    /// Constructs and returns a styled [`ProgressBar`] wrapped in [`Arc<T>`]
+    fn get_progress_bar(length: usize) -> Arc<ProgressBar> {
         let length = length as u64;
 
         let pb: ProgressBar = ProgressBar::new(length);
@@ -116,7 +133,7 @@ impl DownloadClient {
             .progress_chars("=>-"),
         );
 
-        pb
+        Arc::new(pb)
     }
 
     /// Returns a tuple, `(Bytes, String)` on success.
@@ -141,18 +158,105 @@ impl DownloadClient {
             .await
             .into_diagnostic()?;
 
+        trace!("Downloaded image {:?}", image_url.as_str());
         Ok((data, ext.to_string()))
     }
 
-    async fn save_image(&self) {}
+    /// Saves the image bytes into `chapter_dir` using `page`, which should be zero-padded.
+    ///
+    /// The tuple, `image_info` comes from [`Self::download_image`],
+    /// formatted as `(image_bytes, image_file_format)` accordingly.
+    ///
+    /// `chapter_dir` should be the path: `project_root/parent_manga/chapter`
+    /// and should be created beforehand.
+    async fn save_image(
+        &self,
+        image_info: (Bytes, String),
+        chapter_dir: PathBuf,
+        page: &str,
+    ) -> Result<()> {
+        let filename = format!("{}.{}", page, image_info.1);
+        let save = chapter_dir.join(filename);
+
+        tokio::fs::write(chapter_dir.join(&save), image_info.0)
+            .await
+            .into_diagnostic()?;
+
+        trace!("Saved page {} to {:?}", page, &save.to_str());
+        Ok(())
+    }
 
     /// Downloads a chapter's images.
     pub async fn download_chapter(
         &self,
+        cdn: ChapterCdn,
         chapter: Chapter,
         parent_manga: Manga,
         images_cfg: &Images,
     ) -> Result<()> {
+        let images_cfg = images_cfg.clone();
+        let images = cdn.construct_image_urls(images_cfg.quality)?;
+        let zero_pad = format!("{}", images.len()).len();
+
+        let manga_title = &parent_manga.title(self.language);
+        let chapter_title = &chapter.formatted_title(self.language);
+        let chapter_dir = &manga_save_dir().join(manga_title).join(chapter_title);
+
+        std::fs::create_dir_all(&chapter_dir).into_diagnostic()?;
+        let chapter_dir = chapter_dir.canonicalize().into_diagnostic()?;
+
+        let pb = DownloadClient::get_progress_bar(images.len());
+        let mut handles = Vec::with_capacity(images.len() + 1);
+        let handle_client = Arc::new(self.clone());
+
+        info!(
+            "Downloading {} images from chapter {:?} of manga {:?}",
+            images.len(),
+            chapter.data.attributes.chapter,
+            manga_title,
+        );
+
+        let start = Instant::now();
+
+        for (i, url) in images.iter().enumerate() {
+            // clone for async **move**
+            let semaphore = self.image_semaphore.clone();
+            let pb = pb.clone();
+            let url = url.clone();
+            let chapter_dir = chapter_dir.clone();
+            let h = handle_client.clone();
+
+            handles.push(tokio::spawn(async move {
+                let _permit = semaphore.acquire().await.into_diagnostic()?;
+                let page = format!("{:0>zero_pad$}", i);
+                let data = h.download_image(&url).await?;
+
+                debug!(
+                    "Page {} downloaded in {}ms, size is {} bytes",
+                    page,
+                    (Instant::now() - start).as_millis(),
+                    data.0.len()
+                );
+
+                h.save_image(data, chapter_dir, &page).await?;
+
+                pb.inc(1);
+                Ok::<(), ErrReport>(())
+            }));
+        }
+
+        futures::future::try_join_all(handles)
+            .await
+            .into_diagnostic()?;
+
+        info!(
+            "Completed downloads in {}ms",
+            (Instant::now() - start).as_millis()
+        );
+
+        pb.finish();
         Ok(())
     }
+
+    pub async fn download_chapters() {}
 }

@@ -97,7 +97,7 @@ pub struct ChapterAttributes {
     pub created_at: DateTime<Utc>,
 
     pub pages: usize,
-    pub version: usize,
+    pub version: u32,
 }
 
 #[allow(unused)]
@@ -151,7 +151,10 @@ impl Chapter {
             .clone()
             .unwrap_or("---".to_string());
 
-        format!("[{num:0>3}] {title}")
+        // prevent naming conflicts
+        let suffix = &self.data.id.to_string()[..8];
+
+        format!("[{num:0>3}] {title} ({suffix})").trim().to_string()
     }
 
     /// Iterates over [relationships](`ChapterData::relationships`) until the parent
@@ -224,7 +227,7 @@ pub struct MangaAttributes {
     pub last_chapter: Option<String>,
     pub publication_demographic: Option<PublicationDemographic>,
     pub status: Status,
-    pub year: Option<usize>,
+    pub year: Option<u32>,
     pub content_rating: ContentRating,
     pub tags: Vec<Tag>,
     pub state: State,
@@ -236,7 +239,7 @@ pub struct MangaAttributes {
     #[serde(deserialize_with = "deserialize_utc_datetime")]
     pub updated_at: DateTime<Utc>,
 
-    pub version: usize,
+    pub version: u32,
 }
 
 #[allow(unused)]
@@ -286,6 +289,14 @@ impl Manga {
                 }
             }
         }
+
+        warn!(
+            concat!(
+                "Could not find a title in both `title` and `alt_titles`",
+                " for language {:?}, falling back to any available title"
+            ),
+            language.to_name()
+        );
 
         // fallback to first normal title
         self.data
