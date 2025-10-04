@@ -154,7 +154,10 @@ impl Chapter {
         // prevent naming conflicts
         let suffix = &self.data.id.to_string()[..8];
 
-        format!("[{num:0>3}] {title} ({suffix})").trim().to_string()
+        match title.is_empty() {
+            true => format!("[{num:0>3}] ({suffix})").trim().to_string(),
+            false => format!("[{num:0>3}] {title} ({suffix})").trim().to_string(),
+        }
     }
 
     /// Iterates over [relationships](`ChapterData::relationships`) until the parent

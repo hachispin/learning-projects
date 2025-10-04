@@ -187,20 +187,21 @@ impl DownloadClient {
     }
 
     /// Downloads a chapter's images.
-    pub async fn download_chapter(
+    async fn download_chapter(
         &self,
         cdn: ChapterCdn,
         chapter: Chapter,
-        parent_manga: Manga,
+        parent_manga_title: &str,
         images_cfg: &Images,
     ) -> Result<()> {
         let images_cfg = images_cfg.clone();
         let images = cdn.construct_image_urls(images_cfg.quality)?;
         let zero_pad = format!("{}", images.len()).len();
 
-        let manga_title = &parent_manga.title(self.language);
-        let chapter_title = &chapter.formatted_title();
-        let chapter_dir = &manga_save_dir().join(manga_title).join(chapter_title);
+        let chapter_title = chapter.formatted_title();
+        let chapter_dir = &manga_save_dir()
+            .join(parent_manga_title)
+            .join(&chapter_title);
 
         std::fs::create_dir_all(&chapter_dir).into_diagnostic()?;
         let chapter_dir = chapter_dir.canonicalize().into_diagnostic()?;
@@ -213,7 +214,7 @@ impl DownloadClient {
             "Downloading {} images from chapter {:?} of manga {:?}",
             images.len(),
             chapter.data.attributes.chapter,
-            manga_title,
+            parent_manga_title,
         );
 
         let start = Instant::now();
@@ -224,6 +225,7 @@ impl DownloadClient {
             let pb = pb.clone();
             let url = url.clone();
             let chapter_dir = chapter_dir.clone();
+            let chapter_title = chapter_title.clone();
             let h = handle_client.clone();
 
             handles.push(tokio::spawn(async move {
@@ -232,10 +234,11 @@ impl DownloadClient {
                 let data = h.download_image(&url).await?;
 
                 debug!(
-                    "Page {} downloaded in {}ms, size is {} bytes",
+                    "{} -- Page {} downloaded in {}ms, size is {:.3} MiB",
+                    chapter_title,
                     page,
                     (Instant::now() - start).as_millis(),
-                    data.0.len()
+                    data.0.len() as f64 / 1_048_576.0, // as MiB
                 );
 
                 h.save_image(data, chapter_dir, &page).await?;
@@ -250,7 +253,8 @@ impl DownloadClient {
             .into_diagnostic()?;
 
         info!(
-            "Completed downloads in {}ms",
+            "{} -- Completed downloads in {}ms",
+            chapter_title,
             (Instant::now() - start).as_millis()
         );
 
@@ -258,5 +262,62 @@ impl DownloadClient {
         Ok(())
     }
 
-    pub async fn download_chapters() {}
+    /// Downloads all chapters within `chapter_cdn_pairs`.
+    ///
+    /// Chapters are also downloaded concurrently, using
+    /// [`Self::chapter_semaphore`] for the number of permits.
+    ///
+    /// It's the callers responsibility to make sure each
+    /// `(Chapter, ChapterCdn)` tuple is mapped correctly.
+    ///
+    /// NOTE: **All of these chapters should come from the same parent manga.**
+    /// A warning is logged otherwise.
+    pub async fn download_chapters(
+        &self,
+        chapter_cdn_pairs: Vec<(Chapter, ChapterCdn)>,
+        parent_manga: Manga,
+        images_cfg: &Images,
+    ) -> Result<()> {
+        let start = Instant::now();
+        let parent_uuid = parent_manga.uuid();
+        let parent_manga_title = parent_manga.title(self.language);
+        let mut handles = Vec::with_capacity(chapter_cdn_pairs.len() + 1);
+
+        for (chapter, cdn) in chapter_cdn_pairs {
+            if chapter.parent_uuid() != parent_uuid {
+                warn!(
+                    "Expected chapter {} to have parent manga {}, instead got {}",
+                    chapter.uuid(),
+                    parent_uuid,
+                    chapter.parent_uuid()
+                );
+                warn!("This may lead to chapters being saved to the wrong locations!");
+            }
+
+            let semaphore = self.chapter_semaphore.clone();
+            let images_cfg = images_cfg.clone();
+            let parent_manga_title = parent_manga_title.clone();
+            let h = self.clone();
+
+            handles.push(tokio::spawn(async move {
+                let _permit = semaphore.acquire().await.into_diagnostic()?;
+
+                h.download_chapter(cdn, chapter, &parent_manga_title, &images_cfg)
+                    .await?;
+
+                Ok::<(), ErrReport>(())
+            }));
+        }
+
+        futures::future::try_join_all(handles)
+            .await
+            .into_diagnostic()?;
+
+        info!(
+            "All downloads completed in {}ms",
+            (Instant::now() - start).as_millis()
+        );
+
+        Ok(())
+    }
 }
