@@ -1,4 +1,4 @@
-//! Contains the `Manga` and `Chapter` structs
+//! Contains the [`Manga`] and [`Chapter`] structs
 //! which model the corresponding API responses.
 
 use std::collections::HashMap;
@@ -141,7 +141,7 @@ impl Chapter {
     ///
     /// Zero-padding is fixed to three characters because getting
     /// the highest chapter number is a little tricky from here.
-    pub fn formatted_title(&self, language: Language) -> String {
+    pub fn formatted_title(&self) -> String {
         let title = self.data.attributes.title.clone().unwrap_or_default();
 
         let num = self
@@ -177,6 +177,7 @@ impl Chapter {
     }
 }
 
+#[allow(unused)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct TagAttributes {
     #[serde(deserialize_with = "deserialize_langcode_map")]
@@ -191,6 +192,7 @@ pub struct TagAttributes {
 ///
 /// These are omitted because they are either
 /// always empty or store no useful information.
+#[allow(unused)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct Tag {
     #[serde(deserialize_with = "deserialize_uuid")]

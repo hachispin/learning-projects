@@ -199,7 +199,7 @@ impl DownloadClient {
         let zero_pad = format!("{}", images.len()).len();
 
         let manga_title = &parent_manga.title(self.language);
-        let chapter_title = &chapter.formatted_title(self.language);
+        let chapter_title = &chapter.formatted_title();
         let chapter_dir = &manga_save_dir().join(manga_title).join(chapter_title);
 
         std::fs::create_dir_all(&chapter_dir).into_diagnostic()?;
