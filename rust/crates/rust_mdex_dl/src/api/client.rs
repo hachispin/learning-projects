@@ -1,3 +1,5 @@
+//! Contains [`ApiClient`] struct for interacting with MangaDex's API.
+
 use crate::{api::endpoints::Endpoint, config};
 
 use crate::errors::ApiError;

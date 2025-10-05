@@ -1,3 +1,5 @@
+//! Contains downloading utilities for chapters, mainly through [`DownloadClient`]
+
 use crate::{
     api::models::{Chapter, Manga},
     config::{Config, ImageQuality, Images},
@@ -18,6 +20,8 @@ use tokio::{
     time::Instant,
 };
 
+/// Stores the response structure of the [GetChapterCdn](`crate::Endpoint::GetChapterCdn`)
+/// endpoint for deserializing.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ChapterCdnData {
@@ -26,6 +30,7 @@ struct ChapterCdnData {
     data_saver: Vec<String>,
 }
 
+/// A wrapper over [`ChapterCdnData`] for constructing image urls.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChapterCdn {
@@ -36,7 +41,8 @@ pub struct ChapterCdn {
 impl ChapterCdn {
     /// Constructs a new [`ChapterCdn`].
     ///
-    /// The response, `r_json` must be from [`Endpoint::GetChapterCdn`] for this to work.
+    /// The response, `r_json` must be from the [GetChapterCdn](`crate::Endpoint::GetChapterCdn`)
+    /// endpoint for this to work. obviously...
     pub fn new(r_json: &serde_json::Value) -> Result<Self> {
         serde_json::from_value(r_json.clone()).into_diagnostic()
     }
@@ -147,7 +153,14 @@ impl DownloadClient {
     /// Reference: https://api.mangadex.org/docs/04-chapter/upload/#requirements-and-limitations
     async fn download_image(&self, image_url: &Url) -> Result<(Bytes, String)> {
         let ext = image_url.as_str().split('.').last().unwrap_or("png");
-        assert!(["png", "jpg", "jpeg", "gif"].iter().any(|v| ext == *v));
+
+        if !["png", "jpg", "jpeg", "gif"].iter().any(|v| ext == *v) {
+            warn!(
+                "Unexpected image url extension {:?} for image url {}",
+                ext,
+                &image_url.as_str()
+            );
+        }
 
         let data = self
             .client

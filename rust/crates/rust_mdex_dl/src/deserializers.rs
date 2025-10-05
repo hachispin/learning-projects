@@ -50,7 +50,7 @@ where
     Ok(parsed_datetime.to_utc())
 }
 
-/// shim for MangaDex's alpha-5 extensions.
+/// shim for MangaDex's alpha-5 extensions used for titles.
 ///
 /// ref: https://api.mangadex.org/docs/3-enumerations/#language-codes--localization
 ///
@@ -94,8 +94,6 @@ where
 {
     let input_map: HashMap<String, String> = HashMap::deserialize(deserializer)?;
 
-    // `ok_or_else()` is used because `ok_or()`
-    // requires turbofish hell with generic types
     input_map
         .into_iter()
         .map(|(k, v)| {
@@ -129,9 +127,7 @@ where
 
             current.insert(lang, v);
         }
-
         mappings.push(current);
     }
-
     Ok(mappings)
 }
