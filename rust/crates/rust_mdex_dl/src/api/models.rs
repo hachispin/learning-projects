@@ -10,12 +10,15 @@ use isolang::Language;
 use miette::{IntoDiagnostic, Result};
 use reqwest::Url;
 use serde::{self, Deserialize};
+use strum::{self, EnumString};
 use uuid::Uuid;
 
 /// For storing `contentRating` field in [`MangaAttributes::content_rating`]
 ///
 /// Reference: https://api.mangadex.org/docs/3-enumerations/#manga-content-rating
-#[derive(Debug, Clone, Deserialize)]
+
+#[derive(Debug, Clone, Deserialize, EnumString, strum::Display)]
+#[strum(serialize_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum ContentRating {
     Safe,
