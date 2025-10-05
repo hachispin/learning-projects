@@ -11,6 +11,7 @@ use std::{path::PathBuf, sync::Arc};
 use bytes::Bytes;
 use indicatif::{ProgressBar, ProgressStyle};
 use isolang::Language;
+use log::{debug, info, trace, warn};
 use miette::{ErrReport, IntoDiagnostic, Result};
 use reqwest::{self, Client, Url};
 use serde::Deserialize;

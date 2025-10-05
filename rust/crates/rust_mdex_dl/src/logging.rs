@@ -5,6 +5,7 @@ use crate::{config::Logging, paths::log_save_dir};
 use std::fs::File;
 
 use chrono::Utc;
+use log::info;
 use simplelog::{ConfigBuilder, WriteLogger};
 
 /// Initialises logging and creates a log file to write all messages to.

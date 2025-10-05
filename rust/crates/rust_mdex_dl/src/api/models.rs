@@ -3,22 +3,24 @@
 
 use std::collections::HashMap;
 
-use crate::{Endpoint, api::client::ApiClient, deserializers::*};
+use crate::{
+    api::{client::ApiClient, endpoints::Endpoint},
+    deserializers::*,
+};
 
 use chrono::{DateTime, Utc};
 use isolang::Language;
+use log::warn;
 use miette::{IntoDiagnostic, Result};
 use reqwest::Url;
 use serde::{self, Deserialize};
-use strum::{self, EnumString};
 use uuid::Uuid;
 
 /// For storing `contentRating` field in [`MangaAttributes::content_rating`]
 ///
 /// Reference: https://api.mangadex.org/docs/3-enumerations/#manga-content-rating
 
-#[derive(Debug, Clone, Deserialize, EnumString, strum::Display)]
-#[strum(serialize_all = "lowercase")]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ContentRating {
     Safe,
