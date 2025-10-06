@@ -1139,6 +1139,7 @@ dependencies = [
  "rustyline",
  "serde",
  "serde_json",
+ "serde_urlencoded",
  "simplelog",
  "thiserror",
  "tokio",

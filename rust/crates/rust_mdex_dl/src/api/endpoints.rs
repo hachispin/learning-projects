@@ -4,6 +4,7 @@
 
 use miette::{IntoDiagnostic, Result};
 use reqwest::Url;
+use serde_urlencoded;
 use uuid::Uuid;
 
 /// ## Info about endpoints
@@ -14,11 +15,7 @@ use uuid::Uuid;
 /// * [`Endpoint::GetChapter`] returns chapter info given a uuid
 /// * [`Endpoint::GetChapterCdn`] returns download info
 /// * [`Endpoint::GetManga`] takes a manga's uuid and returns its info
-/// * [`Endpoint::SearchManga`] takes** a query and parameters and returns a list of manga
-///
-/// ** the [SearchManga](`Endpoint::SearchManga`) enum doesn't take search parameters itself.
-///
-/// The caller is expected to append them using [`reqwest::RequestBuilder::query`].
+/// * [`Endpoint::SearchManga`] takes search parameters and returns a list of manga, assuming valid
 ///
 /// ## Relevant documentation
 ///
@@ -32,7 +29,7 @@ pub enum Endpoint {
     GetChapter(Uuid),
     GetChapterCdn(Uuid),
     GetManga(Uuid),
-    SearchManga,
+    SearchManga(Vec<(String, String)>),
 }
 
 impl Endpoint {
@@ -41,7 +38,12 @@ impl Endpoint {
             Self::GetChapter(uuid) => format!("/chapter/{uuid}"),
             Self::GetChapterCdn(uuid) => format!("/at-home/server/{uuid}"),
             Self::GetManga(uuid) => format!("/manga/{uuid}"),
-            Self::SearchManga => "/manga".to_string(),
+            Self::SearchManga(pairs) => {
+                format!(
+                    "/manga?{}",
+                    serde_urlencoded::to_string(&pairs).expect("failed to build query string")
+                )
+            }
         }
     }
 }
