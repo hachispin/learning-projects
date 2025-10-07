@@ -281,7 +281,13 @@ impl Manga {
         Ok(manga)
     }
 
-    /// Helper for accessing title field given a language.
+    /// Allows constructing of [`Manga`] from [`MangaData`].
+    pub async fn from_data(data: MangaData) -> Self {
+        Manga { data }
+    }
+
+    /// Helper for accessing title field given a language. This
+    /// searches through the `title` and `alt_titles` fields.
     ///
     /// Defaults to the first title in [`MangaAttributes::title`]
     /// if the language provided wasn't available.

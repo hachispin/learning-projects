@@ -6,6 +6,7 @@
 # Python
 *.pyc
 __pycache__/
+.mypy_cache/
 python/mdex_tool/mdex_save/
 python/mdex_tool/logs/
 python/notepad/data.json
