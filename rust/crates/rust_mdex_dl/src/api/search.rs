@@ -1,8 +1,12 @@
-use crate::api::{client::ApiClient, endpoints::Endpoint, models::MangaData};
+use crate::api::{
+    client::ApiClient,
+    endpoints::Endpoint,
+    models::{Manga, MangaData},
+};
 
-use log::info;
+use isolang::Language;
+use log::{info, trace};
 use miette::{IntoDiagnostic, Result};
-use reqwest::{self, Url};
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Clone)]
@@ -11,6 +15,16 @@ pub struct SearchResults {
     limit: u32,
     offset: u32,
     total: u32,
+}
+
+impl SearchResults {
+    /// Prints every manga's titles stored in [`Self::data`] to stdout
+    pub fn display(&self, language: Language) {
+        for (i, md) in self.data.iter().enumerate() {
+            let m = Manga::from_data(md.clone());
+            println!("[{}] {}", i + 1, m.title(language));
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -60,6 +74,16 @@ impl SearchClient {
         info!("Searching with URI {:?}", endpoint.as_string());
 
         let r = self.api.get_ok_json(endpoint).await?;
-        serde_json::from_value::<SearchResults>(r).into_diagnostic()
+        let results = serde_json::from_value::<SearchResults>(r).into_diagnostic()?;
+
+        trace!("Results: {results:?}");
+
+        info!(
+            "Fetched {} results out of the {} results available",
+            results.data.len(),
+            results.total
+        );
+
+        Ok(results)
     }
 }

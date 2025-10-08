@@ -282,7 +282,7 @@ impl Manga {
     }
 
     /// Allows constructing of [`Manga`] from [`MangaData`].
-    pub async fn from_data(data: MangaData) -> Self {
+    pub fn from_data(data: MangaData) -> Self {
         Manga { data }
     }
 

@@ -15,6 +15,7 @@ use uuid::Uuid;
 /// * [`Endpoint::GetChapter`] returns chapter info given a uuid
 /// * [`Endpoint::GetChapterCdn`] returns download info
 /// * [`Endpoint::GetManga`] takes a manga's uuid and returns its info
+/// * [`Endpoint::GetMangaChapters`] takes a manga's uuid and returns its chapters, using the given parameters
 /// * [`Endpoint::SearchManga`] takes search parameters and returns a list of manga, assuming valid
 ///
 /// ## Relevant documentation
@@ -29,6 +30,7 @@ pub enum Endpoint {
     GetChapter(Uuid),
     GetChapterCdn(Uuid),
     GetManga(Uuid),
+    GetMangaChapters(Uuid, Vec<(String, String)>),
     SearchManga(Vec<(String, String)>),
 }
 
@@ -38,10 +40,18 @@ impl Endpoint {
             Self::GetChapter(uuid) => format!("/chapter/{uuid}"),
             Self::GetChapterCdn(uuid) => format!("/at-home/server/{uuid}"),
             Self::GetManga(uuid) => format!("/manga/{uuid}"),
-            Self::SearchManga(pairs) => {
+
+            Self::GetMangaChapters(uuid, params) => format!(
+                "/manga/{uuid}/feed?{}",
+                serde_urlencoded::to_string(&params)
+                    .expect("failed to build `GetMangaChapters` query string")
+            ),
+
+            Self::SearchManga(params) => {
                 format!(
                     "/manga?{}",
-                    serde_urlencoded::to_string(&pairs).expect("failed to build query string")
+                    serde_urlencoded::to_string(&params)
+                        .expect("failed to build `SearchManga` query string")
                 )
             }
         }
