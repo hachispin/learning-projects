@@ -29,13 +29,9 @@ chapter_permits = 3     # * max is 40 reqs per minute for this endpoint
                         #   scale this against your download speed accordingly
                         #   https://api.mangadex.org/docs/2-limitations/#endpoint-specific-rate-limits
 
-
-
-##------ NOT IMPLEMENTED ------##
-[images]                        #
-quality = "high"                #
-save_format = "raw"             #
-##-----------------------------##
+[images]
+quality = "lossless"    # options: "lossless", "lossy"
+save_format = "raw"     # not implemented yet, does nothing for now
 
 [logging]
 enabled = true
