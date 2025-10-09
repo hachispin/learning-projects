@@ -1,7 +1,7 @@
 use crate::api::{
     client::ApiClient,
     endpoints::Endpoint,
-    models::{Manga, MangaData},
+    models::{Chapter, ChapterData, Manga, MangaData},
 };
 
 use isolang::Language;
@@ -25,6 +25,14 @@ impl SearchResults {
             println!("[{}] {}", i + 1, m.title(language));
         }
     }
+}
+
+#[derive(Deserialize, Debug, Clone)]
+struct ChapterResults {
+    data: Vec<ChapterData>,
+    limit: u32,
+    offset: u32,
+    total: u32,
 }
 
 #[derive(Debug)]
@@ -85,5 +93,42 @@ impl SearchClient {
         );
 
         Ok(results)
+    }
+
+    /// Fetches all chapters of the given [`Manga`].
+    pub async fn fetch_all_chapters(&self, manga: Manga) -> Result<Vec<Chapter>> {
+        let mut all_chapters = Vec::new();
+        let limit = 500; // max pagination allowed for chapters
+        let mut offset = 0;
+
+        // this will be improved later
+        info!(
+            "Fetching chapters of manga {:?}",
+            manga.title(Language::Eng)
+        );
+
+        while offset < limit {
+            let params: Vec<(String, String)> = vec![
+                ("limit".into(), limit.to_string()),
+                ("offset".into(), offset.to_string()),
+            ];
+
+            let raw_chapters = self
+                .api
+                .get_ok_json(Endpoint::GetMangaChapters(manga.uuid(), params))
+                .await?;
+
+            let chapters = serde_json::from_value::<ChapterResults>(raw_chapters)
+                .into_diagnostic()?
+                .data
+                .iter()
+                .map(|cd| Chapter::from_data(cd.clone()))
+                .collect::<Vec<_>>();
+
+            all_chapters.extend(chapters);
+            offset += 500;
+        }
+
+        Ok(all_chapters)
     }
 }

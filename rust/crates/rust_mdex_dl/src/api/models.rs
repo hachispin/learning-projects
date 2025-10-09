@@ -140,6 +140,11 @@ impl Chapter {
         Ok(chapter)
     }
 
+    /// Allows constructing of [`Chapter`] from [`ChapterData`].
+    pub fn from_data(data: ChapterData) -> Self {
+        Self { data }
+    }
+
     /// Returns a formatted chapter title such as:
     ///
     /// `[011] I broke through`
@@ -283,7 +288,7 @@ impl Manga {
 
     /// Allows constructing of [`Manga`] from [`MangaData`].
     pub fn from_data(data: MangaData) -> Self {
-        Manga { data }
+        Self { data }
     }
 
     /// Helper for accessing title field given a language. This
