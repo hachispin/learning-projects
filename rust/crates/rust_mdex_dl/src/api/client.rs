@@ -7,7 +7,7 @@ use miette::{IntoDiagnostic, Result};
 use reqwest;
 use serde_json;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// A wrapper over [`reqwest::Client`] for MangaDex interactions.
 pub struct ApiClient {
     client: reqwest::Client,
