@@ -1,11 +1,11 @@
 use crate::api::{
     client::ApiClient,
     endpoints::Endpoint,
-    models::{Chapter, ChapterData, Manga, MangaData},
+    models::{Chapter, ChapterData, ContentRating, Manga, MangaData},
 };
 
 use isolang::Language;
-use log::{info, trace};
+use log::{info, trace, warn};
 use miette::{IntoDiagnostic, Result};
 use serde::Deserialize;
 
@@ -38,26 +38,39 @@ struct ChapterResults {
 #[derive(Debug)]
 pub struct SearchClient {
     api: ApiClient,
+    language: Language,
     results_per_page: u32,
 }
 
 impl SearchClient {
-    pub fn new(api: ApiClient, results_per_page: u32) -> SearchClient {
+    const MAX_MANGA_PAGINATION: u32 = 100;
+    const MAX_CHAPTER_PAGINATION: u32 = 500;
+
+    pub fn new(api: ApiClient, language: Language, results_per_page: u32) -> SearchClient {
         SearchClient {
             api,
+            language,
             results_per_page,
         }
     }
 
-    /// Expands a key with multiple values into multiple tuples.
-    fn expand_param(key: &str, values: Vec<&str>) -> Vec<(String, String)> {
-        let mut pairs: Vec<(String, String)> = Vec::with_capacity(values.len() + 1);
+    /// Helper for constructing the content rating parameter.
+    fn content_rating_param(allowed_ratings: &[ContentRating]) -> Vec<(String, String)> {
+        let mut params: Vec<(String, String)> = Vec::new();
+        let key = "contentRating[]".to_string();
 
-        for v in values {
-            pairs.push((key.into(), v.into()));
+        for rating in allowed_ratings {
+            let key = key.clone();
+
+            match rating {
+                ContentRating::Safe => params.push((key, "safe".into())),
+                ContentRating::Suggestive => params.push((key, "suggestive".into())),
+                ContentRating::Erotica => params.push((key, "erotica".into())),
+                ContentRating::Pornographic => params.push((key, "pornographic".into())),
+            }
         }
 
-        pairs
+        params
     }
 
     pub async fn search(&self, query: &str, page: u32) -> Result<SearchResults> {
@@ -66,6 +79,17 @@ impl SearchClient {
 
         params.push(("title".into(), query.into()));
 
+        // language filter
+        params.push((
+            "availableTranslatedLanguage[]".into(),
+            self.language
+                .to_639_1()
+                .ok_or(miette::miette!(
+                    "failed to convert `SearchClient::language` to iso 639-1",
+                ))?
+                .into(),
+        ));
+
         // set pagination
         let offset = self.results_per_page * page;
         params.push(("limit".into(), self.results_per_page.to_string()));
@@ -73,10 +97,12 @@ impl SearchClient {
 
         // useful ux params
         params.push(("order[relevance]".into(), "desc".into()));
-        params.extend(SearchClient::expand_param(
-            "contentRating[]",
-            vec!["safe", "suggestive", "erotica", "pornographic"],
-        ));
+        params.extend(Self::content_rating_param(&[
+            ContentRating::Safe,
+            ContentRating::Suggestive,
+            ContentRating::Erotica,
+            ContentRating::Pornographic,
+        ]));
 
         let endpoint = Endpoint::SearchManga(params);
         info!("Searching with URI {:?}", endpoint.as_string());
@@ -97,36 +123,70 @@ impl SearchClient {
 
     /// Fetches all chapters of the given [`Manga`].
     pub async fn fetch_all_chapters(&self, manga: Manga) -> Result<Vec<Chapter>> {
-        let mut all_chapters = Vec::new();
-        let limit = 500; // max pagination allowed for chapters
-        let mut offset = 0;
+        let mut all_chapters: Vec<Chapter> = Vec::new();
+        let mut offset = 0u32;
+        let limit = Self::MAX_CHAPTER_PAGINATION;
 
-        // this will be improved later
+        let mut params: Vec<(String, String)> = Vec::new();
+        params.push(("offset".into(), offset.to_string()));
+        params.push(("limit".into(), limit.to_string()));
+        params.extend(Self::content_rating_param(&[
+            ContentRating::Safe,
+            ContentRating::Suggestive,
+            ContentRating::Erotica,
+            ContentRating::Pornographic,
+        ]));
+
         info!(
-            "Fetching chapters of manga {:?}",
-            manga.title(Language::Eng)
+            "Fetching chapters of the manga {:?}",
+            manga.title(self.language)
         );
 
-        while offset < limit {
-            let params: Vec<(String, String)> = vec![
-                ("limit".into(), limit.to_string()),
-                ("offset".into(), offset.to_string()),
-            ];
+        // first fetch is outside the loop to find `total`
+        let raw_results = self
+            .api
+            .get_ok_json(Endpoint::GetMangaChapters(manga.uuid(), params.clone()))
+            .await?;
 
-            let raw_chapters = self
-                .api
-                .get_ok_json(Endpoint::GetMangaChapters(manga.uuid(), params))
-                .await?;
+        let chapter_results: ChapterResults =
+            serde_json::from_value(raw_results).into_diagnostic()?;
 
-            let chapters = serde_json::from_value::<ChapterResults>(raw_chapters)
-                .into_diagnostic()?
-                .data
-                .iter()
-                .map(|cd| Chapter::from_data(cd.clone()))
-                .collect::<Vec<_>>();
+        let chapters: Vec<Chapter> = chapter_results
+            .data
+            .iter()
+            .map(|cd| Chapter::from_data(cd.clone()))
+            .collect();
+
+        let total = chapter_results.total;
+        offset += Self::MAX_CHAPTER_PAGINATION;
+        all_chapters.extend(chapters);
+
+        while offset < total {
+            // ref: https://api.mangadex.org/docs/2-limitations/#collection-result-sizes
+            if offset + limit > 10_000 {
+                warn!(concat!(
+                    "Fetching chapters halted; exceeded max collection",
+                    " result size bound of (offset + limit > 10,000)"
+                ))
+            }
+
+            // update params
+            let mut params = params.clone();
+            params[0].1 = offset.to_string();
+
+            let chapters: Vec<Chapter> = serde_json::from_value::<ChapterResults>(
+                self.api
+                    .get_ok_json(Endpoint::GetMangaChapters(manga.uuid(), params))
+                    .await?,
+            )
+            .into_diagnostic()?
+            .data
+            .iter()
+            .map(|cd| Chapter::from_data(cd.clone()))
+            .collect();
 
             all_chapters.extend(chapters);
-            offset += 500;
+            offset += Self::MAX_CHAPTER_PAGINATION;
         }
 
         Ok(all_chapters)
