@@ -16,7 +16,7 @@ python/notepad/data.json
 **/builds/
 
 # Rust
-rust/target/
+**/target/
 rust/crates/rust_mdex_dl/manga/
 rust/crates/rust_mdex_dl/src/main.rs
 rust/crates/rust_mdex_dl/log/
