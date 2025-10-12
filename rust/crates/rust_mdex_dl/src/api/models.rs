@@ -233,7 +233,7 @@ pub struct MangaAttributes {
     pub is_locked: bool,
     // TODO: make this (or these?) an enum
     // https://api.mangadex.org/docs/3-enumerations/#manga-links-data
-    pub links: HashMap<String, String>,
+    pub links: Option<HashMap<String, String>>,
     pub official_links: Option<HashMap<String, String>>,
     #[serde(deserialize_with = "deserialize_langcode")]
     pub original_language: Language,
