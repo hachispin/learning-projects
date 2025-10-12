@@ -54,6 +54,32 @@ impl SearchClient {
         }
     }
 
+    fn language_filter_param(
+        allowed_languages: &[Language],
+        is_chapter: bool,
+    ) -> Result<Vec<(String, String)>> {
+        let mut params: Vec<(String, String)> = Vec::new();
+
+        let key = if is_chapter {
+            "translatedLanguage[]"
+        } else {
+            "availableTranslatedLanguage[]"
+        }
+        .to_string();
+
+        for language in allowed_languages {
+            let key = key.clone();
+            let value = language
+                .to_639_1()
+                .ok_or(miette::miette!("failed to convert language into iso 639-1"))?
+                .to_string();
+
+            params.push((key, value));
+        }
+
+        Ok(params)
+    }
+
     /// Helper for constructing the content rating parameter.
     fn content_rating_param(allowed_ratings: &[ContentRating]) -> Vec<(String, String)> {
         let mut params: Vec<(String, String)> = Vec::new();
@@ -78,17 +104,7 @@ impl SearchClient {
         let mut params: Vec<(String, String)> = Vec::new();
 
         params.push(("title".into(), query.into()));
-
-        // language filter
-        params.push((
-            "availableTranslatedLanguage[]".into(),
-            self.language
-                .to_639_1()
-                .ok_or(miette::miette!(
-                    "failed to convert `SearchClient::language` to iso 639-1",
-                ))?
-                .into(),
-        ));
+        params.extend(Self::language_filter_param(&[self.language], false)?);
 
         // set pagination
         let offset = self.results_per_page * page;
@@ -121,7 +137,7 @@ impl SearchClient {
         Ok(results)
     }
 
-    /// Fetches all chapters of the given [`Manga`].
+    /// Fetches all chapters of the given [`Manga`] with the specified [`Self::language`]
     pub async fn fetch_all_chapters(&self, manga: Manga) -> Result<Vec<Chapter>> {
         let mut all_chapters: Vec<Chapter> = Vec::new();
         let mut offset = 0u32;
@@ -130,6 +146,7 @@ impl SearchClient {
         let mut params: Vec<(String, String)> = Vec::new();
         params.push(("offset".into(), offset.to_string()));
         params.push(("limit".into(), limit.to_string()));
+        params.extend(Self::language_filter_param(&[self.language], true)?);
         params.extend(Self::content_rating_param(&[
             ContentRating::Safe,
             ContentRating::Suggestive,
