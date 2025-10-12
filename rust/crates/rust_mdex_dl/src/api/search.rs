@@ -5,7 +5,7 @@ use crate::api::{
 };
 
 use isolang::Language;
-use log::{info, trace, warn};
+use log::{debug, info, trace, warn};
 use miette::{IntoDiagnostic, Result};
 use serde::Deserialize;
 
@@ -154,16 +154,18 @@ impl SearchClient {
             ContentRating::Pornographic,
         ]));
 
+        let endpoint = Endpoint::GetMangaChapters(manga.uuid(), params.clone());
+
         info!(
             "Fetching chapters of the manga {:?}",
             manga.title(self.language)
         );
 
+        // "initial" because pagination params are modified later on
+        debug!("Fetching chapters using initial endpoint URI {params:?}");
+
         // first fetch is outside the loop to find `total`
-        let raw_results = self
-            .api
-            .get_ok_json(Endpoint::GetMangaChapters(manga.uuid(), params.clone()))
-            .await?;
+        let raw_results = self.api.get_ok_json(endpoint).await?;
 
         let chapter_results: ChapterResults =
             serde_json::from_value(raw_results).into_diagnostic()?;
@@ -179,6 +181,8 @@ impl SearchClient {
         all_chapters.extend(chapters);
 
         while offset < total {
+            debug!("Current offset: {offset}");
+
             // ref: https://api.mangadex.org/docs/2-limitations/#collection-result-sizes
             if offset + limit > 10_000 {
                 warn!(concat!(
@@ -207,6 +211,7 @@ impl SearchClient {
             offset += Self::MAX_CHAPTER_PAGINATION;
         }
 
+        trace!("All fetched chapters: {all_chapters:?}");
         Ok(all_chapters)
     }
 }
