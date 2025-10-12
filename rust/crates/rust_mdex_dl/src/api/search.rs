@@ -153,8 +153,8 @@ impl SearchClient {
 
         let chapters: Vec<Chapter> = chapter_results
             .data
-            .iter()
-            .map(|cd| Chapter::from_data(cd.clone()))
+            .into_iter()
+            .map(|cd| Chapter::from_data(cd))
             .collect();
 
         let total = chapter_results.total;
@@ -174,6 +174,7 @@ impl SearchClient {
             let mut params = params.clone();
             params[0].1 = offset.to_string();
 
+            // fetch chapters and turn them into `Vec<Chapter>`
             let chapters: Vec<Chapter> = serde_json::from_value::<ChapterResults>(
                 self.api
                     .get_ok_json(Endpoint::GetMangaChapters(manga.uuid(), params))
@@ -181,8 +182,8 @@ impl SearchClient {
             )
             .into_diagnostic()?
             .data
-            .iter()
-            .map(|cd| Chapter::from_data(cd.clone()))
+            .into_iter()
+            .map(|cd| Chapter::from_data(cd))
             .collect();
 
             all_chapters.extend(chapters);
