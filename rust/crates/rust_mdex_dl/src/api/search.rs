@@ -12,8 +12,6 @@ use serde::Deserialize;
 #[derive(Deserialize, Debug, Clone)]
 pub struct SearchResults {
     pub data: Vec<MangaData>,
-    limit: u32,
-    offset: u32,
     total: u32,
 }
 
@@ -30,8 +28,6 @@ impl SearchResults {
 #[derive(Deserialize, Debug, Clone)]
 struct ChapterResults {
     data: Vec<ChapterData>,
-    limit: u32,
-    offset: u32,
     total: u32,
 }
 
@@ -39,18 +35,20 @@ struct ChapterResults {
 pub struct SearchClient {
     api: ApiClient,
     language: Language,
-    results_per_page: u32,
+    manga_pagination: u32,
 }
 
 impl SearchClient {
     const MAX_MANGA_PAGINATION: u32 = 100;
     const MAX_CHAPTER_PAGINATION: u32 = 500;
 
-    pub fn new(api: ApiClient, language: Language, results_per_page: u32) -> SearchClient {
+    pub fn new(api: ApiClient, language: Language, manga_pagination: u32) -> SearchClient {
+        assert!(manga_pagination <= Self::MAX_MANGA_PAGINATION);
+
         SearchClient {
             api,
             language,
-            results_per_page,
+            manga_pagination,
         }
     }
 
@@ -107,8 +105,8 @@ impl SearchClient {
         params.extend(Self::language_filter_param(&[self.language], false)?);
 
         // set pagination
-        let offset = self.results_per_page * page;
-        params.push(("limit".into(), self.results_per_page.to_string()));
+        let offset = self.manga_pagination * page;
+        params.push(("limit".into(), self.manga_pagination.to_string()));
         params.push(("offset".into(), offset.to_string()));
 
         // useful ux params
