@@ -16,12 +16,21 @@ pub struct SearchResults {
 }
 
 impl SearchResults {
-    /// Prints every manga's titles stored in [`Self::data`] to stdout
+    /// Prints every manga's title stored in [`Self::data`] to stdout.
     pub fn display(&self, language: Language) {
         for (i, md) in self.data.iter().enumerate() {
             let m = Manga::from_data(md.clone());
             println!("[{}] {}", i + 1, m.title(language));
         }
+    }
+
+    /// Returns the [`MangaData`] as [`Manga`] of the specified `manga_index` at [`Self::data`].
+    ///
+    /// Note that `manga_index` is zero-indexed.
+    pub fn get(&self, manga_index: usize) -> Option<Manga> {
+        self.data
+            .get(manga_index)
+            .and_then(|md| Some(Manga::from_data(md.clone())))
     }
 }
 
@@ -42,6 +51,9 @@ impl SearchClient {
     const MAX_MANGA_PAGINATION: u32 = 100;
     const MAX_CHAPTER_PAGINATION: u32 = 500;
 
+    /// Creates a new [`SearchClient`].
+    ///
+    /// Panics if `manga_pagination` > [`Self::MAX_MANGA_PAGINATION`]
     pub fn new(api: ApiClient, language: Language, manga_pagination: u32) -> SearchClient {
         assert!(manga_pagination <= Self::MAX_MANGA_PAGINATION);
 
@@ -52,6 +64,7 @@ impl SearchClient {
         }
     }
 
+    /// Helper for constructing language filters for manga or chapters.
     fn language_filter_param(
         allowed_languages: &[Language],
         is_chapter: bool,
