@@ -16,7 +16,9 @@ pub struct SearchResults {
 }
 
 impl SearchResults {
-    /// Prints every manga's title stored in [`Self::data`] to stdout.
+    /// Prints every manga's title stored in [`Self::data`] to stdout, enumerated.
+    ///
+    /// Note that the enumeration here is one-indexed.
     pub fn display(&self, language: Language) {
         for (i, md) in self.data.iter().enumerate() {
             let m = Manga::from_data(md.clone());
@@ -53,9 +55,17 @@ impl SearchClient {
 
     /// Creates a new [`SearchClient`].
     ///
-    /// Panics if `manga_pagination` > [`Self::MAX_MANGA_PAGINATION`]
+    /// Clamps if `manga_pagination` > [`Self::MAX_MANGA_PAGINATION`]
     pub fn new(api: ApiClient, language: Language, manga_pagination: u32) -> SearchClient {
-        assert!(manga_pagination <= Self::MAX_MANGA_PAGINATION);
+        if manga_pagination > Self::MAX_CHAPTER_PAGINATION {
+            info!(
+                "Clamping `manga_pagination` to {}, original value was {}",
+                Self::MAX_MANGA_PAGINATION,
+                manga_pagination
+            );
+        }
+
+        let manga_pagination = manga_pagination.clamp(0, Self::MAX_MANGA_PAGINATION);
 
         SearchClient {
             api,
