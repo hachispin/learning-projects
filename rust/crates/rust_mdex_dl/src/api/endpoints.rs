@@ -1,9 +1,5 @@
 //! Contains the [`Endpoint`] enum.
 
-#![allow(unused)]
-
-use miette::{IntoDiagnostic, Result};
-use reqwest::Url;
 use serde_urlencoded;
 use uuid::Uuid;
 
