@@ -276,8 +276,8 @@ pub struct Manga {
 }
 
 impl Manga {
-    /// Takes the given `manga_uuid` and makes a GET request to [`Endpoint::GetChapter`],
-    /// parsing the response as a [`Chapter`] using [`serde`] and returning it.
+    /// Takes the given `manga_uuid` and makes a GET request to [`Endpoint::GetManga`],
+    /// parsing the response as a [`Manga`] using [`serde`] and returning it.
     pub async fn new(client: &ApiClient, manga_uuid: Uuid) -> Result<Self> {
         let r_json = client.get_ok_json(Endpoint::GetManga(manga_uuid)).await?;
         let manga = serde_json::from_value::<Self>(r_json).into_diagnostic()?;
