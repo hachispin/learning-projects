@@ -13,7 +13,7 @@ use crate::{
 use std::{path::PathBuf, sync::Arc};
 
 use bytes::Bytes;
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use isolang::Language;
 use log::{debug, info, trace, warn};
 use miette::{ErrReport, IntoDiagnostic, Result};
@@ -46,6 +46,8 @@ struct ChapterCdn {
 impl ChapterCdn {
     /// Constructs a new [`ChapterCdn`] for the given [`Chapter`]
     pub async fn new(api: &ApiClient, chapter: &Chapter) -> Result<Self> {
+        debug!("Fetching CDN for chapter_uuid={}", chapter.uuid());
+
         let endpoint = Endpoint::GetChapterCdn(chapter.uuid());
         let r_json = api.get_ok_json(endpoint).await?;
 
@@ -96,6 +98,51 @@ impl ChapterCdn {
     }
 }
 
+/// Stores info needed for downloading a chapter; used in [`DownloadClient::download_chapter`]
+#[derive(Debug)]
+struct ChapterDownloadInfo {
+    chapter: Chapter,
+    cdn: ChapterCdn,
+    pb: ProgressBar,
+}
+
+impl ChapterDownloadInfo {
+    /// Constructs and returns a styled [`ProgressBar`]
+    fn get_progress_bar(length: usize) -> ProgressBar {
+        let length = length as u64;
+
+        let pb: ProgressBar = ProgressBar::new(length);
+        pb.set_style(
+            ProgressStyle::with_template(
+                "[{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
+            )
+            .unwrap()
+            .progress_chars("=>-"),
+        );
+
+        pb
+    }
+
+    /// Using a chapter, fetches its cdn and gives it a progress bar.
+    async fn new(api: &ApiClient, chapter: Chapter) -> Result<Self> {
+        let cdn = ChapterCdn::new(api, &chapter).await?;
+        let num_images = cdn.chapter.data.len();
+
+        if num_images != cdn.chapter.data_saver.len() {
+            warn!(
+                "Inconsistent number of images for chapter {}: data_len={}, data_saver_len={}",
+                chapter.uuid(),
+                num_images,
+                cdn.chapter.data_saver.len()
+            );
+        }
+
+        let pb = Self::get_progress_bar(num_images);
+
+        Ok(Self { chapter, cdn, pb })
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct DownloadClient {
     client: Client,
@@ -131,22 +178,6 @@ impl DownloadClient {
     }
 
     /* Helpers for `download_chapter()` */
-
-    /// Constructs and returns a styled [`ProgressBar`] wrapped in [`Arc<T>`]
-    fn get_progress_bar(length: usize) -> Arc<ProgressBar> {
-        let length = length as u64;
-
-        let pb: ProgressBar = ProgressBar::new(length);
-        pb.set_style(
-            ProgressStyle::with_template(
-                "[{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
-            )
-            .unwrap()
-            .progress_chars("=>-"),
-        );
-
-        Arc::new(pb)
-    }
 
     /// Returns a tuple, `(Bytes, String)` on success.
     ///
@@ -210,38 +241,36 @@ impl DownloadClient {
     /// Returns the total size of all pages as MiB.
     async fn download_chapter(
         &self,
-        cdn: ChapterCdn,
-        chapter: Chapter,
+        download_info: ChapterDownloadInfo,
         parent_manga_title: &str,
         images_cfg: &Images,
     ) -> Result<f64> {
         let images_cfg = images_cfg.clone();
-        let images = cdn.construct_image_urls(images_cfg.quality)?;
+        let images = download_info.cdn.construct_image_urls(images_cfg.quality)?;
         let zero_pad = format!("{}", images.len()).len();
 
         // info for logs
-        let chapter_uuid_suffix = chapter.uuid().to_string()[..8].to_string();
+        let chapter_uuid_suffix = download_info.chapter.uuid().to_string()[..8].to_string();
         let chapter_size = Arc::new(Mutex::new(0f64));
 
-        let chapter_title = &chapter.formatted_title();
+        let chapter_title = &download_info.chapter.formatted_title();
         let chapter_dir = &manga_save_dir()
             .join(parent_manga_title)
             .join(chapter_title);
 
         std::fs::create_dir_all(&chapter_dir).into_diagnostic()?;
         let chapter_dir = chapter_dir.canonicalize().into_diagnostic()?;
-
-        let pb = DownloadClient::get_progress_bar(images.len());
         let mut handles = Vec::with_capacity(images.len() + 1);
         let handle_client = Arc::new(self.clone());
 
         info!(
             "Downloading {} images from chapter {:?} of manga {:?}",
             images.len(),
-            chapter.data.attributes.chapter,
+            download_info.chapter.data.attributes.chapter,
             parent_manga_title,
         );
 
+        let pb = Arc::new(download_info.pb);
         let start = Instant::now();
 
         for (i, url) in images.iter().enumerate() {
@@ -294,7 +323,7 @@ impl DownloadClient {
         Ok(*chapter_size.lock().await)
     }
 
-    /// Downloads all chapters within `chapter_cdn_pairs`.
+    /// Downloads all chapters given.
     ///
     /// Chapters are also downloaded concurrently, using
     /// [`Self::chapter_semaphore`] for the number of permits.
@@ -308,31 +337,35 @@ impl DownloadClient {
         parent_manga: Manga,
         images_cfg: &Images,
     ) -> Result<()> {
-        // fetch and group cdns
-        let mut chapter_cdn_pairs = Vec::with_capacity(chapters.len() + 1);
+        let pb_multi = MultiProgress::new();
 
-        for chapter in chapters {
-            let cdn = ChapterCdn::new(api, &chapter).await?;
-            chapter_cdn_pairs.push((chapter, cdn));
-        }
+        // fetch and group cdns
+        let download_infos_futs = chapters
+            .into_iter()
+            .map(|c| async move { ChapterDownloadInfo::new(&api, c).await })
+            .collect::<Vec<_>>();
+
+        let download_infos: Vec<_> = futures::future::try_join_all(download_infos_futs).await?;
 
         // start downloading
         let start = Instant::now();
         let manga_size = Arc::new(Mutex::new(0f64));
         let parent_uuid = parent_manga.uuid();
         let parent_manga_title = parent_manga.title(self.language);
-        let mut handles = Vec::with_capacity(chapter_cdn_pairs.len() + 1);
+        let mut handles = Vec::with_capacity(download_infos.len() + 1);
 
-        for (chapter, cdn) in chapter_cdn_pairs {
-            if chapter.parent_uuid() != parent_uuid {
+        for info in download_infos {
+            if info.chapter.parent_uuid() != parent_uuid {
                 warn!(
                     "Expected chapter {} to have parent manga {}, instead got {}",
-                    chapter.uuid(),
+                    info.chapter.uuid(),
                     parent_uuid,
-                    chapter.parent_uuid()
+                    info.chapter.parent_uuid()
                 );
                 warn!("This may lead to chapters being saved to the wrong locations!");
             }
+
+            pb_multi.add(info.pb.clone());
 
             let semaphore = self.chapter_semaphore.clone();
             let images_cfg = images_cfg.clone();
@@ -344,7 +377,7 @@ impl DownloadClient {
                 let _permit = semaphore.acquire().await.into_diagnostic()?;
 
                 let chapter_size = h
-                    .download_chapter(cdn, chapter, &parent_manga_title, &images_cfg)
+                    .download_chapter(info, &parent_manga_title, &images_cfg)
                     .await?;
 
                 let mut total = manga_size.lock().await;
