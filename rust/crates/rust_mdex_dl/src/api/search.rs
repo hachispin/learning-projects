@@ -159,7 +159,7 @@ impl SearchClient {
     }
 
     /// Fetches all chapters of the given [`Manga`] with the specified [`Self::language`]
-    pub async fn fetch_all_chapters(&self, manga: Manga) -> Result<Vec<Chapter>> {
+    pub async fn fetch_all_chapters(&self, manga: &Manga) -> Result<Vec<Chapter>> {
         let mut all_chapters: Vec<Chapter> = Vec::new();
         let mut offset = 0u32;
         let limit = Self::MAX_CHAPTER_PAGINATION;
