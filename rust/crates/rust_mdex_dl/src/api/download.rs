@@ -1,7 +1,11 @@
 //! Contains downloading utilities for chapters, mainly through [`DownloadClient`]
 
 use crate::{
-    api::models::{Chapter, Manga},
+    api::{
+        client::ApiClient,
+        endpoints::Endpoint,
+        models::{Chapter, Manga},
+    },
     config::{Config, ImageQuality, Images},
     paths::manga_save_dir,
 };
@@ -34,18 +38,18 @@ struct ChapterCdnData {
 /// A wrapper over [`ChapterCdnData`] for constructing image urls.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChapterCdn {
+struct ChapterCdn {
     base_url: Url,
     chapter: ChapterCdnData,
 }
 
 impl ChapterCdn {
-    /// Constructs a new [`ChapterCdn`].
-    ///
-    /// The response, `r_json` must be from the [GetChapterCdn](`crate::Endpoint::GetChapterCdn`)
-    /// endpoint for this to work. obviously...
-    pub fn new(r_json: &serde_json::Value) -> Result<Self> {
-        serde_json::from_value(r_json.clone()).into_diagnostic()
+    /// Constructs a new [`ChapterCdn`] for the given [`Chapter`]
+    pub async fn new(api: &ApiClient, chapter: &Chapter) -> Result<Self> {
+        let endpoint = Endpoint::GetChapterCdn(chapter.uuid());
+        let r_json = api.get_ok_json(endpoint).await?;
+
+        serde_json::from_value::<Self>(r_json).into_diagnostic()
     }
 
     /// Constructs the image urls in the format:
@@ -295,17 +299,24 @@ impl DownloadClient {
     /// Chapters are also downloaded concurrently, using
     /// [`Self::chapter_semaphore`] for the number of permits.
     ///
-    /// It's the callers responsibility to make sure each
-    /// `(Chapter, ChapterCdn)` tuple is mapped correctly.
-    ///
     /// NOTE: **All of these chapters should come from the same parent manga.**
     /// A warning is logged otherwise.
     pub async fn download_chapters(
         &self,
-        chapter_cdn_pairs: Vec<(Chapter, ChapterCdn)>,
+        api: &ApiClient,
+        chapters: Vec<Chapter>,
         parent_manga: Manga,
         images_cfg: &Images,
     ) -> Result<()> {
+        // fetch and group cdns
+        let mut chapter_cdn_pairs = Vec::with_capacity(chapters.len() + 1);
+
+        for chapter in chapters {
+            let cdn = ChapterCdn::new(api, &chapter).await?;
+            chapter_cdn_pairs.push((chapter, cdn));
+        }
+
+        // start downloading
         let start = Instant::now();
         let manga_size = Arc::new(Mutex::new(0f64));
         let parent_uuid = parent_manga.uuid();
