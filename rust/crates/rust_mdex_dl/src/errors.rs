@@ -1,5 +1,6 @@
 //! Contains user-defined errors. What else?
 
+use log::error;
 use miette::Diagnostic;
 use thiserror::Error;
 
@@ -60,6 +61,8 @@ impl ApiError {
     ///
     /// This also works if these fields are for some reason non-existent.
     pub fn new(r_json: &serde_json::Value, status_code: u16) -> Self {
+        error!("`ApiError` encountered! Faulty JSON: {r_json:#?}");
+
         let errors = r_json.get("errors").and_then(|e| e.as_array());
 
         if errors.is_none() {
