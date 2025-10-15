@@ -60,6 +60,11 @@ impl ChapterCdn {
     ///
     /// Reference: https://api.mangadex.org/docs/04-chapter/retrieving-chapter/#howto
     fn construct_image_urls(&self, quality: ImageQuality) -> Result<Vec<Url>> {
+        debug!(
+            "Constructing image urls, hash={}, quality={:?}",
+            self.chapter.hash, quality
+        );
+
         let quality = match quality {
             ImageQuality::Lossless => "data",
             ImageQuality::Lossy => "data-saver",
@@ -77,7 +82,7 @@ impl ChapterCdn {
             .into_diagnostic()?
             .join(&format!("{}/", &self.chapter.hash))
             .into_diagnostic()?;
-        debug!("Image url prefix {:?}", url_prefix.as_str());
+        debug!("constructed_url_prefix={:?}", url_prefix.as_str());
 
         let mut images = Vec::with_capacity(image_names.len() + 1);
         for name in image_names {
@@ -85,12 +90,12 @@ impl ChapterCdn {
         }
 
         debug!(
-            "First image url: {:?}",
+            "first_image_url={:?}",
             images.iter().next().and_then(|u| Some(u.as_str()))
         );
 
         trace!(
-            "All image urls: {:?}",
+            "all_image_urls={:?}",
             images.iter().map(|u| u.as_str()).collect::<Vec<&str>>()
         );
 
@@ -287,11 +292,10 @@ impl DownloadClient {
                 let _permit = semaphore.acquire().await.into_diagnostic()?;
                 let page = format!("{:0>zero_pad$}", i);
                 let data = h.download_image(&url).await?;
-
                 let page_size = data.0.len() as f64 / 1_048_576.0; // MiB conversion
 
                 debug!(
-                    "({}) Page {} downloaded in {}ms, size is {:.3} MiB",
+                    "chapter_uuid_suffix={} page={} dl_time_ms={} size_mib={:.3}",
                     chapter_uuid_suffix,
                     page,
                     (Instant::now() - start).as_millis(),
