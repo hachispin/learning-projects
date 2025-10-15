@@ -3,6 +3,7 @@
 use crate::{api::endpoints::Endpoint, config};
 
 use crate::errors::ApiError;
+use log::trace;
 use miette::{IntoDiagnostic, Result};
 use reqwest;
 use serde_json;
@@ -33,6 +34,9 @@ impl ApiClient {
     /// Use [`Self::get_ok_json()`] if this response is intended to parsed as JSON.
     pub async fn get(&self, endpoint: Endpoint) -> Result<reqwest::Response> {
         let uri = endpoint.as_string();
+        let url = self.base_url.join(&uri).into_diagnostic()?;
+
+        trace!("Sending GET request, url={url}");
 
         let r = self
             .client
