@@ -38,6 +38,7 @@ pub enum ImageQuality {
 pub struct Client {
     pub base_url: Url,
     pub user_agent: String,
+    pub max_retries: u32,
     #[serde(deserialize_with = "deserialize_langcode")]
     pub language: Language,
 }

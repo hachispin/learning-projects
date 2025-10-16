@@ -9,6 +9,7 @@
 [client]
 base_url = "https://api.mangadex.org"
 user_agent = "hachispin/learning-projects"
+max_retries = 3  # how many times to retry upon being ratelimited
 language = "en"     # * must be an ISO 639-1 code, which are two letters long
                     #   https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes
 
