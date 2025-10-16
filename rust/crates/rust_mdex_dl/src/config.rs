@@ -45,8 +45,8 @@ pub struct Client {
 #[allow(unused)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct Concurrency {
-    pub image_permits: usize,
-    pub chapter_permits: usize,
+    pub image_permits: u32,
+    pub chapter_permits: u32,
 }
 
 #[allow(unused)]
