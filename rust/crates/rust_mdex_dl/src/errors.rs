@@ -1,4 +1,4 @@
-//! Contains user-defined errors. What else?
+//! Contains user-defined errors.
 
 use log::error;
 use miette::Diagnostic;
@@ -16,7 +16,7 @@ impl ApiError {
     /// Helper for [`ApiError::new()`] in constructing [`ApiError::help`]
     fn get_status_code_help(status_code: u16) -> String {
         match status_code {
-            400 | 404 => "check that the uuid you've entered actually exists",
+            400 | 404 => "check if this link is actually valid",
             401 => "authentication needed. (you shouldn't be seeing this!)",
             403 => "you lack permission to access this. try something else",
             429 => "you've been ratelimited. i swear i'll implement ratelimit handling later",
@@ -57,9 +57,10 @@ impl ApiError {
         )
     }
 
-    /// Parses the provided JSON and parses fields to include extra info.
+    /// Parses the provided JSON and parses fields to include extra error info.
     ///
-    /// This also works if these fields are for some reason non-existent.
+    /// This also works if these fields are for some reason non-existent, which
+    /// means that this method would also work on actual, valid responses.
     pub fn new(r_json: &serde_json::Value, status_code: u16) -> Self {
         error!("`ApiError` encountered! Faulty JSON: {r_json:#?}");
 
