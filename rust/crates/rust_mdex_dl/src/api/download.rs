@@ -135,7 +135,7 @@ impl ChapterDownloadInfo {
 
         if num_images != cdn.chapter.data_saver.len() {
             warn!(
-                "Inconsistent number of images for chapter {}: data_len={}, data_saver_len={}",
+                "Inconsistent number of images for chapter {}: {} lossless images, {} lossy images.",
                 chapter.uuid(),
                 num_images,
                 cdn.chapter.data_saver.len()
