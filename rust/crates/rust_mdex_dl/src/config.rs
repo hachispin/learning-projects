@@ -95,8 +95,8 @@ pub fn load_config() -> Result<Config> {
     // this is hacky but shhhh
     let non_zero_options: [(&str, u32); 3] = [
         ("max_retries", cfg.client.max_retries),
-        ("image_permits", cfg.concurrency.image_permits),
-        ("chapter_permits", cfg.concurrency.chapter_permits),
+        ("image_permits", cfg.concurrency.image_permits as u32),
+        ("chapter_permits", cfg.concurrency.chapter_permits as u32),
     ];
     for (option, value) in non_zero_options {
         println!("Checking option {option:?}");
