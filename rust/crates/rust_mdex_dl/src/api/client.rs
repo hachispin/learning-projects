@@ -1,31 +1,44 @@
 //! Contains [`ApiClient`] struct for interacting with MangaDex's API.
 
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
+
 use crate::{api::endpoints::Endpoint, config};
 
 use crate::errors::ApiError;
-use log::trace;
+use log::{trace, warn};
 use miette::{IntoDiagnostic, Result};
-use reqwest;
+use reqwest::header::HeaderMap;
+use reqwest::{self, StatusCode};
 use serde_json;
+
+// prevent threads spamming ratelimit logs
+static RATELIMIT_LOGGED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Debug, Clone)]
 /// A wrapper over [`reqwest::Client`] for MangaDex interactions.
 pub struct ApiClient {
     client: reqwest::Client,
     base_url: reqwest::Url,
+    max_retries: u32,
 }
 
 impl ApiClient {
     /// Creates a new [`ApiClient`] with [`reqwest::Client::builder()`]
     pub fn new(client_cfg: &config::Client) -> Result<Self> {
         let base_url = client_cfg.base_url.clone();
+        let max_retries = client_cfg.max_retries;
 
         let client = reqwest::Client::builder()
             .user_agent(client_cfg.user_agent.clone())
             .build()
             .into_diagnostic()?;
 
-        Ok(Self { client, base_url })
+        Ok(Self {
+            client,
+            base_url,
+            max_retries,
+        })
     }
 
     /// Sends a GET request to the `endpoint` prefixed with the
@@ -35,17 +48,32 @@ impl ApiClient {
     pub async fn get(&self, endpoint: Endpoint) -> Result<reqwest::Response> {
         let uri = endpoint.as_string();
         let url = self.base_url.join(&uri).into_diagnostic()?;
+        let mut r = None;
 
         trace!("Sending GET request, url={url}");
 
-        let r = self
-            .client
-            .get(self.base_url.join(&uri).into_diagnostic()?)
-            .send()
-            .await
-            .into_diagnostic()?;
+        // ratelimit handling... sorta
+        for i in 1..=self.max_retries {
+            r = Some(
+                self.client
+                    .get(self.base_url.join(&uri).into_diagnostic()?)
+                    .send()
+                    .await
+                    .into_diagnostic()?,
+            );
 
-        Ok(r)
+            let _r = r.as_ref().unwrap();
+            let status = _r.status();
+            let headers = _r.headers();
+
+            if status != StatusCode::TOO_MANY_REQUESTS {
+                break;
+            }
+
+            Self::handle_ratelimit(headers, i).await?;
+        }
+
+        Ok(r.unwrap())
     }
 
     /// Fetches from the `endpoint` and parses the response as JSON.
@@ -62,7 +90,7 @@ impl ApiClient {
     /// This should be preferred over using [`Self::get()`]
     /// if the response is intended to be parsed as JSON.
     pub async fn get_ok_json(&self, endpoint: Endpoint) -> Result<serde_json::Value> {
-        let r = self.get(endpoint).await?;
+        let r = self.get(endpoint.clone()).await?;
         let status_code = r.status().as_u16();
         let success = r.status().is_success();
 
@@ -77,5 +105,33 @@ impl ApiClient {
         }
 
         Ok(r_json)
+    }
+
+    /// Sleeps and logs ratelimit based off of provided `headers`.
+    async fn handle_ratelimit(headers: &HeaderMap, retry_count: u32) -> Result<()> {
+        let retry_after = Self::get_retry_after(headers)?;
+        let sleep_duration = Duration::from_secs(retry_after as u64);
+
+        if !RATELIMIT_LOGGED.swap(true, Ordering::SeqCst) {
+            warn!("Ratelimited (received 429 Too Many Requests), attempt {retry_count}");
+            warn!("Sleeping for {}s...", sleep_duration.as_secs());
+        }
+
+        tokio::time::sleep(sleep_duration).await;
+        RATELIMIT_LOGGED.store(false, Ordering::SeqCst);
+
+        Ok(())
+    }
+
+    /// Attempts to parse a response's headers for `Retry-After` headers or equivalent.
+    fn get_retry_after(headers: &HeaderMap) -> Result<u32> {
+        let retry_in = headers
+            .get("retry-after")
+            .or(headers.get("x-ratelimit-retry-in"))
+            .ok_or(miette::miette!("couldn't find `retry-after` header"))?
+            .to_str()
+            .into_diagnostic()?;
+
+        Ok(retry_in.parse::<u32>().into_diagnostic()?)
     }
 }
