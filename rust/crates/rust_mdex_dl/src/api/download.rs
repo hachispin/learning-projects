@@ -13,9 +13,10 @@ use crate::{
 use std::{path::PathBuf, sync::Arc};
 
 use bytes::Bytes;
+use futures::stream::{self, StreamExt};
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use isolang::Language;
-use log::{debug, info, trace, warn};
+use log::{debug, error, info, trace, warn};
 use miette::{ErrReport, IntoDiagnostic, Result};
 use reqwest::{self, Client, Url};
 use serde::Deserialize;
@@ -148,6 +149,7 @@ impl ChapterDownloadInfo {
     }
 }
 
+/// Handles fetching of cdns and downloading of chapters.
 #[derive(Debug, Clone)]
 pub struct DownloadClient {
     client: Client,
@@ -222,8 +224,8 @@ impl DownloadClient {
     /// The tuple, `image_info` comes from [`Self::download_image`],
     /// formatted as `(image_bytes, image_file_format)` accordingly.
     ///
-    /// `chapter_dir` should be the path: `project_root/parent_manga/chapter`
-    /// and should be created beforehand.
+    /// `chapter_dir` should follow the format: `project_root/parent_manga/chapter`
+    /// and be created beforehand.
     async fn save_image(
         &self,
         image_info: (Bytes, String),
@@ -241,9 +243,9 @@ impl DownloadClient {
         Ok(())
     }
 
-    /// Downloads a chapter's images.
+    /// Downloads and saves a chapter's images concurrently and returns the total size in MiBs.
     ///
-    /// Returns the total size of all pages as MiB.
+    /// This also creates the dirs needed to store these images.
     async fn download_chapter(
         &self,
         download_info: ChapterDownloadInfo,
@@ -341,24 +343,41 @@ impl DownloadClient {
         parent_manga: Manga,
         images_cfg: &Images,
     ) -> Result<()> {
+        info!(
+            "Downloading {} chapters of manga {}",
+            chapters.len(),
+            parent_manga.title(self.language)
+        );
+
         let pb_multi = MultiProgress::new();
 
-        // fetch and group cdns
-        let download_infos_futs = chapters
+        let dl_info_futs: Vec<_> = chapters
             .into_iter()
             .map(|c| async move { ChapterDownloadInfo::new(&api, c).await })
-            .collect::<Vec<_>>();
+            .collect();
 
-        let download_infos: Vec<_> = futures::future::try_join_all(download_infos_futs).await?;
+        let dl_info_results: Vec<_> = stream::iter(dl_info_futs)
+            .buffer_unordered(5)
+            .collect::<Vec<_>>()
+            .await;
 
         // start downloading
         let start = Instant::now();
         let manga_size = Arc::new(Mutex::new(0f64));
         let parent_uuid = parent_manga.uuid();
         let parent_manga_title = parent_manga.title(self.language);
-        let mut handles = Vec::with_capacity(download_infos.len() + 1);
+        let mut handles = Vec::with_capacity(dl_info_results.len() + 1);
 
-        for info in download_infos {
+        for result in dl_info_results {
+            let info = match result {
+                Ok(info) => info,
+                Err(e) => {
+                    error!("Encountered error {e} while using fetched cdns in `dl_info_results`!");
+                    error!("This chapter will be skipped; expect missing chapters");
+                    continue;
+                }
+            };
+
             if info.chapter.parent_uuid() != parent_uuid {
                 warn!(
                     "Expected chapter {} to have parent manga {}, instead got {}",
