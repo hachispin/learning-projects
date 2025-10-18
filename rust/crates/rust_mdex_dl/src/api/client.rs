@@ -101,7 +101,7 @@ impl ApiClient {
             .unwrap_or("error");
 
         if result == "error" || !success {
-            return Err(ApiError::new(&r_json, status_code).into());
+            return Err(ApiError::new(endpoint, &r_json, status_code).into());
         }
 
         Ok(r_json)

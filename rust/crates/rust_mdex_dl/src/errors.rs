@@ -4,6 +4,8 @@ use log::error;
 use miette::Diagnostic;
 use thiserror::Error;
 
+use crate::api::endpoints::Endpoint;
+
 #[derive(Error, Debug, Diagnostic)]
 #[error("{error}")]
 #[diagnostic(help("{help}"))]
@@ -30,10 +32,11 @@ impl ApiError {
     }
 
     /// Helper for [`ApiError::new()`] if "errors" field in `r_json` doesn't exist
-    fn blank(status_code: u16) -> Self {
+    fn blank(endpoint: Endpoint, status_code: u16) -> Self {
         Self {
             error: format!(
                 "api error\n\n\
+                endpoint: {endpoint:?}\n\
                 status code: {status_code}\n\
                 (missing 'errors' field, couldn't gather more info)\n"
             )
@@ -45,12 +48,14 @@ impl ApiError {
     /// Helper for [`ApiError::new()`] in constructing [`ApiError::error`]
     fn format_error_text(
         number_of_errors: usize,
+        endpoint: Endpoint,
         status_code: u16,
         title: &str,
         detail: &str,
     ) -> String {
         format!(
             "api error; displaying 1 of {number_of_errors}\n\n\
+            endpoint: {endpoint:?}\n\
             status code: {status_code}\n\
             title: {title}\n\
             detail: {detail}\n"
@@ -61,13 +66,13 @@ impl ApiError {
     ///
     /// This also works if these fields are for some reason non-existent, which
     /// means that this method would also work on actual, valid responses.
-    pub fn new(r_json: &serde_json::Value, status_code: u16) -> Self {
+    pub fn new(endpoint: Endpoint, r_json: &serde_json::Value, status_code: u16) -> Self {
         error!("`ApiError` encountered! Faulty JSON: {r_json:#?}");
 
         let errors = r_json.get("errors").and_then(|e| e.as_array());
 
         if errors.is_none() {
-            return Self::blank(status_code);
+            return Self::blank(endpoint, status_code);
         }
 
         let errors = errors.unwrap();
@@ -75,7 +80,7 @@ impl ApiError {
         let first_err = errors.get(0);
 
         if first_err.is_none() || number_of_errors == 0 {
-            return Self::blank(status_code);
+            return Self::blank(endpoint, status_code);
         }
 
         let first_err = first_err.unwrap();
@@ -89,7 +94,8 @@ impl ApiError {
             .and_then(|s| s.as_str())
             .unwrap_or("unknown detail");
 
-        let error_text = Self::format_error_text(number_of_errors, status_code, title, detail);
+        let error_text =
+            Self::format_error_text(number_of_errors, endpoint, status_code, title, detail);
 
         Self {
             error: error_text,
