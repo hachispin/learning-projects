@@ -48,9 +48,13 @@ impl ChapterCdn {
     /// Constructs a new [`ChapterCdn`] for the given [`Chapter`]
     pub async fn new(api: &ApiClient, chapter: &Chapter) -> Result<Self> {
         debug!("Fetching CDN for chapter_uuid={}", chapter.uuid());
-
         let endpoint = Endpoint::GetChapterCdn(chapter.uuid());
-        let r_json = api.get_ok_json(endpoint).await?;
+
+        let r_json = api.get_ok_json(endpoint).await.map_err(|e| {
+            error!("Failed to fetch cdn for chapter {}: {e}", chapter.uuid());
+            error!("Chapter info: {:?}", chapter.formatted_title());
+            miette::miette!("failed to fetch {}", chapter.uuid())
+        })?;
 
         serde_json::from_value::<Self>(r_json).into_diagnostic()
     }
