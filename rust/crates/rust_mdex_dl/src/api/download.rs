@@ -13,9 +13,9 @@ use crate::{
 use std::{path::PathBuf, sync::Arc};
 
 use bytes::Bytes;
-use futures::stream::{self, StreamExt};
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use isolang::Language;
+use itertools::Itertools;
 use log::{debug, error, info, trace, warn};
 use miette::{ErrReport, IntoDiagnostic, Result};
 use reqwest::{self, Client, Url};
@@ -45,6 +45,10 @@ struct ChapterCdn {
 }
 
 impl ChapterCdn {
+    // the max requests per minute for `Endpoint::GetChapterCdn`
+    // https://api.mangadex.org/docs/2-limitations/#endpoint-specific-rate-limits
+    const RATELIMIT: u32 = 40;
+
     /// Constructs a new [`ChapterCdn`] for the given [`Chapter`]
     pub async fn new(api: &ApiClient, chapter: &Chapter) -> Result<Self> {
         debug!("Fetching CDN for chapter_uuid={}", chapter.uuid());
@@ -333,55 +337,22 @@ impl DownloadClient {
         Ok(*chapter_size.lock().await)
     }
 
-    /// Downloads all chapters given.
-    ///
-    /// Chapters are also downloaded concurrently, using
-    /// [`Self::chapter_semaphore`] for the number of permits.
-    ///
-    /// NOTE: **All of these chapters should come from the same parent manga.**
-    /// A warning is logged otherwise.
-    pub async fn download_chapters(
+    /// Helper for [`Self::download_chapters`]
+    async fn _download_chapters(
         &self,
-        api: &ApiClient,
-        chapters: Vec<Chapter>,
-        parent_manga: Manga,
+        batch: Vec<ChapterDownloadInfo>,
+        parent_manga: Arc<Manga>,
+        pb_multi: &MultiProgress,
         images_cfg: &Images,
-    ) -> Result<()> {
-        info!(
-            "Downloading {} chapters of manga {}",
-            chapters.len(),
-            parent_manga.title(self.language)
-        );
-
-        let pb_multi = MultiProgress::new();
-
-        let dl_info_futs: Vec<_> = chapters
-            .into_iter()
-            .map(|c| async move { ChapterDownloadInfo::new(&api, c).await })
-            .collect();
-
-        let dl_info_results: Vec<_> = stream::iter(dl_info_futs)
-            .buffer_unordered(5)
-            .collect::<Vec<_>>()
-            .await;
-
-        // start downloading
+    ) -> Result<f64> {
         let start = Instant::now();
-        let manga_size = Arc::new(Mutex::new(0f64));
+        let batch_size = Arc::new(Mutex::new(0f64));
+        let batch_len = batch.len();
         let parent_uuid = parent_manga.uuid();
         let parent_manga_title = parent_manga.title(self.language);
-        let mut handles = Vec::with_capacity(dl_info_results.len() + 1);
+        let mut handles = Vec::with_capacity(batch.len() + 1);
 
-        for result in dl_info_results {
-            let info = match result {
-                Ok(info) => info,
-                Err(e) => {
-                    error!("Encountered error {e} while using fetched cdns in `dl_info_results`!");
-                    error!("This chapter will be skipped; expect missing chapters");
-                    continue;
-                }
-            };
-
+        for info in batch {
             if info.chapter.parent_uuid() != parent_uuid {
                 warn!(
                     "Expected chapter {} to have parent manga {}, instead got {}",
@@ -397,7 +368,7 @@ impl DownloadClient {
             let semaphore = self.chapter_semaphore.clone();
             let images_cfg = images_cfg.clone();
             let parent_manga_title = parent_manga_title.clone();
-            let manga_size = manga_size.clone();
+            let batch_size = batch_size.clone();
             let h = self.clone();
 
             handles.push(tokio::spawn(async move {
@@ -407,7 +378,7 @@ impl DownloadClient {
                     .download_chapter(info, &parent_manga_title, &images_cfg)
                     .await?;
 
-                let mut total = manga_size.lock().await;
+                let mut total = batch_size.lock().await;
                 *total += chapter_size;
 
                 Ok::<(), ErrReport>(())
@@ -417,6 +388,72 @@ impl DownloadClient {
         futures::future::try_join_all(handles)
             .await
             .into_diagnostic()?;
+
+        info!(
+            "Batch download ({} chapters) completed in {}ms, total size is {:.3} MiB",
+            batch_len,
+            (Instant::now() - start).as_millis(),
+            *batch_size.lock().await,
+        );
+
+        Ok(*batch_size.lock().await)
+    }
+
+    /// Downloads all chapters given.
+    ///
+    /// Chapters are also downloaded concurrently, using
+    /// [`Self::chapter_semaphore`] for the number of permits.
+    ///
+    /// NOTE: **All of these chapters should come from the same parent manga.**
+    /// A warning is logged otherwise.
+    pub async fn download_chapters(
+        &self,
+        api: &ApiClient,
+        chapters: Vec<Chapter>,
+        parent_manga: Manga,
+        images_cfg: &Images,
+    ) -> Result<()> {
+        let parent_manga = Arc::new(parent_manga);
+
+        info!(
+            "Downloading {} chapters of manga {}",
+            chapters.len(),
+            parent_manga.title(self.language)
+        );
+
+        let pb_multi = MultiProgress::new();
+
+        let dl_info_futs: Vec<_> = chapters
+            .into_iter()
+            .map(|c| async move { ChapterDownloadInfo::new(&api, c).await })
+            .collect();
+
+        let start = Instant::now();
+        let manga_size = Arc::new(Mutex::new(0f64));
+
+        for batch in dl_info_futs
+            .into_iter()
+            .chunks(ChapterCdn::RATELIMIT as usize)
+            .into_iter()
+        {
+            let batch = futures::future::try_join_all(batch).await;
+
+            let batch = match batch {
+                Ok(v) => v,
+                Err(e) => {
+                    error!("Encountered error {e} while using fetched cdns in `dl_info_results`!");
+                    error!("This chapter will be skipped; expect missing chapters");
+                    continue;
+                }
+            };
+
+            let batch_size = self
+                ._download_chapters(batch, parent_manga.clone(), &pb_multi, images_cfg)
+                .await?;
+
+            let mut total = manga_size.lock().await;
+            *total += batch_size;
+        }
 
         info!(
             "All downloads completed in {}ms, total size is {:.3} MiB",
