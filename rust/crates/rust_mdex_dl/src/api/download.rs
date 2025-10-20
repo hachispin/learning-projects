@@ -333,7 +333,7 @@ impl DownloadClient {
             *chapter_size.lock().await,
         );
 
-        pb.finish();
+        pb.finish_and_clear();
         Ok(*chapter_size.lock().await)
     }
 
@@ -416,9 +416,10 @@ impl DownloadClient {
         let parent_manga = Arc::new(parent_manga);
 
         info!(
-            "Downloading {} chapters of manga {}",
+            "Downloading {} chapters of manga {}, manga_uuid={}",
             chapters.len(),
-            parent_manga.title(self.language)
+            parent_manga.title(self.language),
+            parent_manga.uuid()
         );
 
         let pb_multi = MultiProgress::new();
