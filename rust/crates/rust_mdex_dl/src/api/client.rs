@@ -6,7 +6,7 @@ use std::time::Duration;
 use crate::{api::endpoints::Endpoint, config};
 
 use crate::errors::ApiError;
-use log::{trace, warn};
+use log::{error, trace, warn};
 use miette::{IntoDiagnostic, Result};
 use reqwest::header::HeaderMap;
 use reqwest::{self, StatusCode};
@@ -93,8 +93,16 @@ impl ApiClient {
         let r = self.get(endpoint.clone()).await?;
         let status_code = r.status().as_u16();
         let success = r.status().is_success();
+        let r_text = r.text().await.into_diagnostic()?;
 
-        let r_json: serde_json::Value = r.json().await.into_diagnostic()?;
+        trace!("r_text={r_text:?}");
+
+        let r_json: serde_json::Value = serde_json::from_str(&r_text).map_err(|e| {
+            error!("Error parsing JSON: {e:#?}");
+            error!("Raw response body as text: {r_text:#?}");
+            ApiError::blank(endpoint.clone(), status_code)
+        })?;
+
         let result = r_json
             .get("result")
             .and_then(|r| r.as_str())

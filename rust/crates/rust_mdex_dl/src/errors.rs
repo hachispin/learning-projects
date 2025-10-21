@@ -32,7 +32,7 @@ impl ApiError {
     }
 
     /// Helper for [`ApiError::new()`] if "errors" field in `r_json` doesn't exist
-    fn blank(endpoint: Endpoint, status_code: u16) -> Self {
+    pub fn blank(endpoint: Endpoint, status_code: u16) -> Self {
         Self {
             error: format!(
                 "api error\n\n\
