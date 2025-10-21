@@ -91,7 +91,7 @@ impl ApiClient {
     /// if the response is intended to be parsed as JSON.
     pub async fn get_ok_json(&self, endpoint: Endpoint) -> Result<serde_json::Value> {
         let r = self.get(endpoint.clone()).await?;
-        let status_code = r.status().as_u16();
+        let status_code = r.status();
         let success = r.status().is_success();
         let r_text = r.text().await.into_diagnostic()?;
 
