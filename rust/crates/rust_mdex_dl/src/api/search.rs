@@ -57,7 +57,7 @@ impl SearchClient {
     ///
     /// Clamps if `manga_pagination` > [`Self::MAX_MANGA_PAGINATION`]
     pub fn new(api: ApiClient, language: Language, manga_pagination: u32) -> SearchClient {
-        if manga_pagination > Self::MAX_CHAPTER_PAGINATION {
+        if manga_pagination > Self::MAX_MANGA_PAGINATION {
             info!(
                 "Clamping `manga_pagination` to {}, original value was {}",
                 Self::MAX_MANGA_PAGINATION,
@@ -225,7 +225,7 @@ impl SearchClient {
             .into_diagnostic()?
             .data
             .into_iter()
-            .map(|cd| Chapter::from_data(cd))
+            .map(Chapter::from_data)
             .collect();
 
             all_chapters.extend(chapters);
