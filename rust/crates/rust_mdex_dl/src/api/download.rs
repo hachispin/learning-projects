@@ -243,7 +243,7 @@ impl DownloadClient {
         let filename = format!("{}.{}", page, image_info.1);
         let save = chapter_dir.join(filename);
 
-        tokio::fs::write(chapter_dir.join(&save), image_info.0)
+        tokio::fs::write(&save, image_info.0)
             .await
             .into_diagnostic()?;
 
