@@ -1,13 +1,26 @@
 use rust_mdex_dl::{
-    api::{client::ApiClient, download::DownloadClient, search::SearchClient},
+    api::{client::ApiClient, download::DownloadClient, models::Manga, search::SearchClient},
     config::load_config,
     logging::init_logging,
 };
 
+use console::style;
+use dialoguer::{Input, Select, theme::ColorfulTheme};
 use log::info;
 use miette::{IntoDiagnostic, Result};
-use rustyline::DefaultEditor;
 use tokio;
+
+macro_rules! Input {
+    () => {
+        Input::with_theme(&ColorfulTheme::default())
+    };
+}
+
+macro_rules! Select {
+    () => {
+        Select::with_theme(&ColorfulTheme::default())
+    };
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -18,26 +31,34 @@ async fn main() -> Result<()> {
 
     // create clients
     let api = ApiClient::new(&cfg.client)?;
-    let searcher = SearchClient::new(api.clone(), cfg.client.language, 10);
+    let searcher = SearchClient::new(api.clone(), cfg.client.language, 200);
     let downloader = DownloadClient::new(&cfg)?;
 
-    // setup i/o with rustyline and get query
-    let mut rl = DefaultEditor::new().into_diagnostic()?;
-    let query = rl.readline(">> ").into_diagnostic()?;
-
-    // search, fetch and display first page of query
-    let results = searcher.search(&query, 0).await?;
-    results.display(cfg.client.language);
-
-    // get chosen manga and its chapters
-    let manga_index: usize = rl
-        .readline(">> ")
-        .into_diagnostic()?
-        .parse()
+    // setup i/o with dialoguer and get query
+    let query: String = Input!()
+        .with_prompt("Enter a manga")
+        .interact_text()
         .into_diagnostic()?;
 
-    let manga_index = manga_index - 1; // one-indexed => zero-indexed
-    let chosen_manga = results.get(manga_index).expect("invalid index");
+    // search!
+    let results = searcher.search(&query, 0).await?;
+
+    if results.data.len() == 0 {
+        println!("{}", style("No results found").yellow().italic());
+    }
+
+    // display options, get choice
+    let mut options = results.display(cfg.client.language);
+    options.push(String::from("Next page"));
+
+    let chosen_index = Select!()
+        .items(options.as_slice())
+        .default(0)
+        .interact()
+        .into_diagnostic()?;
+
+    // fetch chapters
+    let chosen_manga = Manga::from_data(results.data[chosen_index].clone());
     let chapters = searcher.fetch_all_chapters(&chosen_manga).await?;
 
     // download!

@@ -16,14 +16,17 @@ pub struct SearchResults {
 }
 
 impl SearchResults {
-    /// Prints every manga's title stored in [`Self::data`] to stdout, enumerated.
-    ///
-    /// Note that the enumeration here is one-indexed.
-    pub fn display(&self, language: Language) {
+    /// Returns every manga's title stored in [`Self::data`] enumerated.
+    pub fn display(&self, language: Language) -> Vec<String> {
+        let mut titles = Vec::with_capacity(self.data.len() + 1);
+
         for (i, md) in self.data.iter().enumerate() {
             let m = Manga::from_data(md.clone());
-            println!("[{}] {}", i + 1, m.title(language));
+            let option = format!("[{}] {}", i + 1, m.title(language));
+            titles.push(option);
         }
+
+        titles
     }
 
     /// Returns the [`MangaData`] as [`Manga`] of the specified `manga_index` at [`Self::data`].
