@@ -19,6 +19,7 @@ use itertools::Itertools;
 use log::{debug, error, info, trace, warn};
 use miette::{ErrReport, IntoDiagnostic, Result};
 use reqwest::{self, Client, Url};
+use sanitise_file_name::sanitise;
 use serde::Deserialize;
 use serde_json;
 use tokio::{
@@ -60,7 +61,38 @@ impl ChapterCdn {
             miette::miette!("failed to fetch {}", chapter.uuid())
         })?;
 
-        serde_json::from_value::<Self>(r_json).into_diagnostic()
+        let cdn = serde_json::from_value::<Self>(r_json).into_diagnostic()?;
+        let num_lossless = cdn.chapter.data.len();
+        let num_lossy = cdn.chapter.data_saver.len();
+
+        if num_lossless != num_lossy {
+            warn!(
+                "Inconsistent number of images for chapter {}: {} lossless images, {} lossy images.",
+                chapter.uuid(),
+                num_lossless,
+                num_lossy
+            );
+        }
+
+        if cdn.chapter.hash.is_empty() {
+            warn!("Empty `hash` for cdn of chapter {}", chapter.uuid())
+        }
+
+        if num_lossless == 0 {
+            warn!(
+                "Empty `data` (no lossless images) for cdn of chapter {}",
+                chapter.uuid()
+            );
+        }
+
+        if num_lossy == 0 {
+            warn!(
+                "Empty `data-saver` (no lossy images) for cdn of chapter {}",
+                chapter.uuid()
+            );
+        }
+
+        Ok(cdn)
     }
 
     /// Constructs the image urls in the format:
@@ -141,16 +173,6 @@ impl ChapterDownloadInfo {
     async fn new(api: &ApiClient, chapter: Chapter) -> Result<Self> {
         let cdn = ChapterCdn::new(api, &chapter).await?;
         let num_images = cdn.chapter.data.len();
-
-        if num_images != cdn.chapter.data_saver.len() {
-            warn!(
-                "Inconsistent number of images for chapter {}: {} lossless images, {} lossy images.",
-                chapter.uuid(),
-                num_images,
-                cdn.chapter.data_saver.len()
-            );
-        }
-
         let pb = Self::get_progress_bar(num_images);
 
         Ok(Self { chapter, cdn, pb })
@@ -268,9 +290,10 @@ impl DownloadClient {
         let chapter_uuid_suffix = download_info.chapter.uuid().to_string()[..8].to_string();
         let chapter_size = Arc::new(Mutex::new(0f64));
 
+        let parent_manga_title_safe = sanitise(parent_manga_title);
         let chapter_title = &download_info.chapter.formatted_title();
         let chapter_dir = &manga_save_dir()
-            .join(parent_manga_title)
+            .join(parent_manga_title_safe)
             .join(chapter_title);
 
         std::fs::create_dir_all(&chapter_dir).into_diagnostic()?;
