@@ -286,15 +286,16 @@ impl DownloadClient {
         let images = download_info.cdn.construct_image_urls(images_cfg.quality)?;
         let zero_pad = format!("{}", images.len()).len();
 
-        // info for logs
         let chapter_uuid_suffix = download_info.chapter.uuid().to_string()[..8].to_string();
         let chapter_size = Arc::new(Mutex::new(0f64));
+        let chapter_title = &download_info.chapter.formatted_title();
 
         let parent_manga_title_safe = sanitise(parent_manga_title);
-        let chapter_title = &download_info.chapter.formatted_title();
+        let chapter_title_safe = sanitise(&chapter_title);
+
         let chapter_dir = &manga_save_dir()
             .join(parent_manga_title_safe)
-            .join(chapter_title);
+            .join(chapter_title_safe);
 
         std::fs::create_dir_all(&chapter_dir).into_diagnostic()?;
         let chapter_dir = chapter_dir.canonicalize().into_diagnostic()?;
