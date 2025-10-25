@@ -12,7 +12,7 @@ use serde::Deserialize;
 #[derive(Deserialize, Debug, Clone)]
 pub struct SearchResults {
     pub data: Vec<MangaData>,
-    total: u32,
+    pub total: u32,
 }
 
 impl SearchResults {
@@ -59,16 +59,8 @@ impl SearchClient {
     /// Creates a new [`SearchClient`].
     ///
     /// Clamps if `manga_pagination` > [`Self::MAX_MANGA_PAGINATION`]
-    pub fn new(api: ApiClient, language: Language, manga_pagination: u32) -> SearchClient {
-        if manga_pagination > Self::MAX_MANGA_PAGINATION {
-            info!(
-                "Clamping `manga_pagination` to {}, original value was {}",
-                Self::MAX_MANGA_PAGINATION,
-                manga_pagination
-            );
-        }
-
-        let manga_pagination = manga_pagination.clamp(0, Self::MAX_MANGA_PAGINATION);
+    pub fn new(api: ApiClient, language: Language) -> SearchClient {
+        let manga_pagination = Self::MAX_MANGA_PAGINATION;
 
         SearchClient {
             api,
