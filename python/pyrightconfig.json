@@ -1,0 +1,7 @@
+{
+    "reportUnusedCallResult": false,
+    "allowedUntypedLibraries": [
+        "PyQt6",
+        "pycurl"
+    ],
+}
