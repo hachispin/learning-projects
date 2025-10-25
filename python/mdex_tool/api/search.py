@@ -83,7 +83,7 @@ class Searcher:
 
         endpoint = f"{self.cfg.reqs.api_root}/manga"
         r_json = self._safe_get_json(endpoint, params)
-        results = []  # type: list[Manga]
+        results: list[Manga] = []
 
         for m in r_json["data"]:
             results.append(Manga(self._get_title(m["attributes"]), m["id"]))

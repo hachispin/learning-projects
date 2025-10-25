@@ -78,14 +78,14 @@ def require_ok_config() -> Config:
     print(f"Looking for config in: {cfg_fp}")
     try:
         with cfg_fp.open("rb") as f:
-            cfg = tomllib.load(f)  # type: ignore
+            cfg = tomllib.load(f)
     except FileNotFoundError:
         raise ConfigError(
             errors=["Config file not found; expected config.toml in mdex_tool)"]
         ) from None
     print(f"Config: {repr(cfg)}")
 
-    errors = []  # type: list[str]
+    errors: list[str] = []
 
     # theres a lot of repetition here but I've
     # chosen not try to apply DRY because:
@@ -199,7 +199,7 @@ def require_ok_config() -> Config:
     else:  # Convert to enum value
         logging_enum = _nameToLevel.get(logging["level"])
         print(f"Converting logging level {logging["level"]} to {logging_enum}")
-        logging["level"] = logging_enum  # type: ignore
+        logging["level"] = logging_enum
 
     if p := get_dirname_problems("logging.location", logging["location"]):
         errors.append(p)

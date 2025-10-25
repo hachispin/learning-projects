@@ -71,7 +71,7 @@ class CliUtils:
         """
         user_input = user_input.strip(",")  # Remove trailing
         selections = tuple(s.strip() for s in user_input.split(","))
-        nums = []  # type: list[int]
+        nums: list[int] = []
 
         if all(not s for s in selections):
             error_out("Selection can't be blank")

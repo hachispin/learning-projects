@@ -36,7 +36,7 @@ class MangaPaginator:
 
         page_limit = cfg.search.results_per_page
         self.total_pages = (first_page.total + page_limit - 1) // page_limit
-        self.pages = [first_page]  # type: list[MangaResults | None]
+        self.pages: list[MangaResults | None] = [first_page]
         self.pages.extend([None] * (self.total_pages - 1))
 
     # pylint:disable=missing-function-docstring
@@ -114,7 +114,7 @@ class ChapterPaginator:
         self, chapter_data: list[dict[str, Any]]
     ) -> tuple[Chapter, ...]:
         """Zero-pads chapter titles and gives unknown chapter titles more info."""
-        chapters = []  # type: list[Chapter]
+        chapters: list[Chapter] = []
 
         def is_float_coercible(x) -> bool:
             try:
@@ -168,17 +168,17 @@ class ChapterPaginator:
             (tuple[Chapter, ...]): all chapters of the manga
         """
         feed = f"{self.cfg.reqs.api_root}/manga/{self.manga.uuid}/feed"
-        chapter_data = []  # type: list[dict[str, Any]]
+        chapter_data: list[dict[str, Any]] = []
 
         # 18+ filtering should be done upstream in the Searcher class
-        params = {
+        params: dict[str, Any] = {
             "translatedLanguage[]": ["en"],
             "contentRating[]": ["safe", "suggestive", "erotica", "pornographic"],
             "order[chapter]": "asc",
             "includeEmptyPages": 0,
             "limit": 500,  # the max that MangaDex allows
             "offset": 0,
-        }  # type: dict[str, Any]
+        }
 
         # Keep fetching until no results
         while True:
