@@ -18,13 +18,13 @@ language = "en"     # * must be an ISO 639-1 code, which are two letters long
 # e.g. `image_permits` means how many images can be
 # downloaded and saved at any one point in time.
 #
-# To go more in depth, these are the number of permits set on the semaphores.
+# To go more in depth, these are the number of permits set on the "semaphores".
 # https://en.wikipedia.org/wiki/Semaphore_(programming)
 #
 # Setting these higher may result in faster downloads at the cost
 # of possible being throttled or ratelimited by MangaDex.
 [concurrency]
-image_permits = 25      # * undocumented ratelimit but hard to hit unless done intentionally
+image_permits = 10      # * undocumented ratelimit but hard to hit unless done intentionally
                         #   https://api.mangadex.org/docs/2-limitations/#non-api-rate-limits
 chapter_permits = 3     # * max is 40 reqs per minute for this endpoint
                         #   scale this against your download speed accordingly
