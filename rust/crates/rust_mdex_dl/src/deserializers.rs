@@ -66,6 +66,17 @@ fn narrow_langcodes(langcode: &str) -> String {
     .to_string()
 }
 
+/// check https://api.mangadex.org/manga/0c936660-cb06-491b-8b61-15dacad1bfb4 json for why
+fn nullify_langcodes(langcode: &str) -> String {
+    const UND_MAPPINGS: [&str; 4] = ["NULL", "Null", "null", ""];
+
+    if UND_MAPPINGS.contains(&langcode) {
+        return "UNKNOWN".to_string();
+    }
+
+    langcode.to_string()
+}
+
 /// Helper function to deserialize as [`Language`]
 ///
 /// The input is parsed using the ISO 639-1 standard, in accordance with
@@ -74,7 +85,11 @@ pub fn deserialize_langcode<'de, D>(deserializer: D) -> Result<Language, D::Erro
 where
     D: serde::Deserializer<'de>,
 {
-    let input_langcode = narrow_langcodes(&String::deserialize(deserializer)?);
+    let input_langcode = nullify_langcodes(&narrow_langcodes(&String::deserialize(deserializer)?));
+
+    if input_langcode == "UNKNOWN" {
+        return Ok(Language::Und);
+    }
 
     Language::from_639_1(input_langcode.as_str()).ok_or(serde::de::Error::custom(format!(
         "invalid iso 639-1 language code {input_langcode:?}"
@@ -97,7 +112,12 @@ where
     input_map
         .into_iter()
         .map(|(k, v)| {
-            let k = narrow_langcodes(&k);
+            let k = nullify_langcodes(&narrow_langcodes(&k));
+
+            if k == "UNKNOWN" {
+                return Ok((Language::Und, v));
+            }
+
             let lang = Language::from_639_1(&k).ok_or_else(|| {
                 serde::de::Error::custom(format!("invalid iso 639-1 language code {k:?}"))
             })?;
@@ -113,14 +133,19 @@ pub fn deserialize_langcode_map_vec<'de, D>(
 where
     D: serde::Deserializer<'de>,
 {
-    let mut mappings: Vec<HashMap<Language, String>> = Vec::new();
     let input_map_vec: Vec<HashMap<String, String>> = Vec::deserialize(deserializer)?;
+    let mut mappings: Vec<HashMap<Language, String>> = Vec::with_capacity(input_map_vec.len() + 1);
 
     for map in input_map_vec {
-        let mut current = HashMap::new();
+        let mut current = HashMap::with_capacity(map.len() + 1);
 
         for (k, v) in map {
-            let k = narrow_langcodes(&k);
+            let k = nullify_langcodes(&narrow_langcodes(&k));
+            if k == "UNKNOWN" {
+                current.insert(Language::Und, v);
+                continue;
+            }
+
             let lang = Language::from_639_1(&k).ok_or_else(|| {
                 serde::de::Error::custom(format!("invalid iso 639-1 language code {k:?}"))
             })?;
