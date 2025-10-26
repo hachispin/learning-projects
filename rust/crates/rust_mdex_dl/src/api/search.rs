@@ -53,8 +53,8 @@ pub struct SearchClient {
 }
 
 impl SearchClient {
-    const MAX_MANGA_PAGINATION: u32 = 100;
-    const MAX_CHAPTER_PAGINATION: u32 = 500;
+    pub const MAX_MANGA_PAGINATION: u32 = 100;
+    pub const MAX_CHAPTER_PAGINATION: u32 = 500;
 
     /// Creates a new [`SearchClient`].
     ///
