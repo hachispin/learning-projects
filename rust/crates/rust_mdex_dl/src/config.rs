@@ -1,8 +1,5 @@
 //! Loads the [config](`crate::paths::config_toml`) and validates
 //! options using [`serde`] and [`toml`].
-//!
-//! Since this is done before logs are set up, logging is
-//! sent to stdout, then cleared as soon as it's done.
 
 use crate::{
     deserializers::{deserialize_langcode, deserialize_logging_filter},
@@ -81,26 +78,14 @@ pub struct Config {
 pub fn load_config() -> Result<Config> {
     let path = config_toml().canonicalize().into_diagnostic()?;
     let raw_cfg = fs::read_to_string(path).into_diagnostic()?;
-
-    println!("Raw config before deserialization:");
-    println!("\n{raw_cfg}");
-    println!("Deserializing config...");
-
     let cfg: Config = toml::de::from_str(&raw_cfg).into_diagnostic()?;
 
-    println!("{cfg:?}");
-    println!("Config loaded successfully!\n");
-
-    println!("Validating specific `u32` options to be non-zero...");
-    // this is hacky but shhhh
     let non_zero_options: [(&str, u32); 3] = [
         ("max_retries", cfg.client.max_retries),
         ("image_permits", cfg.concurrency.image_permits as u32),
         ("chapter_permits", cfg.concurrency.chapter_permits as u32),
     ];
     for (option, value) in non_zero_options {
-        println!("Checking option {option:?}");
-
         if value == 0 {
             return Err(miette::miette!(
                 "Expected option `{option}` to be non-zero, got {option}={value}"
@@ -109,15 +94,8 @@ pub fn load_config() -> Result<Config> {
     }
 
     for p in [manga_save_dir(), log_save_dir()] {
-        println!("Creating save dir {p:?}");
         fs::create_dir_all(p).into_diagnostic()?;
-        println!("Path {p:?} created successfully.")
     }
 
-    println!("\nAll paths have been created!");
-    println!("Your terminal should be clearing about now...");
-
-    // NOTE: this way of clearing may not be supported on some terminals
-    println!("{esc}c", esc = 27 as char);
     Ok(cfg)
 }
