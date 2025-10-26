@@ -89,14 +89,7 @@ class MainWindow(QMainWindow):
         container.setLayout(top)
 
     def handle_exception(self, error: Exception):
-        """
-        Generic exception handler.
-
-        If `error` is not a `NoteException` instance, a message
-        box is displayed and `sys.exit()` is called afterwards.
-        """
-        if isinstance(error, NoteException):
-            self.handle_note_exception(error)
+        """Generic exception handler for **fatal** errors."""
 
         error_type = type(error).__name__
         error_help = str(error)
@@ -158,7 +151,7 @@ class MainWindow(QMainWindow):
             info = f"num_notes={num_notes}, num_dd_items={num_dd_items}"
             e = IndexError(f"Index ({dd_idx} - 1) out of notes ({info})")
 
-            self.handle_exception(e)
+            return self.handle_exception(e)
 
     def update_dropdown(self):
         """Updates dropdown items with stored notes"""
@@ -212,8 +205,7 @@ class MainWindow(QMainWindow):
                 self.collection.edit_note(curr_note.title, saved_title, saved_body)
 
         except NoteException as e:
-            self.handle_note_exception(e)
-            return
+            return self.handle_note_exception(e)
 
         # Reflect changes in save data
         self.save_notes()
