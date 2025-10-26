@@ -15,7 +15,7 @@ than one config field)
 
 import tomllib
 from pathlib import Path
-from logging import getLogger, _nameToLevel
+from logging import getLogger, getLevelNamesMapping
 
 from mdex_tool import PROJECT_ROOT
 from mdex_tool.errors import ConfigError
@@ -30,8 +30,8 @@ from mdex_tool.models import (
     LoggingConfig,
 )
 
+NAME_TO_LEVEL = getLevelNamesMapping()
 logger = getLogger(__name__)
-
 
 # pylint: disable=missing-function-docstring
 def is_bool(x):
@@ -197,7 +197,7 @@ def require_ok_config() -> Config:
             "'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'"
         )
     else:  # Convert to enum value
-        logging_enum = _nameToLevel.get(logging["level"])
+        logging_enum = NAME_TO_LEVEL.get(logging["level"])
         print(f"Converting logging level {logging["level"]} to {logging_enum}")
         logging["level"] = logging_enum
 
