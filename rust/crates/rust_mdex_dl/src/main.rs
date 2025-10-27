@@ -10,8 +10,8 @@ use rust_mdex_dl::{
     logging::init_logging,
 };
 
-use console::style;
-use dialoguer::{Input, Select, theme::ColorfulTheme};
+use console::{Term, style};
+use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use log::info;
 use miette::{IntoDiagnostic, Result};
 use tokio;
@@ -24,7 +24,13 @@ macro_rules! Input {
 
 macro_rules! Select {
     () => {
-        Select::with_theme(&ColorfulTheme::default())
+        Select::with_theme(&ColorfulTheme::default()).default(0)
+    };
+}
+
+macro_rules! Confirm {
+    () => {
+        Confirm::with_theme(&ColorfulTheme::default())
     };
 }
 
@@ -65,18 +71,16 @@ enum PageAction {
 
 impl PageAction {
     fn new(page_pos: PagePosition, next_page_index: usize, chosen_index: usize) -> Self {
-        let last_page_index = 0usize;
+        let next = next_page_index;
+        let last = 0usize;
 
-        if page_pos == PagePosition::Start && chosen_index == next_page_index {
-            return PageAction::Next;
-        } else if page_pos == PagePosition::Middle && chosen_index == last_page_index {
-            return PageAction::Last;
-        } else if page_pos == PagePosition::Middle && chosen_index == next_page_index {
-            return PageAction::Next;
-        } else if page_pos == PagePosition::End && chosen_index == last_page_index {
-            return PageAction::Last;
+        match (page_pos, chosen_index) {
+            (PagePosition::Start, i) if i == next => Self::Next,
+            (PagePosition::Middle, i) if i == last => Self::Last,
+            (PagePosition::Middle, i) if i == next => Self::Next,
+            (PagePosition::End, i) if i == last => Self::Last,
+            _ => Self::Choose, 
         }
-        PageAction::Choose
     }
 }
 
@@ -88,6 +92,7 @@ async fn manga_search_menu(
     searcher: &SearchClient,
     language: Language,
     query: &str,
+    out: &Term,
 ) -> Result<Option<Manga>> {
     let mut page = 0u32;
     let mut pages: Vec<SearchResults> = Vec::new();
@@ -95,6 +100,9 @@ async fn manga_search_menu(
     let results = searcher.search(query, page).await?;
 
     if results.total == 0 {
+        out.write_line(&style("No results found").yellow().italic().to_string())
+            .into_diagnostic()?;
+
         return Ok(None);
     }
 
@@ -114,17 +122,20 @@ async fn manga_search_menu(
         let prompt = format!("Page {}/{}", page + 1, total_pages);
 
         let page_pos = PagePosition::new(0, total_pages - 1, page);
+        let mut offset = 0usize; // for when "last page" is inserted at index 0
 
         match page_pos {
             PagePosition::Start => {
-                options.push(style("Next page").to_string());
+                options.push(style("Next page").yellow().to_string());
             }
             PagePosition::Middle => {
                 options.insert(0, style("Last page").yellow().to_string());
                 options.push(style("Next page").yellow().to_string());
+                offset = 1;
             }
             PagePosition::End => {
                 options.insert(0, style("Last page").yellow().to_string());
+                offset = 1;
             }
             PagePosition::All => {}
         }
@@ -136,18 +147,23 @@ async fn manga_search_menu(
         let chosen_index = Select!()
             .with_prompt(prompt)
             .items(options)
-            .default(0)
-            .interact()
+            .interact_opt() // user can exit with 'Esc'/'q'
             .into_diagnostic()?;
+
+        let Some(chosen_index) = chosen_index else {
+            return Ok(None);
+        };
 
         let page_action = PageAction::new(page_pos, next_page, chosen_index);
 
         match page_action {
             PageAction::Last => page -= 1,
-            PageAction::Choose => {
-                return Ok(Some(Manga::from_data(results.data[chosen_index].clone())));
-            }
             PageAction::Next => page += 1,
+            PageAction::Choose => {
+                return Ok(Some(Manga::from_data(
+                    results.data[chosen_index - offset].clone(),
+                )));
+            }
         }
     }
 }
@@ -158,6 +174,9 @@ async fn main() -> Result<()> {
     let cfg = load_config()?;
     init_logging(&cfg.logging);
     info!("Config: {cfg:?}");
+
+    // stdout
+    let out = Term::stdout();
 
     // create clients
     let api = ApiClient::new(&cfg.client)?;
@@ -171,11 +190,18 @@ async fn main() -> Result<()> {
             .interact_text()
             .into_diagnostic()?;
 
-        let chosen = manga_search_menu(&searcher, cfg.client.language, &query).await?;
+        let chosen = manga_search_menu(&searcher, cfg.client.language, &query, &out).await?;
 
-        match chosen {
-            Some(m) => break m,
-            None => continue,
+        if let Some(v) = chosen {
+            break v;
+        }
+
+        if !Confirm!()
+            .with_prompt("Search again?")
+            .interact()
+            .into_diagnostic()?
+        {
+            return Ok(());
         }
     };
 
