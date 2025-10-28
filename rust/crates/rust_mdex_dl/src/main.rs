@@ -44,9 +44,6 @@ enum PagePosition {
 
 impl PagePosition {
     fn new(start: u32, end: u32, page: u32) -> Self {
-        assert!(start <= end);
-        assert!(page >= start && page <= end);
-
         if start == end {
             return Self::All;
         }
@@ -55,10 +52,8 @@ impl PagePosition {
             return Self::Start;
         } else if page > start && page < end {
             return Self::Middle;
-        } else if page == end {
-            return Self::End;
         } else {
-            unreachable!();
+            return Self::End;
         }
     }
 }
@@ -87,7 +82,7 @@ impl PageAction {
 /// Fetches and displays the results using `dialoguer` for the
 /// `query` using `searcher` with pagination functionality.
 ///
-/// Returns the selected `Manga`, or `None` if there are no results for the `query`.
+/// Returns the selected `Manga`, or `None` if there's no results/user exits.
 async fn manga_search_menu(
     searcher: &SearchClient,
     language: Language,
