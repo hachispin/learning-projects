@@ -40,7 +40,6 @@ pub struct Client {
     pub language: Language,
 }
 
-#[allow(unused)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct Concurrency {
     // semaphores take `usize`, so don't use `u32` here
@@ -48,14 +47,12 @@ pub struct Concurrency {
     pub chapter_permits: usize,
 }
 
-#[allow(unused)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct Images {
     pub quality: ImageQuality,
     pub save_format: SaveFormat,
 }
 
-#[allow(unused)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct Logging {
     pub enabled: bool,
@@ -63,7 +60,6 @@ pub struct Logging {
     pub filter: log::LevelFilter,
 }
 
-#[allow(unused)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
     pub client: Client,
