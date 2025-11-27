@@ -35,7 +35,7 @@ impl SearchResults {
     pub fn get(&self, manga_index: usize) -> Option<Manga> {
         self.data
             .get(manga_index)
-            .and_then(|md| Some(Manga::from_data(md.clone())))
+            .map(|md| Manga::from_data(md.clone()))
     }
 }
 
@@ -189,7 +189,7 @@ impl SearchClient {
         let chapters: Vec<Chapter> = chapter_results
             .data
             .into_iter()
-            .map(|cd| Chapter::from_data(cd))
+            .map(Chapter::from_data)
             .collect();
 
         let total = chapter_results.total;

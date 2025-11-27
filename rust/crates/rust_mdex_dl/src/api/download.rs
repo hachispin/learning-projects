@@ -59,8 +59,11 @@ impl ChapterCdn {
         let endpoint = Endpoint::GetChapterCdn(chapter.uuid());
 
         let r_json = api.get_ok_json(endpoint).await.map_err(|e| {
-            error!("Failed to fetch cdn for chapter {}: {e}", chapter.uuid());
-            error!("Chapter info: {:?}", chapter.formatted_title());
+            error!(
+                "Failed to fetch cdn for chapter {}: {e}",
+                chapter.formatted_title()
+            );
+            error!("Chapter info: {:?}", chapter);
             miette::miette!("failed to fetch {}", chapter.uuid())
         })?;
 
@@ -126,16 +129,17 @@ impl ChapterCdn {
             .into_diagnostic()?
             .join(&format!("{}/", &self.chapter.hash))
             .into_diagnostic()?;
+
         debug!("constructed_url_prefix={:?}", url_prefix.as_str());
 
         let mut images = Vec::with_capacity(image_names.len() + 1);
         for name in image_names {
-            images.push(url_prefix.join(&name).into_diagnostic()?);
+            images.push(url_prefix.join(name).into_diagnostic()?);
         }
 
         debug!(
             "first_image_url={:?}",
-            images.iter().next().and_then(|u| Some(u.as_str()))
+            images.first().map(|u| u.as_str()),
         );
 
         trace!(
@@ -228,9 +232,9 @@ impl DownloadClient {
     ///
     /// Reference: https://api.mangadex.org/docs/04-chapter/upload/#requirements-and-limitations
     async fn download_image(&self, image_url: &Url) -> Result<(Bytes, String)> {
-        let ext = image_url.as_str().split('.').last().unwrap_or("png");
+        let ext = image_url.as_str().split('.').next_back().unwrap_or("png");
 
-        if !["png", "jpg", "jpeg", "gif"].iter().any(|v| ext == *v) {
+        if !["png", "jpg", "jpeg", "gif"].contains(&ext) {
             warn!(
                 "Unexpected image url extension {:?} for image url {}",
                 ext,
@@ -294,7 +298,7 @@ impl DownloadClient {
         let chapter_title = &download_info.chapter.formatted_title();
 
         let parent_manga_title_safe = sanitise(parent_manga_title);
-        let chapter_title_safe = sanitise(&chapter_title);
+        let chapter_title_safe = sanitise(chapter_title);
 
         let chapter_dir = &manga_save_dir()
             .join(parent_manga_title_safe)
@@ -462,7 +466,7 @@ impl DownloadClient {
 
         let dl_info_futs: Vec<_> = chapters
             .into_iter()
-            .map(|c| async move { ChapterDownloadInfo::new(&api, c).await })
+            .map(|c| async move { ChapterDownloadInfo::new(api, c).await })
             .collect();
 
         for batch in dl_info_futs
@@ -476,7 +480,7 @@ impl DownloadClient {
                 Ok(v) => v,
                 Err(e) => {
                     error!(
-                        "Encountered error {e} while using fetched cdns in `dl_info_results`! Expect missing chapters"
+                        "Encountered error {e} while using fetched cdns in `dl_info_results`!"
                     );
                     continue;
                 }

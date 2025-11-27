@@ -82,7 +82,7 @@ impl ApiError {
 
         let errors = errors.unwrap();
         let number_of_errors = errors.len();
-        let first_err = errors.get(0);
+        let first_err = errors.first();
 
         if first_err.is_none() || number_of_errors == 0 {
             return Self::blank(endpoint, status);

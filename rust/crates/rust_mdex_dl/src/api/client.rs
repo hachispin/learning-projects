@@ -140,6 +140,6 @@ impl ApiClient {
             .to_str()
             .into_diagnostic()?;
 
-        Ok(retry_in.parse::<u32>().into_diagnostic()?)
+        retry_in.parse::<u32>().into_diagnostic()
     }
 }

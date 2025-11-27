@@ -32,7 +32,7 @@ where
     D: serde::Deserializer<'de>,
 {
     let input_uuid = String::deserialize(deserializer)?;
-    Uuid::parse_str(&input_uuid).map_err(|e| serde::de::Error::custom(e))
+    Uuid::parse_str(&input_uuid).map_err(serde::de::Error::custom)
 }
 
 /// Helper function to deserialize as [`DateTime<Utc>`]
@@ -45,7 +45,7 @@ where
 {
     let input_datetime = String::deserialize(deserializer)?;
     let parsed_datetime =
-        DateTime::parse_from_rfc3339(&input_datetime).map_err(|e| serde::de::Error::custom(e))?;
+        DateTime::parse_from_rfc3339(&input_datetime).map_err(serde::de::Error::custom)?;
 
     Ok(parsed_datetime.to_utc())
 }

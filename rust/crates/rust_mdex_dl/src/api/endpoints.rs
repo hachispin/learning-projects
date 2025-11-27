@@ -39,14 +39,14 @@ impl Endpoint {
 
             Self::GetMangaChapters(uuid, params) => format!(
                 "/manga/{uuid}/feed?{}",
-                serde_urlencoded::to_string(&params)
+                serde_urlencoded::to_string(params)
                     .expect("failed to build `GetMangaChapters` query string")
             ),
 
             Self::SearchManga(params) => {
                 format!(
                     "/manga?{}",
-                    serde_urlencoded::to_string(&params)
+                    serde_urlencoded::to_string(params)
                         .expect("failed to build `SearchManga` query string")
                 )
             }

@@ -13,9 +13,9 @@ static MANGA_SAVE: LazyLock<PathBuf> = LazyLock::new(|| PROJECT_ROOT.join("manga
 static LOG_SAVE: LazyLock<PathBuf> = LazyLock::new(|| PROJECT_ROOT.join("log"));
 static CONFIG: LazyLock<PathBuf> = LazyLock::new(|| PROJECT_ROOT.join("config.toml"));
 
-/// NOTE: This currently uses the `"CARGO_MANIFEST_DIR"` environment variable.
-///
-/// This environment variable doesn't exist in release binaries.
+// NOTE: This currently uses the `"CARGO_MANIFEST_DIR"` environment variable.
+//
+// This environment variable doesn't exist in release binaries.
 
 pub fn manga_save_dir() -> &'static Path {
     &MANGA_SAVE

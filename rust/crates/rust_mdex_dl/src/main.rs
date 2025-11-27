@@ -14,7 +14,6 @@ use console::{Term, style};
 use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use log::info;
 use miette::{IntoDiagnostic, Result};
-use tokio;
 
 macro_rules! Input {
     () => {
@@ -49,11 +48,11 @@ impl PagePosition {
         }
 
         if page == start && page < end {
-            return Self::Start;
+            Self::Start
         } else if page > start && page < end {
-            return Self::Middle;
+            Self::Middle
         } else {
-            return Self::End;
+            Self::End
         }
     }
 }
