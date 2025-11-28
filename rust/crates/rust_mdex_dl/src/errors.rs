@@ -33,7 +33,8 @@ impl ApiError {
     }
 
     /// Helper for [`ApiError::new()`] if "errors" field in `r_json` doesn't exist
-    pub fn blank(endpoint: Endpoint, status: StatusCode) -> Self {
+    #[must_use] 
+    pub fn blank(endpoint: &Endpoint, status: StatusCode) -> Self {
         let status_code = status.as_u16();
 
         Self {
@@ -51,7 +52,7 @@ impl ApiError {
     /// Helper for [`ApiError::new()`] in constructing [`ApiError::error`]
     fn format_error_text(
         number_of_errors: usize,
-        endpoint: Endpoint,
+        endpoint: &Endpoint,
         status: StatusCode,
         title: &str,
         detail: &str,
@@ -71,24 +72,22 @@ impl ApiError {
     ///
     /// This also works if these fields are for some reason non-existent, which
     /// means that this method would also work on actual, valid responses.
-    pub fn new(endpoint: Endpoint, r_json: &serde_json::Value, status: StatusCode) -> Self {
+    #[must_use] 
+    pub fn new(endpoint: &Endpoint, r_json: &serde_json::Value, status: StatusCode) -> Self {
         error!("`ApiError` encountered! Faulty JSON: {r_json:#?}");
 
         let errors = r_json.get("errors").and_then(|e| e.as_array());
 
-        if errors.is_none() {
+        let Some(errors) = errors else {
             return Self::blank(endpoint, status);
-        }
+        };
 
-        let errors = errors.unwrap();
         let number_of_errors = errors.len();
         let first_err = errors.first();
 
-        if first_err.is_none() || number_of_errors == 0 {
+        let Some(first_err) = first_err else {
             return Self::blank(endpoint, status);
-        }
-
-        let first_err = first_err.unwrap();
+        };
 
         let title = first_err
             .get("title")

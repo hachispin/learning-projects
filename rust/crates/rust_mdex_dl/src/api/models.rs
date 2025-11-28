@@ -5,7 +5,14 @@ use std::collections::HashMap;
 
 use crate::{
     api::{client::ApiClient, endpoints::Endpoint},
-    deserializers::*,
+    deserializers::{
+        // "don't use wildcard import" they said...
+        deserialize_langcode,
+        deserialize_langcode_map,
+        deserialize_langcode_map_vec,
+        deserialize_utc_datetime,
+        deserialize_uuid,
+    },
 };
 
 use chrono::{DateTime, Utc};
@@ -18,7 +25,7 @@ use uuid::Uuid;
 
 /// For storing `contentRating` field in [`MangaAttributes::content_rating`]
 ///
-/// Reference: https://api.mangadex.org/docs/3-enumerations/#manga-content-rating
+/// Reference: <https://api.mangadex.org/docs/3-enumerations/#manga-content-rating>
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -31,7 +38,7 @@ pub enum ContentRating {
 
 /// For storing `status` field in [`MangaAttributes::status`]
 ///
-/// Reference: https://api.mangadex.org/docs/3-enumerations/#manga-status
+/// Reference: <https://api.mangadex.org/docs/3-enumerations/#manga-status>
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Status {
@@ -43,7 +50,7 @@ pub enum Status {
 
 /// For storing `state` field in [`MangaAttributes::state`]
 ///
-/// Reference: https://api.mangadex.org/docs/redoc.html#tag/Manga/operation/get-manga-id
+/// Reference: <https://api.mangadex.org/docs/redoc.html#tag/Manga/operation/get-manga-id>
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum State {
@@ -55,7 +62,7 @@ pub enum State {
 
 /// For storing `publication_demographic` field in [`MangaAttributes::publication_demographic`]
 ///
-/// Reference: https://api.mangadex.org/docs/3-enumerations/#manga-publication-demographic
+/// Reference: <https://api.mangadex.org/docs/3-enumerations/#manga-publication-demographic>
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum PublicationDemographic {
@@ -75,6 +82,7 @@ pub struct Relationship {
 }
 
 impl Relationship {
+    #[must_use]
     pub fn uuid(&self) -> Uuid {
         self.id
     }
@@ -109,7 +117,7 @@ pub struct ChapterAttributes {
 #[derive(Deserialize, Debug, Clone)]
 pub struct ChapterData {
     #[serde(deserialize_with = "deserialize_uuid")]
-    id: Uuid,
+    pub id: Uuid,
 
     #[serde(rename = "type")]
     pub type_: String,
@@ -129,6 +137,14 @@ pub struct Chapter {
 impl Chapter {
     /// Takes the given `chapter_uuid` and makes a GET request to [`Endpoint::GetChapter`],
     /// parsing the response as a [`Chapter`] using [`serde`] and returning it.
+    ///
+    /// ## Panics
+    ///
+    /// If the JSON received does not have the data type "chapter".
+    ///
+    /// ## Errors
+    ///
+    /// If propagated from [`ApiClient::get_ok_json`].
     pub async fn new(client: &ApiClient, chapter_uuid: Uuid) -> Result<Self> {
         let r_json = client
             .get_ok_json(Endpoint::GetChapter(chapter_uuid))
@@ -141,6 +157,7 @@ impl Chapter {
     }
 
     /// Allows constructing of [`Chapter`] from [`ChapterData`].
+    #[must_use] 
     pub fn from_data(data: ChapterData) -> Self {
         Self { data }
     }
@@ -151,6 +168,7 @@ impl Chapter {
     ///
     /// Zero-padding is fixed to three characters because getting
     /// the highest chapter number is a little tricky from here.
+    #[must_use] 
     pub fn formatted_title(&self) -> String {
         let title = self.data.attributes.title.clone().unwrap_or_default();
 
@@ -164,16 +182,20 @@ impl Chapter {
         // prevent naming conflicts
         let suffix = &self.data.id.to_string()[..8];
 
-        match title.is_empty() {
-            true => format!("[{num:0>3}] ({suffix})").trim().to_string(),
-            false => format!("[{num:0>3}] {title} ({suffix})").trim().to_string(),
+        if title.is_empty() {
+            format!("[{num:0>3}] ({suffix})")
+        } else {
+            format!("[{num:0>3}] {title} ({suffix})").trim().to_string()
         }
     }
 
     /// Iterates over [relationships](`ChapterData::relationships`) until the parent
     /// manga is found.
     ///
-    /// This panics with [`Option::expect`] if it can't be found.
+    /// ## Panics
+    /// 
+    /// This panics with [`Option::expect`] if the manga can't be found.
+    #[must_use] 
     pub fn parent_uuid(&self) -> Uuid {
         // the "manga" field is usually in relationships[1] but this is more reliable
         self.data
@@ -185,6 +207,7 @@ impl Chapter {
     }
 
     /// UUID getter
+    #[must_use] 
     pub fn uuid(&self) -> Uuid {
         self.data.id
     }
@@ -278,6 +301,14 @@ pub struct Manga {
 impl Manga {
     /// Takes the given `manga_uuid` and makes a GET request to [`Endpoint::GetManga`],
     /// parsing the response as a [`Manga`] using [`serde`] and returning it.
+    /// 
+    /// ## Panics
+    /// 
+    /// If the data type received isn't of type "manga".
+    /// 
+    /// ## Errors
+    /// 
+    /// If the response can't be parsed as a [`Manga`].
     pub async fn new(client: &ApiClient, manga_uuid: Uuid) -> Result<Self> {
         let r_json = client.get_ok_json(Endpoint::GetManga(manga_uuid)).await?;
         let manga = serde_json::from_value::<Self>(r_json).into_diagnostic()?;
@@ -287,6 +318,7 @@ impl Manga {
     }
 
     /// Allows constructing of [`Manga`] from [`MangaData`].
+    #[must_use] 
     pub fn from_data(data: MangaData) -> Self {
         Self { data }
     }
@@ -296,17 +328,22 @@ impl Manga {
     ///
     /// Defaults to the first title in [`MangaAttributes::title`]
     /// if the language provided wasn't available.
+    /// 
+    /// ## Panics
+    /// 
+    /// If no title whatsoever exists for this manga.
+    #[must_use] 
     pub fn title(&self, language: Language) -> String {
         // check normal titles
         if let Some(v) = self.data.attributes.title.get(&language) {
-            return v.to_string();
+            return v.clone();
         }
 
         // check alt titles
         for map in &self.data.attributes.alt_titles {
             for (k, v) in map {
                 if *k == language {
-                    return v.to_string();
+                    return v.clone();
                 }
             }
         }
@@ -330,6 +367,7 @@ impl Manga {
     }
 
     /// UUID getter
+    #[must_use] 
     pub fn uuid(&self) -> Uuid {
         self.data.id
     }

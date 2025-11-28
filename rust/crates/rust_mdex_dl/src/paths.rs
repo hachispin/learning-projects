@@ -17,12 +17,15 @@ static CONFIG: LazyLock<PathBuf> = LazyLock::new(|| PROJECT_ROOT.join("config.to
 //
 // This environment variable doesn't exist in release binaries.
 
+#[must_use]
 pub fn manga_save_dir() -> &'static Path {
     &MANGA_SAVE
 }
+#[must_use]
 pub fn log_save_dir() -> &'static Path {
     &LOG_SAVE
 }
+#[must_use] 
 pub fn config_toml() -> &'static Path {
     &CONFIG
 }

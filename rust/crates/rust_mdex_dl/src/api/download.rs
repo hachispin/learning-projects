@@ -30,7 +30,7 @@ use serde::Deserialize;
 use serde_json;
 use tokio::{sync::Semaphore, time::Instant};
 
-/// Stores the response structure of the [GetChapterCdn](`crate::Endpoint::GetChapterCdn`)
+/// Stores the response structure of the `GetChapterCdn`
 /// endpoint for deserializing.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -63,7 +63,7 @@ impl ChapterCdn {
                 "Failed to fetch cdn for chapter {}: {e}",
                 chapter.formatted_title()
             );
-            error!("Chapter info: {:?}", chapter);
+            error!("Chapter info: {chapter:?}");
             miette::miette!("failed to fetch {}", chapter.uuid())
         })?;
 
@@ -81,7 +81,7 @@ impl ChapterCdn {
         }
 
         if cdn.chapter.hash.is_empty() {
-            warn!("Empty `hash` for cdn of chapter {}", chapter.uuid())
+            warn!("Empty `hash` for cdn of chapter {}", chapter.uuid());
         }
 
         if num_lossless == 0 {
@@ -105,8 +105,8 @@ impl ChapterCdn {
     ///
     /// `$.baseUrl / $QUALITY / $.chapter.hash / $.chapter.$QUALITY[*]`
     ///
-    /// Reference: https://api.mangadex.org/docs/04-chapter/retrieving-chapter/#howto
-    fn construct_image_urls(&self, quality: ImageQuality) -> Result<Vec<Url>> {
+    /// Reference: <https://api.mangadex.org/docs/04-chapter/retrieving-chapter/#howto>
+    fn construct_image_urls(&self, quality: &ImageQuality) -> Result<Vec<Url>> {
         debug!(
             "Constructing image urls, hash={}, quality={:?}",
             self.chapter.hash, quality
@@ -137,14 +137,11 @@ impl ChapterCdn {
             images.push(url_prefix.join(name).into_diagnostic()?);
         }
 
-        debug!(
-            "first_image_url={:?}",
-            images.first().map(|u| u.as_str()),
-        );
+        debug!("first_image_url={:?}", images.first().map(reqwest::Url::as_str),);
 
         trace!(
             "all_image_urls={:?}",
-            images.iter().map(|u| u.as_str()).collect::<Vec<&str>>()
+            images.iter().map(reqwest::Url::as_str).collect::<Vec<&str>>()
         );
 
         Ok(images)
@@ -198,7 +195,9 @@ pub struct DownloadClient {
 impl DownloadClient {
     /// Constructs a new [`DownloadClient`].
     ///
-    /// If [`Client::builder`] fails, returns Err value.
+    /// ## Errors
+    /// 
+    /// An error can occur if [`Client::builder`] fails.
     pub fn new(cfg: &Config) -> Result<Self> {
         let user_agent = cfg.client.user_agent.clone();
         let chapter_permits = cfg.concurrency.chapter_permits;
@@ -230,7 +229,7 @@ impl DownloadClient {
     ///
     /// Note that the extension can only be "JPEG", "PNG", or "GIF" according to ref.
     ///
-    /// Reference: https://api.mangadex.org/docs/04-chapter/upload/#requirements-and-limitations
+    /// Reference: <https://api.mangadex.org/docs/04-chapter/upload/#requirements-and-limitations>
     async fn download_image(&self, image_url: &Url) -> Result<(Bytes, String)> {
         let ext = image_url.as_str().split('.').next_back().unwrap_or("png");
 
@@ -280,6 +279,13 @@ impl DownloadClient {
         Ok(())
     }
 
+    /// Helper function for converting bytes to MiB.
+    #[allow(clippy::cast_precision_loss)]
+    #[inline]
+    fn to_mib(num_bytes: usize) -> f64 {
+        num_bytes as f64 / 1_048_576.0
+    }
+
     /// Downloads and saves a chapter's images concurrently and returns the total size in bytes.
     ///
     /// This also creates the dirs needed to store these images.
@@ -290,12 +296,33 @@ impl DownloadClient {
         images_cfg: &Images,
     ) -> Result<usize> {
         let images_cfg = images_cfg.clone();
-        let images = download_info.cdn.construct_image_urls(images_cfg.quality)?;
+        let images = download_info
+            .cdn
+            .construct_image_urls(&images_cfg.quality)?;
         let zero_pad = format!("{}", images.len()).len();
 
         let chapter_uuid_suffix = download_info.chapter.uuid().to_string()[..8].to_string();
         let chapter_size = Arc::new(AtomicUsize::new(0));
-        let chapter_title = &download_info.chapter.formatted_title();
+        let chapter_title = &{
+            let this = &download_info.chapter;
+            let title = this.data.attributes.title.clone().unwrap_or_default();
+
+            let num = this
+                .data
+                .attributes
+                .chapter
+                .clone()
+                .unwrap_or("---".to_string());
+
+            // prevent naming conflicts
+            let suffix = &this.data.id.to_string()[..8];
+
+            if title.is_empty() {
+                format!("[{num:0>3}] ({suffix})").trim().to_string()
+            } else {
+                format!("[{num:0>3}] {title} ({suffix})").trim().to_string()
+            }
+        };
 
         let parent_manga_title_safe = sanitise(parent_manga_title);
         let chapter_title_safe = sanitise(chapter_title);
@@ -334,18 +361,17 @@ impl DownloadClient {
 
             handles.push(tokio::spawn(async move {
                 let _permit = semaphore.acquire().await.into_diagnostic()?;
-                let page = format!("{:0>zero_pad$}", i);
+                let page = format!("{i:0>zero_pad$}");
                 let data = h.download_image(&url).await?;
 
                 let size_bytes = data.0.len();
-                let size_mib = size_bytes as f64 / 1_048_576.0;
 
                 debug!(
                     "chapter_uuid_suffix={} page={} dl_time_ms={} size_mib={:.3}",
                     chapter_uuid_suffix,
                     page,
                     (Instant::now() - start).as_millis(),
-                    size_mib,
+                    Self::to_mib(size_bytes),
                 );
 
                 chapter_size.fetch_add(size_bytes, Ordering::Relaxed);
@@ -366,15 +392,15 @@ impl DownloadClient {
             "({}) Completed downloads in {}ms, total size is {:.3} MiB",
             chapter_uuid_suffix,
             (Instant::now() - start).as_millis(),
-            chapter_size as f64 / 1_048_576.0,
+            Self::to_mib(chapter_size),
         );
 
         pb.finish_and_clear();
         Ok(chapter_size)
     }
 
-    /// Helper for [`Self::download_chapters`]
-    async fn _download_chapters(
+    /// Helper for [`Self::download_chapters`].
+    async fn download_batch(
         &self,
         batch: Vec<ChapterDownloadInfo>,
         parent_manga: Arc<Manga>,
@@ -432,7 +458,7 @@ impl DownloadClient {
             "Batch download ({} chapters) completed in {}ms, total size is {:.3} MiB",
             batch_len,
             (Instant::now() - start).as_millis(),
-            batch_size as f64 / 1_048_576.0,
+            Self::to_mib(batch_size),
         );
 
         Ok(batch_size)
@@ -445,6 +471,11 @@ impl DownloadClient {
     ///
     /// NOTE: **All of these chapters should come from the same parent manga.**
     /// A warning is logged otherwise.
+    ///
+    /// ## Errors
+    ///
+    /// The only errors that can occur here are the
+    /// ones propagated from [`Self::download_batch`].
     pub async fn download_chapters(
         &self,
         api: &ApiClient,
@@ -469,25 +500,22 @@ impl DownloadClient {
             .map(|c| async move { ChapterDownloadInfo::new(api, c).await })
             .collect();
 
-        for batch in dl_info_futs
+        for batch in &dl_info_futs
             .into_iter()
             .chunks(ChapterCdn::RATELIMIT as usize)
-            .into_iter()
         {
             let batch = futures::future::try_join_all(batch).await;
 
             let batch = match batch {
                 Ok(v) => v,
                 Err(e) => {
-                    error!(
-                        "Encountered error {e} while using fetched cdns in `dl_info_results`!"
-                    );
+                    error!("Encountered error {e} while using fetched cdns in `dl_info_results`!");
                     continue;
                 }
             };
 
             let batch_size = self
-                ._download_chapters(batch, parent_manga.clone(), &pb_multi, images_cfg)
+                .download_batch(batch, parent_manga.clone(), &pb_multi, images_cfg)
                 .await?;
 
             manga_size.fetch_add(batch_size, Ordering::Relaxed);
@@ -498,7 +526,7 @@ impl DownloadClient {
         info!(
             "All downloads completed in {}ms, total size is {:.3} MiB",
             (Instant::now() - start).as_millis(),
-            manga_size as f64 / 1_048_576.0,
+            Self::to_mib(manga_size),
         );
 
         Ok(())

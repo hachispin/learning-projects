@@ -17,6 +17,7 @@ pub struct SearchResults {
 
 impl SearchResults {
     /// Returns every manga's title stored in [`Self::data`] enumerated.
+    #[must_use] 
     pub fn display(&self, language: Language) -> Vec<String> {
         let mut titles = Vec::with_capacity(self.data.len() + 1);
 
@@ -32,6 +33,7 @@ impl SearchResults {
     /// Returns the [`MangaData`] as [`Manga`] of the specified `manga_index` at [`Self::data`].
     ///
     /// Note that `manga_index` is zero-indexed.
+    #[must_use] 
     pub fn get(&self, manga_index: usize) -> Option<Manga> {
         self.data
             .get(manga_index)
@@ -59,6 +61,7 @@ impl SearchClient {
     /// Creates a new [`SearchClient`].
     ///
     /// Clamps if `manga_pagination` > [`Self::MAX_MANGA_PAGINATION`]
+    #[must_use] 
     pub fn new(api: ApiClient, language: Language) -> SearchClient {
         let manga_pagination = Self::MAX_MANGA_PAGINATION;
 
@@ -115,6 +118,12 @@ impl SearchClient {
         params
     }
 
+    /// Searches for the given `query`.
+    /// 
+    /// ## Errors
+    /// 
+    /// If either the GET request fails, or the response is
+    /// faulty and can't be parsed as [`SearchResults`].
     pub async fn search(&self, query: &str, page: u32) -> Result<SearchResults> {
         // placeholder for now
         let mut params: Vec<(String, String)> = Vec::new();
@@ -154,6 +163,11 @@ impl SearchClient {
     }
 
     /// Fetches all chapters of the given [`Manga`] with the specified [`Self::language`]
+    /// 
+    /// ## Errors
+    /// 
+    /// From [`ApiClient::get_ok_json`] or if the response
+    /// can't be parsed as [`ChapterResults`].
     pub async fn fetch_all_chapters(&self, manga: &Manga) -> Result<Vec<Chapter>> {
         let mut all_chapters: Vec<Chapter> = Vec::new();
         let mut offset = 0u32;
@@ -204,7 +218,7 @@ impl SearchClient {
                 warn!(concat!(
                     "Fetching chapters halted; exceeded max collection",
                     " result size bound of (offset + limit > 10,000)"
-                ))
+                ));
             }
 
             // update params

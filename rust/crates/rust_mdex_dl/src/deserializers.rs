@@ -8,6 +8,12 @@ use log::LevelFilter;
 use serde::Deserialize;
 use uuid::Uuid;
 
+/// Deserializer for [`LevelFilter`].
+///
+/// ## Errors
+///
+/// If initial deserilization as [`String`] fails, or
+/// the isn't a valid logging level (e.g, "DEBUG").
 pub fn deserialize_logging_filter<'de, D>(deserializer: D) -> Result<LevelFilter, D::Error>
 where
     D: serde::Deserializer<'de>,
@@ -26,7 +32,12 @@ where
     }
 }
 
-/// Helper function to deserialize as [`Uuid`]
+/// Helper function to deserialize as [`Uuid`].
+///
+/// ## Errors
+/// 
+/// If initial deserilization as [`String`]
+/// fails, or the string isn't a valid [`Uuid`].
 pub fn deserialize_uuid<'de, D>(deserializer: D) -> Result<Uuid, D::Error>
 where
     D: serde::Deserializer<'de>,
@@ -39,6 +50,11 @@ where
 ///
 /// The input is parsed as RFC 3339, in accordance with
 /// [what MangaDex uses](https://api.mangadex.org/docs/01-concepts/timestamps/#timestamp-format).
+///
+/// ## Errors
+///
+/// If initial deserilization as [`String`] fails,
+/// or the string isn't a valid RFC 3359 time.
 pub fn deserialize_utc_datetime<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
 where
     D: serde::Deserializer<'de>,
@@ -50,9 +66,9 @@ where
     Ok(parsed_datetime.to_utc())
 }
 
-/// shim for MangaDex's alpha-5 extensions used for titles.
+/// shim for Manga-Dex's alpha-5 extensions used for titles.
 ///
-/// ref: https://api.mangadex.org/docs/3-enumerations/#language-codes--localization
+/// ref: <https://api.mangadex.org/docs/3-enumerations/#language-codes--localization>
 ///
 /// TODO: find a better way of doing this
 fn narrow_langcodes(langcode: &str) -> String {
@@ -66,7 +82,7 @@ fn narrow_langcodes(langcode: &str) -> String {
     .to_string()
 }
 
-/// check https://api.mangadex.org/manga/0c936660-cb06-491b-8b61-15dacad1bfb4 json for why
+/// check <https://api.mangadex.org/manga/0c936660-cb06-491b-8b61-15dacad1bfb4> json for why
 fn nullify_langcodes(langcode: &str) -> String {
     const UND_MAPPINGS: [&str; 4] = ["NULL", "Null", "null", ""];
 
@@ -81,6 +97,11 @@ fn nullify_langcodes(langcode: &str) -> String {
 ///
 /// The input is parsed using the ISO 639-1 standard, in accordance with
 /// [what MangaDex uses](https://api.mangadex.org/docs/3-enumerations/#language-codes--localization)
+/// 
+/// ## Errors
+/// 
+/// If initial deserilization as [`String`] fails, or
+/// the string isn't a valid language code,
 pub fn deserialize_langcode<'de, D>(deserializer: D) -> Result<Language, D::Error>
 where
     D: serde::Deserializer<'de>,
@@ -101,6 +122,11 @@ where
 ///
 /// The input is parsed using the ISO 639-1 standard, in accordance with
 /// [what MangaDex uses](https://api.mangadex.org/docs/3-enumerations/#language-codes--localization)
+/// 
+/// ## Errors
+/// 
+/// If initial deserilization as [`HashMap<String, String>`]
+///  fails, or the hashmap's keys aren't valid language codes.
 pub fn deserialize_langcode_map<'de, D>(
     deserializer: D,
 ) -> Result<HashMap<Language, String>, D::Error>
@@ -126,7 +152,12 @@ where
         .collect()
 }
 
-/// Deserializes to [`Vec<HashMap<Language, String>>`]
+/// Deserializes to [`Vec<HashMap<Language, String>>`].
+/// 
+/// ## Errors
+/// 
+/// If initial deserialization as [`Vec<Hashmap<String, String>>`] fails,
+/// or any of the contained hashmaps; keys aren't valid language codes.
 pub fn deserialize_langcode_map_vec<'de, D>(
     deserializer: D,
 ) -> Result<Vec<HashMap<Language, String>>, D::Error>

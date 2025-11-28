@@ -11,6 +11,8 @@ use simplelog::{ConfigBuilder, WriteLogger};
 /// Initialises logging and creates a log file to write all messages to.
 /// This should only be called once.
 ///
+/// ## Panics
+/// 
 /// This function may panic with [`log::SetLoggerError`]
 /// or [`std::io::Error`], which is intentional.
 pub fn init_logging(logging_cfg: &Logging) {

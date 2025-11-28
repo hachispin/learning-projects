@@ -16,11 +16,11 @@ use uuid::Uuid;
 ///
 /// ## Relevant documentation
 ///
-/// https://api.mangadex.org/docs/redoc.html#tag/Chapter/operation/get-chapter-id
+/// <https://api.mangadex.org/docs/redoc.html#tag/Chapter/operation/get-chapter-id>
 ///
-/// https://api.mangadex.org/docs/redoc.html#tag/AtHome/operation/get-at-home-server-chapterId
+/// <https://api.mangadex.org/docs/redoc.html#tag/AtHome/operation/get-at-home-server-chapterId>
 ///
-/// https://api.mangadex.org/docs/redoc.html#tag/Manga/operation/get-search-manga
+/// <https://api.mangadex.org/docs/redoc.html#tag/Manga/operation/get-search-manga>
 #[derive(Debug, Clone)]
 pub enum Endpoint {
     GetChapter(Uuid),
@@ -31,6 +31,12 @@ pub enum Endpoint {
 }
 
 impl Endpoint {
+    /// Converts the endpoint into a relative URI.
+    /// 
+    /// ## Panics
+    /// 
+    /// If the query string for an endpoint fails to be made.
+    #[must_use] 
     pub fn as_string(&self) -> String {
         match self {
             Self::GetChapter(uuid) => format!("/chapter/{uuid}"),

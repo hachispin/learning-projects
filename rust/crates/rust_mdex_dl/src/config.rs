@@ -3,7 +3,7 @@
 
 use crate::{
     deserializers::{deserialize_langcode, deserialize_logging_filter},
-    paths::*,
+    paths::{config_toml, log_save_dir, manga_save_dir},
 };
 
 use std::fs;
@@ -71,15 +71,20 @@ pub struct Config {
 /// Loads the config stored in [`config_toml()`](`crate::paths::config_toml()`)
 ///
 /// This also creates any dirs stored in [`crate::paths`] such as [`manga_save_dir()`](`crate::paths::manga_save_dir()`)
+///
+/// ## Errors
+///
+/// If some options fail extra validation,
+/// such as `image_permits` being zero.
 pub fn load_config() -> Result<Config> {
     let path = config_toml().canonicalize().into_diagnostic()?;
     let raw_cfg = fs::read_to_string(path).into_diagnostic()?;
     let cfg: Config = toml::de::from_str(&raw_cfg).into_diagnostic()?;
 
-    let non_zero_options: [(&str, u32); 3] = [
-        ("max_retries", cfg.client.max_retries),
-        ("image_permits", cfg.concurrency.image_permits as u32),
-        ("chapter_permits", cfg.concurrency.chapter_permits as u32),
+    let non_zero_options: [(&str, usize); 3] = [
+        ("max_retries", cfg.client.max_retries as usize),
+        ("image_permits", cfg.concurrency.image_permits),
+        ("chapter_permits", cfg.concurrency.chapter_permits),
     ];
     for (option, value) in non_zero_options {
         if value == 0 {
