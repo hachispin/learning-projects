@@ -185,7 +185,7 @@ impl Chapter {
         if title.is_empty() {
             format!("[{num:0>3}] ({suffix})")
         } else {
-            format!("[{num:0>3}] {title} ({suffix})").trim().to_string()
+            format!("[{num:0>3}] {title} ({suffix})")
         }
     }
 
