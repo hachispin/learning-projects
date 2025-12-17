@@ -154,9 +154,7 @@ async fn manga_search_menu(
             PageAction::Last => page -= 1,
             PageAction::Next => page += 1,
             PageAction::Choose => {
-                return Ok(Some(Manga::from_data(
-                    results.data[chosen_index - offset].clone(),
-                )));
+                return Ok(Some(results.data[chosen_index - offset].clone().into()));
             }
         }
     }

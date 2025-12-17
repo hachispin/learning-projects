@@ -22,7 +22,7 @@ impl SearchResults {
         let mut titles = Vec::with_capacity(self.data.len() + 1);
 
         for (i, md) in self.data.iter().enumerate() {
-            let m = Manga::from_data(md.clone());
+            let m: Manga = md.clone().into();
             let option = format!("[{}] {}", i + 1, m.title(language));
             titles.push(option);
         }
@@ -37,7 +37,7 @@ impl SearchResults {
     pub fn get(&self, manga_index: usize) -> Option<Manga> {
         self.data
             .get(manga_index)
-            .map(|md| Manga::from_data(md.clone()))
+            .map(|md| md.clone().into())
     }
 }
 
@@ -203,7 +203,7 @@ impl SearchClient {
         let chapters: Vec<Chapter> = chapter_results
             .data
             .into_iter()
-            .map(Chapter::from_data)
+            .map(Into::into)
             .collect();
 
         let total = chapter_results.total;
@@ -234,7 +234,7 @@ impl SearchClient {
             .into_diagnostic()?
             .data
             .into_iter()
-            .map(Chapter::from_data)
+            .map(Into::into)
             .collect();
 
             all_chapters.extend(chapters);

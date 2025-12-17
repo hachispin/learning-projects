@@ -156,12 +156,6 @@ impl Chapter {
         Ok(chapter)
     }
 
-    /// Allows constructing of [`Chapter`] from [`ChapterData`].
-    #[must_use]
-    pub fn from_data(data: ChapterData) -> Self {
-        Self { data }
-    }
-
     /// Returns a formatted chapter title such as:
     ///
     /// `[011] I broke through`
@@ -317,12 +311,6 @@ impl Manga {
         Ok(manga)
     }
 
-    /// Allows constructing of [`Manga`] from [`MangaData`].
-    #[must_use]
-    pub fn from_data(data: MangaData) -> Self {
-        Self { data }
-    }
-
     /// Helper for accessing title field given a language. This
     /// searches through the `title` and `alt_titles` fields.
     ///
@@ -370,5 +358,17 @@ impl Manga {
     #[must_use]
     pub fn uuid(&self) -> Uuid {
         self.data.id
+    }
+}
+
+impl From<ChapterData> for Chapter {
+    fn from(data: ChapterData) -> Self {
+        Self { data }
+    }
+}
+
+impl From<MangaData> for Manga {
+    fn from(data: MangaData) -> Self {
+        Self { data }
     }
 }
