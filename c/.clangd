@@ -1,12 +1,14 @@
 CompileFlags:
-  Add: [
-    -Wall,
-    -Wextra,
-    -Wshadow,
-    -Wconversion,
-    -Wfloat-equal,
-    -Wstrict-prototypes,
-    -pedantic,
-    -std=c23,
-  ]
+  Add:
+    [
+      -Wall,
+      -Wextra,
+      -Wshadow,
+      -Wconversion,
+      -Wfloat-equal,
+      -Wstrict-prototypes,
+      -pedantic,
+      -std=c23,
+      -xc
+    ]
   Compiler: clang

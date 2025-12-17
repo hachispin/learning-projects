@@ -1,33 +1,39 @@
 #include "my_vector.h"
 #include <errno.h>
+#include <limits.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 // creates a new vector with 0 elements and 0 capacity
 struct Vector Vector_new(void) {
-    int* ptr = NULL;
-    size_t length = 0;
-    size_t capacity = 0;
-
-    return (struct Vector) {
-        .ptr = ptr, .length = length, .capacity = capacity
-    };
+    return (struct Vector) { .ptr = nullptr };
 }
 
 // creates a vector by copying elements of `arr`
 struct Vector Vector_from_array(const int* arr, size_t length) {
+    if (length == 0) {
+        return Vector_new();
+    }
+
     size_t capacity = 1;
 
     while (capacity < length) {
         capacity *= 2;
     }
 
+    size_t ptr_size = capacity * sizeof(int);
     int* ptr = malloc(capacity * sizeof(int));
 
-    for (size_t i = 0; i < length; ++i) {
-        ptr[i] = arr[i];
+    if (ptr == nullptr) {
+        fprintf(stderr, "%s(): malloc failed, ptr_size=%zu\n",
+                __func__, ptr_size);
+
+        exit(1);
     }
+
+    memcpy(ptr, arr, length * sizeof(int));
 
     return (struct Vector) {
         .ptr = ptr, .length = length, .capacity = capacity
@@ -52,7 +58,7 @@ struct Vector _Vector_from_array_heap(int* arr, size_t length) {
 }
 
 // increases `v->capacity` exponentially and reallocs `v->ptr`
-void _Vector_expand(struct Vector* v) {
+static void _Vector_expand(struct Vector* v) {
     if (v->capacity == 0) {
         v->capacity = 1;
     } else {
@@ -72,16 +78,42 @@ void _Vector_expand(struct Vector* v) {
 }
 
 // calls `_Vector_expand(v)` if needed, else, does nothing
-void _Vector_check_expand(struct Vector* v) {
+static void _Vector_check_expand(struct Vector* v) {
     if (v->capacity == 0 || v->length >= v->capacity) {
         _Vector_expand(v);
     }
 }
 
+// shifts all elements right of `pivot` by `offset`
+//
+// this does not include `pivot` itself
+static void _Vector_rshift(struct Vector* v, size_t pivot, size_t offset) {
+#ifdef DEBUG
+    if (pivot >= v->length) {
+        fprintf(
+            stderr,
+            "%s(): `pivot` out of bounds; length=%zu, pivot=%zu, offset=%zu\n",
+            __func__, v->length, pivot, offset);
+
+        exit(1);
+    }
+#endif
+    if (offset == 0) {
+        return;
+    }
+
+    size_t start = pivot + 1;
+    size_t tail_len = v->length - start;
+    v->length += offset;
+    _Vector_check_expand(v);
+
+    memmove(&v->ptr[start + offset], &v->ptr[start], tail_len * sizeof(int));
+}
+
 // returns an array containing all elements at indices `start <= i < end`
 //
 // note: the returned slice must be freed
-int* Vector_slice(const struct Vector* v, size_t start, size_t end) {
+int* Vector_slice_arr(const struct Vector* v, size_t start, size_t end) {
 #ifdef DEBUG
     if (start > end || end > v->length) {
         fprintf(
@@ -92,7 +124,6 @@ int* Vector_slice(const struct Vector* v, size_t start, size_t end) {
         exit(1);
     }
 #endif
-
     // heap alloc because slice can be arbitrary large
     size_t size = end - start;
     int* slice = malloc(size * sizeof(int));
@@ -110,6 +141,12 @@ int* Vector_slice(const struct Vector* v, size_t start, size_t end) {
     return slice;
 }
 
+// returns a vector containing all elements at indices `start <= i < end`
+struct Vector Vector_slice_vec(const struct Vector* v, size_t start, size_t end) {
+    int* slice = Vector_slice_arr(v, start, end);
+    return _Vector_from_array_heap(slice, end - start);
+}
+
 // inserts the given `element` at `index`
 void Vector_insert(struct Vector* v, int element, size_t index) {
 #ifdef DEBUG
@@ -122,15 +159,8 @@ void Vector_insert(struct Vector* v, int element, size_t index) {
         exit(1);
     }
 #endif
-
-    ++v->length;
-    _Vector_check_expand(v);
-
-    // shift right of `index` by 1 for `element`
-    for (size_t i = v->length - 1; i > index; --i) {
-        v->ptr[i] = v->ptr[i - 1];
-    }
-
+    // no need to increment `v->length`, done in `_Vector_rshift()`
+    _Vector_rshift(v, index, 1);
     v->ptr[index] = element;
 }
 
@@ -141,10 +171,49 @@ void Vector_push(struct Vector* v, int element) {
     v->ptr[v->length++] = element;
 }
 
+// extends the given vector, `v`, by the array, `ext`
+void Vector_extend_arr(struct Vector* v, const int* ext, size_t length) {
+    if (length == 0) {
+        return;
+    }
+
+    size_t start = v->length;
+
+    // this changes `v->length`
+    _Vector_rshift(v, v->length - 1, length);
+
+    for (size_t i = start; i < v->length; ++i) {
+#ifdef DEBUG
+        if (i < start) {
+            fprintf(stderr, "%s(): overflow\n", __func__);
+            exit(1);
+        }
+#endif
+        memcpy(&v->ptr[i], &ext[i - start], sizeof(int));
+    }
+}
+
+// extends the given vector, `v`, by the vector, `ext`
+void Vector_extend_vec(struct Vector* v, const struct Vector* ext) {
+    size_t start = v->length;
+    v->length += ext->length;
+    _Vector_check_expand(v);
+
+    for (size_t i = start; i < v->length; ++i) {
+        v->ptr[i] = ext->ptr[i];
+    }
+}
+
 // writes the contents of the vector to the stream, `f`
-void Vector_write(const struct Vector* v, FILE* f) {
+//
+// if `newline` is true, "\n" is added to the end
+void Vector_write(const struct Vector* v, FILE* f, bool newline) {
     for (size_t i = 0; i < v->length; ++i) {
         fprintf(f, "%d ", v->ptr[i]);
+    }
+
+    if (newline) {
+        fprintf(f, "\n");
     }
 }
 

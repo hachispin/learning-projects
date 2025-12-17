@@ -4,20 +4,18 @@
 # i.e. it may accept two different styles like
 # case statements being one-liners or not
 
+# Indentation
+
 IndentWidth: 4
 TabWidth: 4
 UseTab: Never
-NamespaceIndentation: All
+IndentCaseLabels: true
+
+# Alignment
 
 PointerAlignment: Left
 AlignArrayOfStructures: Left
 AlignConsecutiveDeclarations: None
-
-AlignConsecutiveAssignments:
-  Enabled: false
-  AlignFunctionDeclarations: true
-  AcrossEmptyLines: false
-  AcrossComments: false
 
 AlignConsecutiveShortCaseStatements: 
   Enabled: true
@@ -26,27 +24,31 @@ AlignConsecutiveShortCaseStatements:
 
 AlignTrailingComments:
   Kind: Always
-  OverEmptyLines: 1
+  OverEmptyLines: 0
+
+# Allow*
 
 AllowShortCaseLabelsOnASingleLine: true
 AllowAllParametersOfDeclarationOnNextLine: true
 AllowShortEnumsOnASingleLine: true
 AllowShortFunctionsOnASingleLine: Inline
-AllowShortBlocksOnASingleLine: Empty
+AllowShortBlocksOnASingleLine: Always
 AllowShortIfStatementsOnASingleLine: AllIfsAndElse
-# InsertBraces: true -- conflicts with option above
+
+# Break*
 
 BreakBeforeBinaryOperators: NonAssignment
 BreakConstructorInitializers: BeforeComma
 BreakAfterReturnType: Automatic
 BreakBeforeBraces: Attach
 
-# BinPack allows you to break params/args
-# at any point (with unlimited `ColumnLimit`)
+# Misc.
+
+InsertBraces: true
 PackConstructorInitializers: BinPack
 BinPackArguments: true
 BinPackParameters: true
 ColumnLimit: 0
 Cpp11BracedListStyle: false
 FixNamespaceComments: false
-
+SpaceAfterCStyleCast: true
