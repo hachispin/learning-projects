@@ -5,10 +5,10 @@
 
 struct CreatureArgs {
     std::string name{};
-    int         health{};
-    int         damage{};
-    int         gold{};
-    char        symbol{};
+    int health{};
+    int damage{};
+    int gold{};
+    char symbol{};
 };
 
 class Creature {
@@ -22,16 +22,16 @@ class Creature {
     Creature(const CreatureArgs& args)
         : args{ args } {}
 
-    void addGold(int amount) { args.gold += amount; }
-    void reduceHealth(int amount) { args.health -= amount; }
+    void add_gold(int amount) { args.gold += amount; }
+    void reduce_health(int amount) { args.health -= amount; }
 
-    bool isDead() const { return args.health <= 0; }
+    bool is_dead() const { return args.health <= 0; }
 
-    const auto& getName() const { return args.name; }
-    auto        getHealth() const { return args.health; }
-    auto        getDamage() const { return args.damage; }
-    auto        getGold() const { return args.gold; }
-    auto        getSymbol() const { return args.symbol; }
+    const auto& get_name() const { return args.name; }
+    auto get_health() const { return args.health; }
+    auto get_damage() const { return args.damage; }
+    auto get_gold() const { return args.gold; }
+    auto get_symbol() const { return args.symbol; }
 };
 
 #endif

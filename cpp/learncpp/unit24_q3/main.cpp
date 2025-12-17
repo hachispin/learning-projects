@@ -20,50 +20,50 @@ namespace Messages {
         }
     }
 
-    std::string greetPlayer(const Player& p) {
+    std::string greet_player(const Player& p) {
         return std::format(
             "Welcome, {}.\n"
             "You have {} health and are carrying {} gold.",
-            p.getName(), p.getHealth(), p.getGold());
+            p.get_name(), p.get_health(), p.get_gold());
     }
 
     std::string encounter(const Monster& m) {
         // Not needed but I got annoyed by the grammer
 
-        if (isVowel(m.getName()[0])) {
+        if (isVowel(m.get_name()[0])) {
             return std::format(                     // you can shorten
                 "You have encountered an {} ({}).", // this with runtime
-                m.getName(), m.getSymbol());        // format but it
+                m.get_name(), m.get_symbol());      // format but it
         } else {                                    // doesn't really matter
             return std::format(
                 "You have encountered a {} ({}).",
-                m.getName(), m.getSymbol());
+                m.get_name(), m.get_symbol());
         }
     }
     // Example usage:
     //
     // `std::cout << Messages::playerAttack(p.attack(m), m) << '\n';`
-    std::string playerAttack(const Monster& m, int damage) {
+    std::string player_attack(const Monster& m, int damage) {
         return std::format(
             "You hit the {} for {} damage",
-            m.getName(), damage);
+            m.get_name(), damage);
     }
 
-    std::string monsterAttack(const Monster& m, int damage) {
+    std::string monster_attack(const Monster& m, int damage) {
         return std::format(
             "The {} hit you for {} damage",
-            m.getName(), damage);
+            m.get_name(), damage);
     }
 
-    std::string newLevel(int level) {
+    std::string new_level(int level) {
         return std::format("You are now level {}.", level);
     }
 
-    std::string monsterKilled(const Monster& m) {
-        return std::format("You killed the {}.", m.getName());
+    std::string monster_killed(const Monster& m) {
+        return std::format("You killed the {}.", m.get_name());
     }
 
-    std::string foundGold(int amount) {
+    std::string found_gold(int amount) {
         return std::format("You found {} gold.", amount);
     }
 
@@ -71,7 +71,7 @@ namespace Messages {
         return std::format(
             "You died at level {} and with {} gold.\n"
             "Too bad you can't take it with you!",
-            p.getLevel(), p.getGold());
+            p.get_level(), p.get_gold());
     }
 
     constexpr std::string_view choices{ "[R]un or [F]ight: " };
@@ -79,19 +79,19 @@ namespace Messages {
     constexpr std::string_view runFail{ "You failed to flee." };
 }
 
-void checkEof() {
+void check_eof() {
     if (std::cin.fail() || std::cin.eof()) {
         std::cout << "EOF\n";
         std::exit(0);
     }
 }
 
-Choice getPlayerChoice() {
+Choice get_player_choice() {
     while (true) {
         std::cout << Messages::choices;
         std::string input{};
         std::getline(std::cin, input);
-        checkEof();
+        check_eof();
 
         if (input.size() != 1) {
             std::cout << "Input must be a single character. "
@@ -109,11 +109,10 @@ Choice getPlayerChoice() {
     }
 }
 
-// Uses recursion to continue until either the player:
-// - has fled
-// - has killed the monster
-// - has been killed by the monster
-void handleChoice(Choice c, Player& p, Monster& m, bool extCall = false) {
+// oh my god i can't recurse son 😭😭😭 this shit
+// is a whole fuckin state machine that i wouldn't
+// touch with a INT_MAX feet pole...
+void handle_choice(Choice c, Player& p, Monster& m, bool extCall = false) {
     using namespace Messages;
 
     static bool persist{ true };
@@ -125,10 +124,10 @@ void handleChoice(Choice c, Player& p, Monster& m, bool extCall = false) {
 
     if (c == Choice::run) { // 50% chance to escape
         if (Random::get(1, 2) == 1) {
-            std::cout << monsterAttack(m, m.attack(p)) << '\n'
+            std::cout << monster_attack(m, m.attack(p)) << '\n'
                       << runFail << '\n';
             persist = true;
-            handleChoice(getPlayerChoice(), p, m);
+            handle_choice(get_player_choice(), p, m);
         } else {
             std::cout << runSuccess << '\n';
             persist = false;
@@ -137,22 +136,22 @@ void handleChoice(Choice c, Player& p, Monster& m, bool extCall = false) {
     }
 
     if (c == Choice::fight)
-        std::cout << playerAttack(m, p.attack(m)) << '\n';
+        std::cout << player_attack(m, p.attack(m)) << '\n';
 
-    if (m.isDead()) { // stop the encounter
-        p.addGold(m.getGold());
-        std::cout << monsterKilled(m) << '\n'
-                  << newLevel(p.levelUp()) << '\n'
-                  << foundGold(m.getGold()) << '\n';
+    if (m.is_dead()) { // stop the encounter
+        p.add_gold(m.get_gold());
+        std::cout << monster_killed(m) << '\n'
+                  << new_level(p.level_up()) << '\n'
+                  << found_gold(m.get_gold()) << '\n';
         persist = false;
     } else { // monster attacks player
-        std::cout << monsterAttack(m, m.attack(p)) << '\n';
+        std::cout << monster_attack(m, m.attack(p)) << '\n';
 
-        if (p.isDead()) { // if player dies after being attacked
+        if (p.is_dead()) { // if player dies after being attacked
             persist = false;
         } else {
             persist = true;
-            handleChoice(getPlayerChoice(), p, m);
+            handle_choice(get_player_choice(), p, m);
         }
     }
 }
@@ -163,18 +162,18 @@ int main() {
     std::string name{};
     std::cout << "Enter your name: ";
     std::getline(std::cin, name);
-    checkEof();
+    check_eof();
 
     Player p{ name };
-    std::cout << greetPlayer(p) << '\n';
+    std::cout << greet_player(p) << '\n';
 
-    while (!p.hasWon() && !p.isDead()) {
-        Monster m{ Monster::getRandomMonster() };
+    while (!p.has_won() && !p.is_dead()) {
+        Monster m{ Monster::get_random_monster() };
         std::cout << encounter(m) << '\n';
-        handleChoice(getPlayerChoice(), p, m, true);
+        handle_choice(get_player_choice(), p, m, true);
     }
 
-    if (p.isDead())
+    if (p.is_dead())
         std::cout << lose(p) << '\n';
     else
         std::cout << "you win? "

@@ -21,15 +21,15 @@ class Player : public Creature {
         , level{ 1 } {}
 
     // Returns the level that the `Player` has upgraded to
-    int levelUp() {
+    int level_up() {
         ++args.damage;
         return ++level;
     }
     // Returns the damage applied to `m`
     int attack(Monster& m) const; // forward declare
 
-    auto getLevel() const { return level; }
-    bool hasWon() const { return level >= 20; }
+    auto get_level() const { return level; }
+    bool has_won() const { return level >= 20; }
 };
 
 #endif

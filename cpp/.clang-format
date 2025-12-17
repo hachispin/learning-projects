@@ -11,17 +11,17 @@ NamespaceIndentation: All
 
 PointerAlignment: Left
 AlignArrayOfStructures: Left
-AlignConsecutiveDeclarations: Consecutive
+AlignConsecutiveDeclarations: None
 
 AlignConsecutiveAssignments:
-  Enabled: true
+  Enabled: false
   AlignFunctionDeclarations: true
   AcrossEmptyLines: false
   AcrossComments: false
 
 AlignConsecutiveShortCaseStatements: 
   Enabled: true
-  AcrossEmptyLines: true
+  AcrossEmptyLines: false
   AcrossComments: true
 
 AlignTrailingComments:

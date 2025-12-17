@@ -15,7 +15,7 @@ class Monster : public Creature {
     };
 
     Monster(Monster::Type type)
-        : Creature(getMonsterTypeArgs(type)) {}
+        : Creature(get_monster_type_args(type)) {}
 
     Monster(CreatureArgs args)
         : Creature(args) {}
@@ -23,8 +23,8 @@ class Monster : public Creature {
     // Returns the damage applied to `p`
     int attack(Player& p) const; // forward declare
 
-    static CreatureArgs getMonsterTypeArgs(Monster::Type type);
-    static Monster      getRandomMonster();
+    static CreatureArgs get_monster_type_args(Monster::Type type);
+    static Monster get_random_monster();
 };
 
 #endif

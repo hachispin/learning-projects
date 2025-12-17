@@ -12,7 +12,3 @@ CompileFlags:
     -pedantic-errors
   ]
   Compiler: g++
-  
-InlayHints:
-  Designators: false
-  DeducedTypes: false
