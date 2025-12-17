@@ -18,7 +18,7 @@ use crate::{
 use chrono::{DateTime, Utc};
 use isolang::Language;
 use log::warn;
-use miette::{IntoDiagnostic, Result};
+use miette::Result;
 use reqwest::Url;
 use serde::{self, Deserialize};
 use uuid::Uuid;
@@ -150,7 +150,10 @@ impl Chapter {
             .get_ok_json(Endpoint::GetChapter(chapter_uuid))
             .await?;
 
-        let chapter = serde_json::from_value::<Self>(r_json).into_diagnostic()?;
+        let chapter = serde_json::from_value::<Self>(r_json).map_err(|e| {
+            miette::miette!("Failed to parse chapter with chapter_uuid={chapter_uuid}: {e}")
+        })?;
+
         assert!(chapter.data.type_ == "chapter");
 
         Ok(chapter)
@@ -305,7 +308,10 @@ impl Manga {
     /// If the response can't be parsed as a [`Manga`].
     pub async fn new(client: &ApiClient, manga_uuid: Uuid) -> Result<Self> {
         let r_json = client.get_ok_json(Endpoint::GetManga(manga_uuid)).await?;
-        let manga = serde_json::from_value::<Self>(r_json).into_diagnostic()?;
+        let manga = serde_json::from_value::<Self>(r_json).map_err(|e| {
+            miette::miette!("Failed to parse manga with manga_uuid={manga_uuid}: {e}")
+        })?;
+
         assert!(manga.data.type_ == "manga");
 
         Ok(manga)
