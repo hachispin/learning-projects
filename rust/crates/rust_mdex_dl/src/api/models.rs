@@ -26,7 +26,6 @@ use uuid::Uuid;
 /// For storing `contentRating` field in [`MangaAttributes::content_rating`]
 ///
 /// Reference: <https://api.mangadex.org/docs/3-enumerations/#manga-content-rating>
-
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ContentRating {
@@ -88,40 +87,32 @@ impl Relationship {
     }
 }
 
-#[allow(unused)]
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ChapterAttributes {
     pub volume: Option<String>,
     pub chapter: Option<String>,
     pub title: Option<String>,
-
     #[serde(deserialize_with = "deserialize_langcode")]
     pub translated_language: Language,
-
     pub external_url: Option<Url>,
     pub is_unavailable: bool,
-
     #[serde(deserialize_with = "deserialize_utc_datetime")]
     pub publish_at: DateTime<Utc>,
     #[serde(deserialize_with = "deserialize_utc_datetime")]
     pub readable_at: DateTime<Utc>,
     #[serde(deserialize_with = "deserialize_utc_datetime")]
     pub created_at: DateTime<Utc>,
-
     pub pages: usize,
     pub version: u32,
 }
 
-#[allow(unused)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct ChapterData {
     #[serde(deserialize_with = "deserialize_uuid")]
     pub id: Uuid,
-
     #[serde(rename = "type")]
     pub type_: String,
-
     pub attributes: ChapterAttributes,
     pub relationships: Vec<Relationship>,
 }
@@ -154,8 +145,6 @@ impl Chapter {
             miette::miette!("Failed to parse chapter with chapter_uuid={chapter_uuid}: {e}")
         })?;
 
-        assert!(chapter.data.type_ == "chapter");
-
         Ok(chapter)
     }
 
@@ -167,14 +156,10 @@ impl Chapter {
     /// the highest chapter number is a little tricky from here.
     #[must_use]
     pub fn formatted_title(&self) -> String {
-        let title = self.data.attributes.title.clone().unwrap_or_default();
+        let attrs = &self.data.attributes;
 
-        let num = self
-            .data
-            .attributes
-            .chapter
-            .clone()
-            .unwrap_or("---".to_string());
+        let title = attrs.title.clone().unwrap_or_default();
+        let num = attrs.chapter.clone().unwrap_or("---".to_string());
 
         // prevent naming conflicts
         let suffix = &self.data.id.to_string()[..8];
@@ -205,12 +190,11 @@ impl Chapter {
 
     /// UUID getter
     #[must_use]
-    pub fn uuid(&self) -> Uuid {
+    pub const fn uuid(&self) -> Uuid {
         self.data.id
     }
 }
 
-#[allow(unused)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct TagAttributes {
     #[serde(deserialize_with = "deserialize_langcode_map")]
@@ -225,31 +209,25 @@ pub struct TagAttributes {
 ///
 /// These are omitted because they are either
 /// always empty or store no useful information.
-#[allow(unused)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct Tag {
+    #[allow(unused)]
     #[serde(deserialize_with = "deserialize_uuid")]
     id: Uuid,
-
     #[serde(rename = "type")]
     pub type_: String,
-
     pub attributes: TagAttributes,
 }
 
-#[allow(unused)]
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct MangaAttributes {
     #[serde(deserialize_with = "deserialize_langcode_map")]
     pub title: HashMap<Language, String>,
-
     #[serde(deserialize_with = "deserialize_langcode_map_vec")]
     pub alt_titles: Vec<HashMap<Language, String>>,
-
     #[serde(deserialize_with = "deserialize_langcode_map")]
     pub description: HashMap<Language, String>,
-
     pub is_locked: bool,
     // TODO: make this (or these?) an enum
     // https://api.mangadex.org/docs/3-enumerations/#manga-links-data
@@ -257,7 +235,6 @@ pub struct MangaAttributes {
     pub official_links: Option<HashMap<String, String>>,
     #[serde(deserialize_with = "deserialize_langcode")]
     pub original_language: Language,
-
     pub last_volume: Option<String>,
     pub last_chapter: Option<String>,
     pub publication_demographic: Option<PublicationDemographic>,
@@ -267,25 +244,19 @@ pub struct MangaAttributes {
     pub tags: Vec<Tag>,
     pub state: State,
     pub chapter_numbers_reset_on_new_volume: bool,
-
     #[serde(deserialize_with = "deserialize_utc_datetime")]
     pub created_at: DateTime<Utc>,
-
     #[serde(deserialize_with = "deserialize_utc_datetime")]
     pub updated_at: DateTime<Utc>,
-
     pub version: u32,
 }
 
-#[allow(unused)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct MangaData {
     #[serde(deserialize_with = "deserialize_uuid")]
     id: Uuid,
-
     #[serde(rename = "type")]
     pub type_: String,
-
     pub attributes: MangaAttributes,
     pub relationships: Vec<Relationship>,
 }
@@ -312,8 +283,6 @@ impl Manga {
             miette::miette!("Failed to parse manga with manga_uuid={manga_uuid}: {e}")
         })?;
 
-        assert!(manga.data.type_ == "manga");
-
         Ok(manga)
     }
 
@@ -328,13 +297,15 @@ impl Manga {
     /// If no title whatsoever exists for this manga.
     #[must_use]
     pub fn title(&self, language: Language) -> String {
+        let attrs = &self.data.attributes;
+
         // check normal titles
-        if let Some(v) = self.data.attributes.title.get(&language) {
+        if let Some(v) = attrs.title.get(&language) {
             return v.clone();
         }
 
         // check alt titles
-        for map in &self.data.attributes.alt_titles {
+        for map in &attrs.alt_titles {
             for (k, v) in map {
                 if *k == language {
                     return v.clone();
@@ -351,18 +322,17 @@ impl Manga {
         );
 
         // fallback to first normal title
-        self.data
-            .attributes
-            .title
-            .values()
-            .next()
-            .cloned()
-            .expect("fallback title failed; no title found")
+        attrs.title.values().next().cloned().unwrap_or_else(|| {
+            panic!(
+                "fallback title failed; no title found for manga_uuid={}",
+                self.uuid()
+            )
+        })
     }
 
     /// UUID getter
     #[must_use]
-    pub fn uuid(&self) -> Uuid {
+    pub const fn uuid(&self) -> Uuid {
         self.data.id
     }
 }
