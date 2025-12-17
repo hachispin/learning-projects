@@ -215,6 +215,7 @@ fn parse_sel_help(input: &str) {
         Err(e) => eprintln!("{:?}", ErrReport::from(e)),
     }
 }
+
 fn main() -> Result<()> {
     miette::set_panic_hook();
     let mut rl = DefaultEditor::new().into_diagnostic()?;
