@@ -73,7 +73,7 @@ impl PageAction {
             (PagePosition::Middle, i) if i == last => Self::Last,
             (PagePosition::Middle, i) if i == next => Self::Next,
             (PagePosition::End, i) if i == last => Self::Last,
-            _ => Self::Choose, 
+            _ => Self::Choose,
         }
     }
 }

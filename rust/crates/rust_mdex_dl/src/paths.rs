@@ -25,7 +25,7 @@ pub fn manga_save_dir() -> &'static Path {
 pub fn log_save_dir() -> &'static Path {
     &LOG_SAVE
 }
-#[must_use] 
+#[must_use]
 pub fn config_toml() -> &'static Path {
     &CONFIG
 }

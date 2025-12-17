@@ -35,7 +35,7 @@ where
 /// Helper function to deserialize as [`Uuid`].
 ///
 /// ## Errors
-/// 
+///
 /// If initial deserilization as [`String`]
 /// fails, or the string isn't a valid [`Uuid`].
 pub fn deserialize_uuid<'de, D>(deserializer: D) -> Result<Uuid, D::Error>
@@ -83,6 +83,7 @@ fn narrow_langcodes(langcode: &str) -> String {
 }
 
 /// check <https://api.mangadex.org/manga/0c936660-cb06-491b-8b61-15dacad1bfb4> json for why
+/// i just want to read my manga man
 fn nullify_langcodes(langcode: &str) -> String {
     const UND_MAPPINGS: [&str; 4] = ["NULL", "Null", "null", ""];
 
@@ -97,9 +98,9 @@ fn nullify_langcodes(langcode: &str) -> String {
 ///
 /// The input is parsed using the ISO 639-1 standard, in accordance with
 /// [what MangaDex uses](https://api.mangadex.org/docs/3-enumerations/#language-codes--localization)
-/// 
+///
 /// ## Errors
-/// 
+///
 /// If initial deserilization as [`String`] fails, or
 /// the string isn't a valid language code,
 pub fn deserialize_langcode<'de, D>(deserializer: D) -> Result<Language, D::Error>
@@ -122,9 +123,9 @@ where
 ///
 /// The input is parsed using the ISO 639-1 standard, in accordance with
 /// [what MangaDex uses](https://api.mangadex.org/docs/3-enumerations/#language-codes--localization)
-/// 
+///
 /// ## Errors
-/// 
+///
 /// If initial deserilization as [`HashMap<String, String>`]
 ///  fails, or the hashmap's keys aren't valid language codes.
 pub fn deserialize_langcode_map<'de, D>(
@@ -153,9 +154,9 @@ where
 }
 
 /// Deserializes to [`Vec<HashMap<Language, String>>`].
-/// 
+///
 /// ## Errors
-/// 
+///
 /// If initial deserialization as [`Vec<Hashmap<String, String>>`] fails,
 /// or any of the contained hashmaps; keys aren't valid language codes.
 pub fn deserialize_langcode_map_vec<'de, D>(

@@ -32,11 +32,11 @@ pub enum Endpoint {
 
 impl Endpoint {
     /// Converts the endpoint into a relative URI.
-    /// 
+    ///
     /// ## Panics
-    /// 
+    ///
     /// If the query string for an endpoint fails to be made.
-    #[must_use] 
+    #[must_use]
     pub fn as_string(&self) -> String {
         match self {
             Self::GetChapter(uuid) => format!("/chapter/{uuid}"),

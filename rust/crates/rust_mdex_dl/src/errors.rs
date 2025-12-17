@@ -33,7 +33,7 @@ impl ApiError {
     }
 
     /// Helper for [`ApiError::new()`] if "errors" field in `r_json` doesn't exist
-    #[must_use] 
+    #[must_use]
     pub fn blank(endpoint: &Endpoint, status: StatusCode) -> Self {
         let status_code = status.as_u16();
 
@@ -72,7 +72,7 @@ impl ApiError {
     ///
     /// This also works if these fields are for some reason non-existent, which
     /// means that this method would also work on actual, valid responses.
-    #[must_use] 
+    #[must_use]
     pub fn new(endpoint: &Endpoint, r_json: &serde_json::Value, status: StatusCode) -> Self {
         error!("`ApiError` encountered! Faulty JSON: {r_json:#?}");
 

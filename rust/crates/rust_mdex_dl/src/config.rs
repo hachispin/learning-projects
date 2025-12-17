@@ -86,6 +86,7 @@ pub fn load_config() -> Result<Config> {
         ("image_permits", cfg.concurrency.image_permits),
         ("chapter_permits", cfg.concurrency.chapter_permits),
     ];
+
     for (option, value) in non_zero_options {
         if value == 0 {
             return Err(miette::miette!(

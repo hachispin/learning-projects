@@ -49,13 +49,13 @@ impl ApiClient {
     /// the [`Self::base_url`] and returns the response.
     ///
     /// Use [`Self::get_ok_json()`] if this response is intended to parsed as JSON.
-    /// 
+    ///
     /// ## Panics
-    /// 
+    ///
     /// If [`Endpoint::as_string`] panics.
-    /// 
+    ///
     /// ## Errors
-    /// 
+    ///
     /// If [`reqwest::ClientBuilder`] fails or an
     /// error is propagated from [`Self::handle_ratelimit`].
     pub async fn get(&self, endpoint: Endpoint) -> Result<reqwest::Response> {
@@ -94,7 +94,7 @@ impl ApiClient {
     /// The `Ok()` value contains this JSON response.
     ///
     /// ## Errors
-    /// 
+    ///
     /// An `Err()` value is returned if it's either:
     ///
     /// * not parsable as JSON

@@ -137,11 +137,17 @@ impl ChapterCdn {
             images.push(url_prefix.join(name).into_diagnostic()?);
         }
 
-        debug!("first_image_url={:?}", images.first().map(reqwest::Url::as_str),);
+        debug!(
+            "first_image_url={:?}",
+            images.first().map(reqwest::Url::as_str),
+        );
 
         trace!(
             "all_image_urls={:?}",
-            images.iter().map(reqwest::Url::as_str).collect::<Vec<&str>>()
+            images
+                .iter()
+                .map(reqwest::Url::as_str)
+                .collect::<Vec<&str>>()
         );
 
         Ok(images)
@@ -196,7 +202,7 @@ impl DownloadClient {
     /// Constructs a new [`DownloadClient`].
     ///
     /// ## Errors
-    /// 
+    ///
     /// An error can occur if [`Client::builder`] fails.
     pub fn new(cfg: &Config) -> Result<Self> {
         let user_agent = cfg.client.user_agent.clone();
