@@ -23,11 +23,11 @@ use reqwest::Url;
 use serde::{self, Deserialize};
 use uuid::Uuid;
 
-/// For storing `contentRating` field in [`MangaAttributes::content_rating`]
+/// For storing the [`MangaAttributes::content_rating`] field.
 ///
 /// ## References
-//
-// - <https://api.mangadex.org/docs/3-enumerations/#manga-content-rating>
+///
+/// - [MangaDex docs](https://api.mangadex.org/docs/3-enumerations/#manga-content-rating)
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[allow(missing_docs)]
@@ -38,9 +38,11 @@ pub enum ContentRating {
     Pornographic,
 }
 
-/// For storing `status` field in [`MangaAttributes::status`]
+/// For storing the [`MangaAttributes::status`] field.
 ///
-/// Reference: <https://api.mangadex.org/docs/3-enumerations/#manga-status>
+/// ## References 
+/// 
+/// - [MangaDex docs](https://api.mangadex.org/docs/3-enumerations/#manga-status)
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[allow(missing_docs)]
@@ -51,9 +53,11 @@ pub enum Status {
     Cancelled,
 }
 
-/// For storing `state` field in [`MangaAttributes`]
+/// For storing the [`MangaAttributes::state`] field.
 ///
-/// Reference: <https://api.mangadex.org/docs/redoc.html#tag/Manga/operation/get-manga-id>
+/// ## References 
+/// 
+/// - [MangaDex docs](https://api.mangadex.org/docs/redoc.html#tag/Manga/operation/get-manga-id)
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[allow(missing_docs)]
@@ -64,11 +68,11 @@ pub enum State {
     Rejected,
 }
 
-/// For storing `publication_demographic` field in [`MangaAttributes`]
+/// For storing the [`MangaAttributes::publication_demographic`] field.
 ///
 /// ## References
 ///
-/// - <https://api.mangadex.org/docs/3-enumerations/#manga-publication-demographic>
+/// - [MangaDex docs](https://api.mangadex.org/docs/3-enumerations/#manga-publication-demographic)
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[allow(missing_docs)]
@@ -103,7 +107,7 @@ impl Relationship {
     }
 }
 
-/// Models a chapters attributes og my god ;ajfsfjf  clippy leave me alone!!!
+/// Models a chapters attributes.
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ChapterAttributes {
@@ -173,16 +177,13 @@ pub struct ChapterData {
 /// This also allows easy usage of [`serde::Deserialize`] for [`Self::new`].
 #[derive(Deserialize, Debug, Clone)]
 pub struct Chapter {
+    /// Stores fields
     pub data: ChapterData,
 }
 
 impl Chapter {
     /// Takes the given `chapter_uuid` and makes a GET request to [`Endpoint::GetChapter`],
     /// parsing the response as a [`Chapter`] using [`serde`] and returning it.
-    ///
-    /// ## Panics
-    ///
-    /// If the JSON received does not have the data type "chapter".
     ///
     /// ## Errors
     ///
@@ -321,10 +322,6 @@ impl Manga {
     /// Takes the given `manga_uuid` and makes a GET request to [`Endpoint::GetManga`],
     /// parsing the response as a [`Manga`] using [`serde`] and returning it.
     ///
-    /// ## Panics
-    ///
-    /// If the data type received isn't of type "manga".
-    ///
     /// ## Errors
     ///
     /// If the response can't be parsed as a [`Manga`].
@@ -381,7 +378,7 @@ impl Manga {
         })
     }
 
-    /// UUID getter
+    /// Trivial UUID getter.
     #[must_use]
     pub const fn uuid(&self) -> Uuid {
         self.data.id
