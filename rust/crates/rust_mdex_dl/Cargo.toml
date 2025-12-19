@@ -2,6 +2,9 @@
 name = "rust_mdex_dl"
 version = "0.1.0"
 edition = "2024"
+authors = ["hachispin"]
+license = "MIT"
+repository = "https://github.com/hachispin/learning-projects/tree/main/rust/crates/rust_mdex_dl"
 
 [dependencies]
 bytes = "1.10.1"
