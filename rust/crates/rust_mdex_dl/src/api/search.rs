@@ -1,3 +1,8 @@
+//! Contains [`SearchClient`], which is a wrapper over [`ApiClient`].
+//!
+//! [`SearchClient`] is implemented with methods to assist with
+//! constructing search parameters for the `SearchManga` endpoint.
+
 use crate::api::{
     client::ApiClient,
     endpoints::Endpoint,
@@ -9,9 +14,15 @@ use log::{debug, info, trace, warn};
 use miette::{IntoDiagnostic, Result};
 use serde::Deserialize;
 
+/// Represents the search results (manga) for a query.
 #[derive(Deserialize, Debug, Clone)]
 pub struct SearchResults {
+    /// The manga returned from a search (usually, for a specific page).
     pub data: Vec<MangaData>,
+    /// The total number of search results (manga).
+    ///
+    /// Note that this isn't the same as `data.len()`, since `data` is
+    /// usually just for a single page. (since, y'know, pagination limits).
     pub total: u32,
 }
 
@@ -35,9 +46,7 @@ impl SearchResults {
     /// Note that `manga_index` is zero-indexed.
     #[must_use]
     pub fn get(&self, manga_index: usize) -> Option<Manga> {
-        self.data
-            .get(manga_index)
-            .map(|md| md.clone().into())
+        self.data.get(manga_index).map(|md| md.clone().into())
     }
 }
 
@@ -47,6 +56,7 @@ struct ChapterResults {
     total: u32,
 }
 
+/// A wrapper over [`ApiClient`] for searching for manga.
 #[derive(Debug)]
 pub struct SearchClient {
     api: ApiClient,
@@ -55,8 +65,17 @@ pub struct SearchClient {
 }
 
 impl SearchClient {
+    /// The max amount of manga that can be fetched for a query.
     pub const MAX_MANGA_PAGINATION: u32 = 100;
+    /// The max amount of chapters that can be
+    /// fetched at a time for a specified manga.
     pub const MAX_CHAPTER_PAGINATION: u32 = 500;
+    /// The max of the `offset + size` search parameters.
+    ///
+    /// ## References:
+    ///
+    /// - <https://api.mangadex.org/docs/2-limitations/#collection-result-sizes>
+    const MAX_OFFSET_SIZE_SUM: u32 = 10_000;
 
     /// Creates a new [`SearchClient`].
     ///
@@ -169,13 +188,11 @@ impl SearchClient {
     /// From [`ApiClient::get_ok_json`] or if the response
     /// can't be parsed as [`ChapterResults`].
     pub async fn fetch_all_chapters(&self, manga: &Manga) -> Result<Vec<Chapter>> {
-        let mut all_chapters: Vec<Chapter> = Vec::new();
         let mut offset = 0u32;
-        let limit = Self::MAX_CHAPTER_PAGINATION;
 
         let mut params: Vec<(String, String)> = Vec::new();
         params.push(("offset".into(), offset.to_string()));
-        params.push(("limit".into(), limit.to_string()));
+        params.push(("limit".into(), Self::MAX_CHAPTER_PAGINATION.to_string()));
         params.extend(Self::language_filter_param(&[self.language], true)?);
         params.extend(Self::content_rating_param(&[
             ContentRating::Safe,
@@ -192,7 +209,7 @@ impl SearchClient {
         );
 
         // "initial" because pagination params are modified later on
-        debug!("Fetching chapters using initial endpoint URI {params:?}");
+        debug!("Fetching chapters using initial endpoint params={params:?}");
 
         // first fetch is outside the loop to find `total`
         let raw_results = self.api.get_ok_json(endpoint).await?;
@@ -200,25 +217,28 @@ impl SearchClient {
         let chapter_results: ChapterResults =
             serde_json::from_value(raw_results).into_diagnostic()?;
 
-        let chapters: Vec<Chapter> = chapter_results
-            .data
-            .into_iter()
-            .map(Into::into)
-            .collect();
+        let chapters: Vec<Chapter> = chapter_results.data.into_iter().map(Into::into).collect();
 
         let total = chapter_results.total;
         offset += Self::MAX_CHAPTER_PAGINATION;
+
+        let mut all_chapters = Vec::with_capacity(total as usize);
         all_chapters.extend(chapters);
 
+        // paginates through the whole collection to fetch all chapters of `manga`
+        //
+        // https://api.mangadex.org/docs/01-concepts/pagination/
         while offset < total {
-            debug!("Current offset: {offset}");
+            debug!("Current pagination offset={offset}");
 
-            // ref: https://api.mangadex.org/docs/2-limitations/#collection-result-sizes
-            if offset + limit > 10_000 {
-                warn!(concat!(
-                    "Fetching chapters halted; exceeded max collection",
-                    " result size bound of (offset + limit > 10,000)"
-                ));
+            if offset + Self::MAX_CHAPTER_PAGINATION > Self::MAX_OFFSET_SIZE_SUM {
+                warn!(
+                    concat!(
+                        "Fetching chapters halted; exceeded max collection ",
+                        "result size bound of (offset + limit > {})"
+                    ),
+                    Self::MAX_OFFSET_SIZE_SUM
+                );
             }
 
             // update params
