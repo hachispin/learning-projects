@@ -3,30 +3,35 @@
 use serde_urlencoded;
 use uuid::Uuid;
 
-/// ## Info about endpoints
-///
 /// "Endpoints" in this context are urls that aren't
 /// valid until prefixed with a proper base url.
-///
-/// * [`Endpoint::GetChapter`] returns chapter info given a uuid
-/// * [`Endpoint::GetChapterCdn`] returns download info
-/// * [`Endpoint::GetManga`] takes a manga's uuid and returns its info
-/// * [`Endpoint::GetMangaChapters`] takes a manga's uuid and returns its chapters, using the given parameters
-/// * [`Endpoint::SearchManga`] takes search parameters and returns a list of manga, assuming valid
-///
-/// ## Relevant documentation
-///
-/// <https://api.mangadex.org/docs/redoc.html#tag/Chapter/operation/get-chapter-id>
-///
-/// <https://api.mangadex.org/docs/redoc.html#tag/AtHome/operation/get-at-home-server-chapterId>
-///
-/// <https://api.mangadex.org/docs/redoc.html#tag/Manga/operation/get-search-manga>
 #[derive(Debug, Clone)]
 pub enum Endpoint {
+    /// Takes a chapter's UUID and returns its info.
+    ///
+    /// ## References
+    ///
+    /// - <https://api.mangadex.org/docs/redoc.html#tag/Chapter/operation/get-chapter-id>
     GetChapter(Uuid),
+    /// Takes a chapter's UUID and returns its download (CDN) info.
+    ///
+    /// ## References
+    ///
+    /// - <https://api.mangadex.org/docs/redoc.html#tag/AtHome/operation/get-at-home-server-chapterId>
     GetChapterCdn(Uuid),
+    /// Takes a manga's UUID and returns its info.
+    ///
+    /// ## References
+    ///
+    /// - <https://api.mangadex.org/docs/redoc.html#tag/Manga/operation/get-manga-id>
     GetManga(Uuid),
+    /// Takes a manga's UUID and returns its chapters.
     GetMangaChapters(Uuid, Vec<(String, String)>),
+    /// Takes search parameters and returns a list of manga.
+    ///
+    /// ## References
+    ///
+    /// - <https://api.mangadex.org/docs/redoc.html#tag/Manga/operation/get-search-manga>
     SearchManga(Vec<(String, String)>),
 }
 
