@@ -7,7 +7,7 @@ use crate::{api::endpoints::Endpoint, config};
 
 use crate::errors::ApiError;
 use log::{error, trace, warn};
-use miette::{IntoDiagnostic, Result};
+use miette::{IntoDiagnostic, Result, bail};
 use reqwest::header::HeaderMap;
 use reqwest::{self, StatusCode};
 use serde_json;
@@ -61,32 +61,35 @@ impl ApiClient {
     pub async fn get(&self, endpoint: Endpoint) -> Result<reqwest::Response> {
         let uri = endpoint.as_string();
         let url = self.base_url.join(&uri).into_diagnostic()?;
-        let mut r = None;
 
         trace!("Sending GET request, url={url}");
+        let mut current_attempt = 0;
 
-        // ratelimit handling... sorta
-        for i in 1..=self.max_retries {
-            r = Some(
-                self.client
-                    .get(url.clone())
-                    .send()
-                    .await
-                    .into_diagnostic()?,
-            );
-
-            let r_ref = r.as_ref().unwrap();
-            let status = r_ref.status();
-            let headers = r_ref.headers();
-
-            if status != StatusCode::TOO_MANY_REQUESTS {
-                break;
+        let r = loop {
+            if current_attempt >= self.max_retries {
+                bail!(
+                    "`ApiClient::get()`: exhausted all retry attempts (max_retries={})",
+                    self.max_retries
+                );
             }
 
-            Self::handle_ratelimit(headers, i).await?;
-        }
+            let r = self
+                .client
+                .get(url.clone())
+                .send()
+                .await
+                .into_diagnostic()?;
 
-        Ok(r.unwrap())
+            if r.status() == StatusCode::TOO_MANY_REQUESTS {
+                current_attempt += 1;
+                Self::handle_ratelimit(r.headers(), current_attempt).await?;
+                continue;
+            }
+
+            break r;
+        };
+
+        Ok(r)
     }
 
     /// Fetches from the `endpoint` and parses the response as JSON.
@@ -124,7 +127,7 @@ impl ApiClient {
             .unwrap_or("error");
 
         if result == "error" || !success {
-            return Err(ApiError::new(&endpoint, &r_json, status_code).into());
+            bail!(ApiError::new(&endpoint, &r_json, status_code));
         }
 
         Ok(r_json)
@@ -136,7 +139,7 @@ impl ApiClient {
         let sleep_duration = Duration::from_secs(u64::from(retry_after));
 
         if !RATELIMIT_LOGGED.swap(true, Ordering::SeqCst) {
-            warn!("Ratelimited (received 429 Too Many Requests), attempt {retry_count}");
+            warn!("Ratelimited (received 429: Too Many Requests), attempt {retry_count}");
             warn!("Sleeping for {}s...", sleep_duration.as_secs());
         }
 
@@ -155,6 +158,8 @@ impl ApiClient {
             .to_str()
             .into_diagnostic()?;
 
-        retry_in.parse::<u32>().into_diagnostic()
+        retry_in
+            .parse::<u32>()
+            .map_err(|e| miette::miette!("failed to parse retry_in={retry_in}: {e}"))
     }
 }
