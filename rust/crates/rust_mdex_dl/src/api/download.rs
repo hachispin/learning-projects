@@ -49,8 +49,11 @@ struct ChapterCdn {
 }
 
 impl ChapterCdn {
-    // the max requests per minute for `Endpoint::GetChapterCdn`
-    // https://api.mangadex.org/docs/2-limitations/#endpoint-specific-rate-limits
+    /// The max requests per minute for [`Endpoint::GetChapterCdn`].
+    ///
+    /// ## References
+    ///
+    /// - <https://api.mangadex.org/docs/2-limitations/#endpoint-specific-rate-limits>
     const RATELIMIT: u32 = 40;
 
     /// Constructs a new [`ChapterCdn`] for the given [`Chapter`]
@@ -132,7 +135,7 @@ impl ChapterCdn {
 
         debug!("constructed_url_prefix={:?}", url_prefix.as_str());
 
-        let mut images = Vec::with_capacity(image_names.len() + 1);
+        let mut images = Vec::with_capacity(image_names.len());
         for name in image_names {
             images.push(url_prefix.join(name).into_diagnostic()?);
         }
@@ -164,9 +167,7 @@ struct ChapterDownloadInfo {
 
 impl ChapterDownloadInfo {
     /// Constructs and returns a styled [`ProgressBar`]
-    fn get_progress_bar(length: usize) -> ProgressBar {
-        let length = length as u64;
-
+    fn get_progress_bar(length: u64) -> ProgressBar {
         let pb: ProgressBar = ProgressBar::new(length);
         pb.set_style(
             ProgressStyle::with_template(
@@ -183,7 +184,7 @@ impl ChapterDownloadInfo {
     async fn new(api: &ApiClient, chapter: Chapter) -> Result<Self> {
         let cdn = ChapterCdn::new(api, &chapter).await?;
         let num_images = cdn.chapter.data.len();
-        let pb = Self::get_progress_bar(num_images);
+        let pb = Self::get_progress_bar(num_images as u64);
 
         Ok(Self { chapter, cdn, pb })
     }
@@ -301,34 +302,15 @@ impl DownloadClient {
         parent_manga_title: &str,
         images_cfg: &Images,
     ) -> Result<usize> {
-        let images_cfg = images_cfg.clone();
         let images = download_info
             .cdn
             .construct_image_urls(&images_cfg.quality)?;
+
         let zero_pad = format!("{}", images.len()).len();
 
         let chapter_uuid_suffix = download_info.chapter.uuid().to_string()[..8].to_string();
         let chapter_size = Arc::new(AtomicUsize::new(0));
-        let chapter_title = &{
-            let this = &download_info.chapter;
-            let title = this.data.attributes.title.clone().unwrap_or_default();
-
-            let num = this
-                .data
-                .attributes
-                .chapter
-                .clone()
-                .unwrap_or("---".to_string());
-
-            // prevent naming conflicts
-            let suffix = &this.data.id.to_string()[..8];
-
-            if title.is_empty() {
-                format!("[{num:0>3}] ({suffix})").trim().to_string()
-            } else {
-                format!("[{num:0>3}] {title} ({suffix})").trim().to_string()
-            }
-        };
+        let chapter_title = &download_info.chapter.formatted_title();
 
         let parent_manga_title_safe = sanitise(parent_manga_title);
         let chapter_title_safe = sanitise(chapter_title);
@@ -342,13 +324,13 @@ impl DownloadClient {
             .into_diagnostic()?;
 
         let chapter_dir = chapter_dir.canonicalize().into_diagnostic()?;
-        let mut handles = Vec::with_capacity(images.len() + 1);
+        let mut handles = Vec::with_capacity(images.len());
         let handle_client = Arc::new(self.clone());
 
         info!(
             "Downloading {} images from chapter {:?} of manga {:?}",
             images.len(),
-            download_info.chapter.data.attributes.chapter,
+            download_info.chapter.data.attributes.chapter_number,
             parent_manga_title,
         );
 
@@ -418,7 +400,7 @@ impl DownloadClient {
         let batch_len = batch.len();
         let parent_uuid = parent_manga.uuid();
         let parent_manga_title = parent_manga.title(self.language);
-        let mut handles = Vec::with_capacity(batch.len() + 1);
+        let mut handles = Vec::with_capacity(batch.len());
 
         for info in batch {
             if info.chapter.parent_uuid() != parent_uuid {
