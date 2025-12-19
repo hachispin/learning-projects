@@ -25,9 +25,12 @@ use uuid::Uuid;
 
 /// For storing `contentRating` field in [`MangaAttributes::content_rating`]
 ///
-/// Reference: <https://api.mangadex.org/docs/3-enumerations/#manga-content-rating>
+/// ## References
+//
+// - <https://api.mangadex.org/docs/3-enumerations/#manga-content-rating>
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[allow(missing_docs)]
 pub enum ContentRating {
     Safe,
     Suggestive,
@@ -40,6 +43,7 @@ pub enum ContentRating {
 /// Reference: <https://api.mangadex.org/docs/3-enumerations/#manga-status>
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[allow(missing_docs)]
 pub enum Status {
     Ongoing,
     Completed,
@@ -47,11 +51,12 @@ pub enum Status {
     Cancelled,
 }
 
-/// For storing `state` field in [`MangaAttributes::state`]
+/// For storing `state` field in [`MangaAttributes`]
 ///
 /// Reference: <https://api.mangadex.org/docs/redoc.html#tag/Manga/operation/get-manga-id>
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[allow(missing_docs)]
 pub enum State {
     Draft,
     Submitted,
@@ -59,11 +64,14 @@ pub enum State {
     Rejected,
 }
 
-/// For storing `publication_demographic` field in [`MangaAttributes::publication_demographic`]
+/// For storing `publication_demographic` field in [`MangaAttributes`]
 ///
-/// Reference: <https://api.mangadex.org/docs/3-enumerations/#manga-publication-demographic>
+/// ## References
+///
+/// - <https://api.mangadex.org/docs/3-enumerations/#manga-publication-demographic>
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[allow(missing_docs)]
 pub enum PublicationDemographic {
     Shounen,
     Shoujo,
@@ -71,39 +79,82 @@ pub enum PublicationDemographic {
     Seinen,
 }
 
+/// Contains [`Self::id`] and [`Self::type_`], indicating
+/// an entity and the type of relationship held with it.
 #[derive(Deserialize, Debug, Clone)]
 pub struct Relationship {
     #[serde(deserialize_with = "deserialize_uuid")]
     id: Uuid,
 
+    /// Details the type of relationship listed.
+    ///
+    /// ## References
+    ///
+    /// - <https://api.mangadex.org/docs/3-enumerations/#relationship-types>
     #[serde(rename = "type")]
     pub type_: String,
 }
 
 impl Relationship {
+    /// Trivial UUID getter.
     #[must_use]
-    pub fn uuid(&self) -> Uuid {
+    pub const fn uuid(&self) -> Uuid {
         self.id
     }
 }
 
+/// Models a chapters attributes og my god ;ajfsfjf  clippy leave me alone!!!
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ChapterAttributes {
+    /// Stores the current manga volume of the chapter.
+    ///
+    /// This is usually not included for [Oneshots](https://en.wikipedia.org/wiki/One-shot_%28comics%29).
     pub volume: Option<String>,
-    pub chapter: Option<String>,
+    /// The chapter's number.
+    ///
+    /// This is usually not included for [Oneshots](https://en.wikipedia.org/wiki/One-shot_%28comics%29).
+    pub chapter_number: Option<String>,
+    /// The chapter's title. This is often not included at all.
     pub title: Option<String>,
+    /// The **translated** language of the chapter.
+    ///
+    /// This is unrelated to the manga's (original) language.
     #[serde(deserialize_with = "deserialize_langcode")]
     pub translated_language: Language,
+    /// An external URL related to the chapter.
+    ///
+    /// While this is usually where you can read
+    /// the chapter if it's not hosted on Manga-Dex,
+    /// it may be used for other reasons as well.
     pub external_url: Option<Url>,
+    /// Boolean to indicate if the chapter is readable.
+    ///
+    /// This is mainly for copyright reasons, especially from
+    /// [The Strike™](https://mangadex.org/compliance/copyright-faq),
+    //  so that your lists don't get screwed.
+    ///
+    /// Wanna know more? [Read this](https://www.reddit.com/r/mangadex/comments/1l2h0dx/announcement_mangadex_new_feature_unavailable/).
     pub is_unavailable: bool,
     #[serde(deserialize_with = "deserialize_utc_datetime")]
+    /// The date of when this chapter was published **on Manga-Dex**.
+    ///
+    /// This relates with [`Self::readable_at`] in a [specific way](https://api.mangadex.org/docs/01-concepts/timestamps/#publishat-and-readableat).
     pub publish_at: DateTime<Utc>,
     #[serde(deserialize_with = "deserialize_utc_datetime")]
+    /// Indicates the instant where the chapter is "readable".
+    ///
+    /// "Readability" just means in general, **not on Manga-Dex
+    /// specifically**. e.g, it may be readable on another site.
+    ///
+    /// This relates with [`Self::publish_at`] in a [specific way](https://api.mangadex.org/docs/01-concepts/timestamps/#publishat-and-readableat).
     pub readable_at: DateTime<Utc>,
     #[serde(deserialize_with = "deserialize_utc_datetime")]
+    /// The instant when this chapter was originally created.
     pub created_at: DateTime<Utc>,
+    /// The number of readable pages. Can be zero.
     pub pages: usize,
+    /// The version. Probably useless.
     pub version: u32,
 }
 
@@ -159,7 +210,7 @@ impl Chapter {
         let attrs = &self.data.attributes;
 
         let title = attrs.title.clone().unwrap_or_default();
-        let num = attrs.chapter.clone().unwrap_or("---".to_string());
+        let num = attrs.chapter_number.clone().unwrap_or("---".to_string());
 
         // prevent naming conflicts
         let suffix = &self.data.id.to_string()[..8];
@@ -203,9 +254,9 @@ pub struct TagAttributes {
 
 /// Omitted fields:
 ///
-/// * attributes.description
-/// * attributes.version
-/// * relationships
+/// - `attributes.description`
+/// - `attributes.version`
+/// - `relationships`
 ///
 /// These are omitted because they are either
 /// always empty or store no useful information.
