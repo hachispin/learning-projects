@@ -9,7 +9,7 @@ use crate::{
 use std::fs;
 
 use isolang::Language;
-use miette::{self, IntoDiagnostic, Result};
+use miette::{self, IntoDiagnostic, Result, bail};
 use reqwest::Url;
 use serde::Deserialize;
 use toml;
@@ -89,9 +89,7 @@ pub fn load_config() -> Result<Config> {
 
     for (option, value) in non_zero_options {
         if value == 0 {
-            return Err(miette::miette!(
-                "Expected option `{option}` to be non-zero, got {option}={value}"
-            ));
+            bail!("Expected option `{option}` to be non-zero, got {option}={value}");
         }
     }
 
