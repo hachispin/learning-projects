@@ -9,13 +9,52 @@ use crate::{
 use std::fs;
 
 use isolang::Language;
-use miette::{self, IntoDiagnostic, Result, bail};
+use miette::{IntoDiagnostic, Result, bail, miette};
 use reqwest::Url;
 use serde::Deserialize;
 use toml;
 
-/*    For config fields with set options    */
-/*  Consider attempting to apply DRY later  */
+const CONFIG_DEFAULT: &str = "\
+# ==> For rust_mdex_dl
+# Find defaults at: https://github.com/hachispin/learning-projects/blob/main/rust/crates/rust_mdex_dl/config.toml
+
+# Client info used for:
+
+# * `reqwest::ClientBuilder::new()`
+# * `crate::Client` (which is just a reqwest::Client wrapper)
+
+[client]
+base_url = \"https://api.mangadex.org\"
+user_agent = \"hachispin/learning-projects\"
+max_retries = 3  # how many times to retry upon being ratelimited
+language = \"en\"     # * must be an ISO 639-1 code, which are two letters long
+                    #   https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes
+
+# This how many of these can be processed (or \"permitted\") at the same time.
+#
+# e.g. `image_permits` means how many images can be
+# downloaded and saved at any one point in time.
+#
+# To go more in depth, these are the number of permits set on the \"semaphores\".
+# https://en.wikipedia.org/wiki/Semaphore_(programming)
+#
+# Setting these higher may result in faster downloads at the cost
+# of possible being throttled or ratelimited by MangaDex.
+[concurrency]
+image_permits = 10      # * undocumented ratelimit but hard to hit unless done intentionally
+                        #   https://api.mangadex.org/docs/2-limitations/#non-api-rate-limits
+chapter_permits = 3     # * max is 40 reqs per minute for this endpoint
+                        #   scale this against your download speed accordingly
+                        #   https://api.mangadex.org/docs/2-limitations/#endpoint-specific-rate-limits
+
+[images]
+quality = \"lossless\"    # options: \"lossless\", \"lossy\"
+save_format = \"raw\"     # not implemented yet, does nothing for now
+
+[logging]
+enabled = true
+filter = \"DEBUG\"  # options: \"TRACE\", \"DEBUG\", \"INFO\", \"WARN\", \"ERROR\"
+";
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -77,7 +116,17 @@ pub struct Config {
 /// If some options fail extra validation,
 /// such as `image_permits` being zero.
 pub fn load_config() -> Result<Config> {
-    let path = config_toml().canonicalize().into_diagnostic()?;
+    let path = config_toml()?;
+
+    if !path.try_exists().into_diagnostic()? {
+        fs::write(&path, CONFIG_DEFAULT).map_err(|e| {
+            miette!(
+                "failed to write (default config) to {}: {e}",
+                path.display()
+            )
+        })?;
+    }
+
     let raw_cfg = fs::read_to_string(path).into_diagnostic()?;
     let cfg: Config = toml::de::from_str(&raw_cfg).into_diagnostic()?;
 
@@ -94,7 +143,7 @@ pub fn load_config() -> Result<Config> {
     }
 
     for p in [manga_save_dir(), log_save_dir()] {
-        fs::create_dir_all(p).into_diagnostic()?;
+        fs::create_dir_all(p?).into_diagnostic()?;
     }
 
     Ok(cfg)

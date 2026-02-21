@@ -21,7 +21,7 @@ pub fn init_logging(logging_cfg: &Logging) {
     }
 
     let now = Utc::now().format("%Y-%m-%d_%H-%M-%S");
-    let log_file = log_save_dir().join(format!("{now}.log"));
+    let log_file = log_save_dir().unwrap().join(format!("{now}.log"));
     let config = ConfigBuilder::new()
         .add_filter_ignore_str("rustyline")
         .add_filter_ignore_str("reqwest::connect")

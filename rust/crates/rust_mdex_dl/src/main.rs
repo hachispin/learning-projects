@@ -172,20 +172,15 @@ async fn manga_search_menu(
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // load config
     let cfg = load_config()?;
-    init_logging(&cfg.logging);
     info!("Config: {cfg:?}");
+    init_logging(&cfg.logging);
 
-    // stdout
     let out = Term::stdout();
-
-    // create clients
     let api = ApiClient::new(&cfg.client)?;
     let searcher = SearchClient::new(api.clone(), cfg.client.language);
     let downloader = DownloadClient::new(&cfg)?;
 
-    // get query and search!
     let chosen_manga = loop {
         let query: String = Input!()
             .with_prompt("Enter a manga")
@@ -207,10 +202,8 @@ async fn main() -> Result<()> {
         }
     };
 
-    // fetch chapters
     let chapters = searcher.fetch_all_chapters(&chosen_manga).await?;
 
-    // download!
     downloader
         .download_chapters(&api, chapters, chosen_manga, &cfg.images)
         .await?;

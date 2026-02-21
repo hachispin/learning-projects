@@ -140,17 +140,11 @@ impl ChapterCdn {
             images.push(url_prefix.join(name).into_diagnostic()?);
         }
 
-        debug!(
-            "first_image_url={:?}",
-            images.first().map(Url::as_str),
-        );
+        debug!("first_image_url={:?}", images.first().map(Url::as_str),);
 
         trace!(
             "all_image_urls={:?}",
-            images
-                .iter()
-                .map(Url::as_str)
-                .collect::<Vec<&str>>()
+            images.iter().map(Url::as_str).collect::<Vec<&str>>()
         );
 
         Ok(images)
@@ -315,7 +309,7 @@ impl DownloadClient {
         let parent_manga_title_safe = sanitise(parent_manga_title);
         let chapter_title_safe = sanitise(chapter_title);
 
-        let chapter_dir = &manga_save_dir()
+        let chapter_dir = manga_save_dir()?
             .join(parent_manga_title_safe)
             .join(chapter_title_safe);
 
