@@ -1,5 +1,14 @@
-use isolang::Language;
-use rust_mdex_dl::{
+#![doc = include_str!("../README.md")]
+#![warn(clippy::pedantic)]
+
+pub mod api;
+pub mod config;
+pub mod deserializers;
+pub mod errors;
+pub mod logging;
+pub mod paths;
+
+use crate::{
     api::{
         client::ApiClient,
         download::DownloadClient,
@@ -12,6 +21,7 @@ use rust_mdex_dl::{
 
 use console::{Term, style};
 use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
+use isolang::Language;
 use log::info;
 use miette::{IntoDiagnostic, Result};
 

@@ -153,8 +153,8 @@ impl ApiClient {
     fn get_retry_after(headers: &HeaderMap) -> Result<u32> {
         let retry_in = headers
             .get("retry-after")
-            .or(headers.get("x-ratelimit-retry-in"))
-            .ok_or(miette::miette!("couldn't find `retry-after` header"))?
+            .or_else(|| headers.get("x-ratelimit-retry-in"))
+            .ok_or_else(|| miette::miette!("couldn't find `retry-after` header"))?
             .to_str()
             .into_diagnostic()?;
 

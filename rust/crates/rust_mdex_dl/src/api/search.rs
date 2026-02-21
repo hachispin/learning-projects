@@ -81,10 +81,10 @@ impl SearchClient {
     ///
     /// Clamps if `manga_pagination` > [`Self::MAX_MANGA_PAGINATION`]
     #[must_use]
-    pub fn new(api: ApiClient, language: Language) -> SearchClient {
+    pub const fn new(api: ApiClient, language: Language) -> Self {
         let manga_pagination = Self::MAX_MANGA_PAGINATION;
 
-        SearchClient {
+        Self {
             api,
             language,
             manga_pagination,
@@ -109,7 +109,7 @@ impl SearchClient {
             let key = key.clone();
             let value = language
                 .to_639_1()
-                .ok_or(miette::miette!("failed to convert language into iso 639-1"))?
+                .ok_or_else(|| miette::miette!("failed to convert language into iso 639-1"))?
                 .to_string();
 
             params.push((key, value));

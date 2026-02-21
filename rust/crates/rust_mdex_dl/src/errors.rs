@@ -7,6 +7,10 @@ use thiserror::Error;
 
 use crate::api::endpoints::Endpoint;
 
+/// Represents an error occuring with Manga-Dex's API.
+///
+/// This shouldn't be used for issues that aren't
+/// Manga-Dex's fault, per-se, like issues with `reqwest`.
 #[derive(Error, Debug, Diagnostic)]
 #[error("{error}")]
 #[diagnostic(help("{help}"))]
@@ -22,7 +26,7 @@ impl ApiError {
             400 | 404 => "check if this link is actually valid",
             401 => "authentication needed. (you shouldn't be seeing this!)",
             403 => "you lack permission to access this. try something else",
-            429 => "you've been ratelimited. i swear i'll implement ratelimit handling later",
+            429 => "you've been ratelimited and all rety attempts have failed. :(",
             500 => "something went wrong with mangadex, consider retrying",
             503 => "try again in a few minutes",
             _ => status
@@ -43,8 +47,7 @@ impl ApiError {
                 endpoint: {endpoint:?}\n\
                 status code: {status_code}\n\
                 (missing 'errors' field, couldn't gather more info)\n"
-            )
-            .to_string(),
+            ),
             help: Self::get_status_code_help(status),
         }
     }

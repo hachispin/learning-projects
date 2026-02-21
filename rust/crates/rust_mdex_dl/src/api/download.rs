@@ -142,14 +142,14 @@ impl ChapterCdn {
 
         debug!(
             "first_image_url={:?}",
-            images.first().map(reqwest::Url::as_str),
+            images.first().map(Url::as_str),
         );
 
         trace!(
             "all_image_urls={:?}",
             images
                 .iter()
-                .map(reqwest::Url::as_str)
+                .map(Url::as_str)
                 .collect::<Vec<&str>>()
         );
 

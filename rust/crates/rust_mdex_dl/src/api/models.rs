@@ -40,8 +40,8 @@ pub enum ContentRating {
 
 /// For storing the [`MangaAttributes::status`] field.
 ///
-/// ## References 
-/// 
+/// ## References
+///
 /// - [MangaDex docs](https://api.mangadex.org/docs/3-enumerations/#manga-status)
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -55,8 +55,8 @@ pub enum Status {
 
 /// For storing the [`MangaAttributes::state`] field.
 ///
-/// ## References 
-/// 
+/// ## References
+///
 /// - [MangaDex docs](https://api.mangadex.org/docs/redoc.html#tag/Manga/operation/get-manga-id)
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -83,7 +83,7 @@ pub enum PublicationDemographic {
     Seinen,
 }
 
-/// Contains [`Self::id`] and [`Self::type_`], indicating
+/// Contains [`Self::id`] and [`Self::entity_type`], indicating
 /// an entity and the type of relationship held with it.
 #[derive(Deserialize, Debug, Clone)]
 pub struct Relationship {
@@ -96,7 +96,7 @@ pub struct Relationship {
     ///
     /// - <https://api.mangadex.org/docs/3-enumerations/#relationship-types>
     #[serde(rename = "type")]
-    pub type_: String,
+    pub entity_type: String,
 }
 
 impl Relationship {
@@ -149,7 +149,7 @@ pub struct ChapterAttributes {
     /// Indicates the instant where the chapter is "readable".
     ///
     /// "Readability" just means in general, **not on Manga-Dex
-    /// specifically**. e.g, it may be readable on another site.
+    /// specifically**. i.e, it may be readable on another site.
     ///
     /// This relates with [`Self::publish_at`] in a [specific way](https://api.mangadex.org/docs/01-concepts/timestamps/#publishat-and-readableat).
     pub readable_at: DateTime<Utc>,
@@ -167,7 +167,7 @@ pub struct ChapterData {
     #[serde(deserialize_with = "deserialize_uuid")]
     pub id: Uuid,
     #[serde(rename = "type")]
-    pub type_: String,
+    pub entity_type: String,
     pub attributes: ChapterAttributes,
     pub relationships: Vec<Relationship>,
 }
@@ -211,7 +211,10 @@ impl Chapter {
         let attrs = &self.data.attributes;
 
         let title = attrs.title.clone().unwrap_or_default();
-        let num = attrs.chapter_number.clone().unwrap_or("---".to_string());
+        let num = attrs
+            .chapter_number
+            .clone()
+            .unwrap_or_else(|| "---".to_string());
 
         // prevent naming conflicts
         let suffix = &self.data.id.to_string()[..8];
@@ -235,7 +238,7 @@ impl Chapter {
         self.data
             .relationships
             .iter()
-            .find(|r| r.type_ == "manga")
+            .find(|r| r.entity_type == "manga")
             .expect("no parent manga found") // should be unreachable
             .uuid()
     }
@@ -267,7 +270,7 @@ pub struct Tag {
     #[serde(deserialize_with = "deserialize_uuid")]
     id: Uuid,
     #[serde(rename = "type")]
-    pub type_: String,
+    pub entity_type: String,
     pub attributes: TagAttributes,
 }
 
@@ -308,7 +311,7 @@ pub struct MangaData {
     #[serde(deserialize_with = "deserialize_uuid")]
     id: Uuid,
     #[serde(rename = "type")]
-    pub type_: String,
+    pub entity_type: String,
     pub attributes: MangaAttributes,
     pub relationships: Vec<Relationship>,
 }

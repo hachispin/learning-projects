@@ -113,9 +113,11 @@ where
         return Ok(Language::Und);
     }
 
-    Language::from_639_1(input_langcode.as_str()).ok_or(serde::de::Error::custom(format!(
-        "invalid iso 639-1 language code {input_langcode:?}"
-    )))
+    Language::from_639_1(input_langcode.as_str()).ok_or_else(|| {
+        serde::de::Error::custom(format!(
+            "invalid iso 639-1 language code {input_langcode:?}"
+        ))
+    })
 }
 
 /// Helper function to deserialize as [`HashMap<Language, String>`].

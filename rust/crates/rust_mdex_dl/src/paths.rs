@@ -1,7 +1,9 @@
 //! Contains file locations and other file-related utilities.
 
-use std::path::{Path, PathBuf};
-use std::sync::LazyLock;
+use std::{
+    path::{Path, PathBuf},
+    sync::LazyLock,
+};
 
 static PROJECT_ROOT: LazyLock<PathBuf> = LazyLock::new(|| {
     Path::new(env!("CARGO_MANIFEST_DIR"))

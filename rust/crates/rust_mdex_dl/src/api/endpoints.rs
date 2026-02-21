@@ -31,7 +31,9 @@ pub enum Endpoint {
     /// - [Swagger](https://api.mangadex.org/docs/swagger.html#/Manga/get-manga-id)
     GetManga(Uuid),
     /// Takes a manga's UUID and returns its chapters.
-    /// 
+    ///
+    /// ## References 
+    ///
     /// - [Redoc](https://api.mangadex.org/docs/redoc.html#tag/Manga/operation/get-manga-id-feed)
     /// - [Swagger](https://api.mangadex.org/docs/swagger.html#/Manga/get-manga-id-feed)
     GetMangaChapters(Uuid, Vec<(String, String)>),
