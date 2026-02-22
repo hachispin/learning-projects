@@ -1,0 +1,3 @@
+22:41:59 [INFO] Hello, world!
+22:42:02 [INFO] Searching with URI "/manga?title=%3F&availableTranslatedLanguage%5B%5D=en&limit=100&offset=0&order%5Brelevance%5D=desc&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica&contentRating%5B%5D=pornographic"
+22:42:02 [INFO] Fetched 0 results out of the 0 results available
