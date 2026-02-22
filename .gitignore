@@ -17,6 +17,6 @@ python/notepad/data.json
 
 # Rust
 **/target/
-rust/crates/rust_mdex_dl/manga/
-rust/crates/rust_mdex_dl/logs/
-rust/crates/rust_mdex_dl/config_rust_mdex_dl.toml
+rust/rust_mdex_dl/manga/
+rust/rust_mdex_dl/logs/
+rust/rust_mdex_dl/config_rust_mdex_dl.toml
