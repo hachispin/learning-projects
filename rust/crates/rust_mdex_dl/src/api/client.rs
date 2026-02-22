@@ -159,7 +159,7 @@ impl ApiClient {
             .into_diagnostic()?;
 
         retry_in
-            .parse::<u32>()
+            .parse()
             .map_err(|e| miette::miette!("failed to parse retry_in={retry_in}: {e}"))
     }
 }

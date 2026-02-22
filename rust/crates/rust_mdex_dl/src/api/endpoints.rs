@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 /// "Endpoints" in this context are urls that aren't
 /// valid until prefixed with a proper base url.
-/// 
+///
 /// You can find the URIs in the [`Endpoint::as_string`] method.
 #[derive(Debug, Clone)]
 pub enum Endpoint {
@@ -32,7 +32,7 @@ pub enum Endpoint {
     GetManga(Uuid),
     /// Takes a manga's UUID and returns its chapters.
     ///
-    /// ## References 
+    /// ## References
     ///
     /// - [Redoc](https://api.mangadex.org/docs/redoc.html#tag/Manga/operation/get-manga-id-feed)
     /// - [Swagger](https://api.mangadex.org/docs/swagger.html#/Manga/get-manga-id-feed)
