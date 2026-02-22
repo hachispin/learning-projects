@@ -17,7 +17,6 @@ use crate::{
 
 use chrono::{DateTime, Utc};
 use isolang::Language;
-use log::warn;
 use miette::Result;
 use reqwest::Url;
 use serde::{self, Deserialize};

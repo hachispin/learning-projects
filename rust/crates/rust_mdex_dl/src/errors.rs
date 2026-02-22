@@ -1,6 +1,5 @@
 //! Contains user-defined errors.
 
-use log::error;
 use miette::Diagnostic;
 use reqwest::StatusCode;
 use thiserror::Error;

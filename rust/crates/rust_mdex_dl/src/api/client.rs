@@ -6,7 +6,6 @@ use std::time::Duration;
 use crate::{api::endpoints::Endpoint, config};
 
 use crate::errors::ApiError;
-use log::{error, trace, warn};
 use miette::{IntoDiagnostic, Result, bail};
 use reqwest::header::HeaderMap;
 use reqwest::{self, StatusCode};

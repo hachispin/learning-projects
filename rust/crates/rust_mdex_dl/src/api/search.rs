@@ -10,7 +10,6 @@ use crate::api::{
 };
 
 use isolang::Language;
-use log::{debug, info, trace, warn};
 use miette::{IntoDiagnostic, Result};
 use serde::Deserialize;
 

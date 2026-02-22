@@ -22,7 +22,6 @@ use bytes::Bytes;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use isolang::Language;
 use itertools::Itertools;
-use log::{debug, error, info, trace, warn};
 use miette::{ErrReport, IntoDiagnostic, Result};
 use reqwest::{self, Client, Url};
 use sanitise_file_name::sanitise;

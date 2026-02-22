@@ -8,6 +8,9 @@ pub mod errors;
 pub mod logging;
 pub mod paths;
 
+#[macro_use]
+extern crate log;
+
 use crate::{
     api::{
         client::ApiClient,
@@ -22,7 +25,6 @@ use crate::{
 use console::{Term, style};
 use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use isolang::Language;
-use log::info;
 use miette::{IntoDiagnostic, Result};
 
 macro_rules! Input {
