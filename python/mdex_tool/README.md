@@ -1,5 +1,9 @@
 # `mdex_tool`
 
+> [!WARNING]
+> I no longer plan to maintain this project in favour of its rewrite, [rust-mdex-dl](/rust/rust_mdex_dl).
+> Also, download speeds for this tool are... atrocious, mainly from the lack of async.
+
 ## Description
 
 A basic CLI app that can search for and download manga from [MangaDex](https://mangadex.org).
@@ -79,6 +83,9 @@ Full log [here](https://gist.github.com/hachispin/845e71905a2ae6e4c0be989ea07a87
 - Chapters with blank chapter number fields are labeled `Ch. Unknown` along with the chapter's title, if it exists. You'll most often see this with [Oneshot](<https://en.wikipedia.org/wiki/One-shot_(comics)>) genre.
 
 ## To-do
+
+> [!NOTE]
+> I don't plan to do these; refer to the warning at the top.
 
 - [x] **Give better feedback on when chapters can't be downloaded**
 - [x] Add a config file &rarr; _uses config.toml_
