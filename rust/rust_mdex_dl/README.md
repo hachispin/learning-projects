@@ -2,7 +2,7 @@
 
 ## Preamble
 
-This is a Rust rewrite of my Python project, [mdex_tool](/python/mdex_tool). Notably, this
+This is a Rust rewrite of my Python project, [mdex-tool](/python/mdex_tool). Notably, this
 project is quite a bit heavier since it uses large dependencies like [tokio](https://docs.rs/tokio/latest/tokio/).
 
 Comparing dependency count: this project has 20 dependencies, while the original Python
@@ -19,11 +19,11 @@ choosing your desired language (default: EN), or lowering image quality for slow
 
 ## Usage
 
-0) Either use the binary or build this project
-1) Run the program
-2) Enter the name of a manga
-3) Select the manga from the provided search results
-4) Wait for the manga to be downloaded
+0. Either use the binary or build this project
+1. Run the program
+2. Enter the name of a manga
+3. Select the manga from the provided search results
+4. Wait for the manga to be downloaded
 
 ## To-do
 
