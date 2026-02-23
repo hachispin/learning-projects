@@ -7,7 +7,7 @@ to make finding manga more convenient.
 You may want to edit the [config file](./rust_mdex_dl/config.toml) for options such as
 choosing your desired language (default: EN), or lowering image quality for slower connections.
 
-This was based off of my older Python project, [mdex-tool](/python/mdex-tool).
+This was based off of my older Python project, [mdex-tool](/python/mdex_tool).
 
 ## Usage
 
