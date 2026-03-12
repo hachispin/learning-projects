@@ -159,7 +159,6 @@ pub struct ChapterAttributes {
     /// The number of readable pages. Can be zero.
     pub pages: usize,
     /// The version. Probably useless.
-    #[doc = ""]
     pub version: u32,
 }
 
