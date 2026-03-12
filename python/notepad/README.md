@@ -13,8 +13,8 @@ Notes are stored in `data.json` (as of now, this can't be directly configured). 
 
 ## To-do
 
-- Convert the pseudo-menubar into an actual menubar with `QMenuBar`
-- Allow imports and exports of note data
-- Toggle between plain view and HTML view (?)
-- Change note viewing from using `QComboBox` to possibly a `QListView`
-- Add note searching and possibly filters (e.g., most recently edited)
+- [ ] Convert the pseudo-menubar into an actual menubar with `QMenuBar`
+- [ ] Allow imports and exports of note data
+- [ ] Toggle between plain view and HTML view (?)
+- [ ] Change note viewing from using `QComboBox` to possibly a `QListView`
+- [ ] Add note searching and possibly filters (e.g., most recently edited)
