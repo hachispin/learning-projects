@@ -11,10 +11,10 @@ use crate::api::endpoints::Endpoint;
 /// This shouldn't be used for issues that aren't
 /// Manga-Dex's fault, per-se, like issues with `reqwest`.
 #[derive(Error, Debug, Diagnostic)]
-#[error("{error}")]
+#[error("{error_text}")]
 #[diagnostic(help("{help}"))]
 pub struct ApiError {
-    error: String,
+    error_text: String, // if you see a warning on this line, ignore it
     help: String,
 }
 
@@ -41,7 +41,7 @@ impl ApiError {
         let status_code = status.as_u16();
 
         Self {
-            error: format!(
+            error_text: format!(
                 "api error\n\n\
                 endpoint: {endpoint:?}\n\
                 status code: {status_code}\n\
@@ -103,7 +103,7 @@ impl ApiError {
         let error_text = Self::format_error_text(number_of_errors, endpoint, status, title, detail);
 
         Self {
-            error: error_text,
+            error_text,
             help: Self::get_status_code_help(status),
         }
     }
