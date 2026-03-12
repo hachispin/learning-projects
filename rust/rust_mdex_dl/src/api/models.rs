@@ -117,6 +117,7 @@ pub struct ChapterAttributes {
     /// The chapter's number.
     ///
     /// This is usually not included for [Oneshots](https://en.wikipedia.org/wiki/One-shot_%28comics%29).
+    #[serde(rename = "chapter")]
     pub chapter_number: Option<String>,
     /// The chapter's title. This is often not included at all.
     pub title: Option<String>,
@@ -158,6 +159,7 @@ pub struct ChapterAttributes {
     /// The number of readable pages. Can be zero.
     pub pages: usize,
     /// The version. Probably useless.
+    #[doc = ""]
     pub version: u32,
 }
 
