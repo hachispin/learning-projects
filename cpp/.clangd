@@ -11,4 +11,4 @@ CompileFlags:
     -Werror,
     -pedantic-errors
   ]
-  Compiler: g++
+  Compiler: clang++
