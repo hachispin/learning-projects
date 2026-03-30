@@ -14,7 +14,6 @@ dialoguer = "0.12.0"
 futures = "0.3.31"
 indicatif = "0.18.0"
 isolang = { version = "2.4.0", features = ["english_names"] }
-itertools = "0.14.0"
 log = "0.4.28"
 miette = { version = "7.6.0", features = ["fancy"] }
 reqwest = "0.13.2"

@@ -21,7 +21,6 @@ use std::{
 use bytes::Bytes;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use isolang::Language;
-use itertools::Itertools;
 use miette::{ErrReport, IntoDiagnostic, Result};
 use reqwest::{self, Client, Url};
 use sanitise_file_name::sanitise;
@@ -475,15 +474,20 @@ impl DownloadClient {
             parent_manga.uuid()
         );
 
-        let dl_info_futs: Vec<_> = chapters
-            .into_iter()
-            .map(|c| async move { ChapterDownloadInfo::new(api, c).await })
-            .collect();
+        let mut iter = chapters.into_iter();
+        let batch_size = ChapterCdn::RATELIMIT as usize;
 
-        for batch in &dl_info_futs
-            .into_iter()
-            .chunks(ChapterCdn::RATELIMIT as usize)
-        {
+        loop {
+            let batch: Vec<_> = iter
+                .by_ref()
+                .take(batch_size)
+                .map(|c| async move { ChapterDownloadInfo::new(api, c).await })
+                .collect();
+
+            if batch.is_empty() {
+                break;
+            }
+
             let batch = futures::future::try_join_all(batch).await;
 
             let batch = match batch {
