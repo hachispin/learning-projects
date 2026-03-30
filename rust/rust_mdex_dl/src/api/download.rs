@@ -114,15 +114,14 @@ impl ChapterCdn {
             self.chapter.hash, quality
         );
 
+        let image_names = match quality {
+            ImageQuality::Lossless => &self.chapter.data,
+            ImageQuality::Lossy => &self.chapter.data_saver,
+        };
+
         let quality = match quality {
             ImageQuality::Lossless => "data",
             ImageQuality::Lossy => "data-saver",
-        };
-
-        let image_names = match quality {
-            "data" => &self.chapter.data,
-            "data-saver" => &self.chapter.data_saver,
-            _ => unreachable!(),
         };
 
         let url_prefix = self
