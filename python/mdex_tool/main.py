@@ -23,6 +23,7 @@ def main():
         option = top.get_option()
         action = top.handle_option(option)
         stack.handle_action(action)
+        top = stack.peek()
 
 
 if __name__ == "__main__":
