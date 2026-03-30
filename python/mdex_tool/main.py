@@ -16,16 +16,13 @@ stack = MenuStack([MainMenu(cfg)])
 
 def main():
     """The GUI loop."""
-    while True:
-        top = stack.peek()
+    top = stack.peek()
 
-        if top is not None:
-            top.show()
-            option = top.get_option()
-            action = top.handle_option(option)
-            stack.handle_action(action)
-        else:
-            break
+    while top is not None:
+        top.show()
+        option = top.get_option()
+        action = top.handle_option(option)
+        stack.handle_action(action)
 
 
 if __name__ == "__main__":
