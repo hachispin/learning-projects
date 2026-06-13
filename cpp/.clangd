@@ -1,14 +1,14 @@
 CompileFlags:
-  Add: [
-    -fdiagnostics-color=always,
-    -g,
-    -std=c++23,
-    -Wall,
-    -Wextra,
-    -Wshadow,
-    -Wconversion,
-    -Wsign-conversion,
-    -Werror,
-    -pedantic-errors
-  ]
   Compiler: clang++
+  Add: [
+    -Wall,
+    -Wconversion,
+    -Wextra,
+    -Wfloat-equal,
+    -Wnull-dereference,
+    -Wpedantic,
+    -Wshadow,
+    -Wsign-conversion,
+    -std=c++23,
+    -xc++
+  ]
