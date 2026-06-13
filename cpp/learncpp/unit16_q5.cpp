@@ -45,7 +45,7 @@ class GameWord {
                 return true;
             }
         }
-        
+
         return false;
     }
 
