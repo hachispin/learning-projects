@@ -1,4 +1,4 @@
-#![doc = include_str!("../README.md")]
+#![cfg_attr(doc, doc = include_str!("../README.md"))]
 #![warn(clippy::pedantic)]
 
 pub mod api;
@@ -54,7 +54,7 @@ enum PagePosition {
 }
 
 impl PagePosition {
-    fn new(start: u32, end: u32, page: u32) -> Self {
+    const fn new(start: u32, end: u32, page: u32) -> Self {
         if start == end {
             return Self::All;
         }
@@ -76,9 +76,9 @@ enum PageAction {
 }
 
 impl PageAction {
-    fn new(page_pos: PagePosition, next_page_index: usize, chosen_index: usize) -> Self {
+    const fn new(page_pos: PagePosition, next_page_index: usize, chosen_index: usize) -> Self {
         let next = next_page_index;
-        let last = 0usize;
+        let last = 0_usize;
 
         match (page_pos, chosen_index) {
             (PagePosition::Start, i) if i == next => Self::Next,
@@ -100,7 +100,7 @@ async fn manga_search_menu(
     query: &str,
     out: &Term,
 ) -> Result<Option<Manga>> {
-    let mut page = 0u32;
+    let mut page = 0_u32;
     let mut pages: Vec<SearchResults> = Vec::new();
 
     let results = searcher.search(query, page).await?;
@@ -128,7 +128,7 @@ async fn manga_search_menu(
         let prompt = format!("Page {}/{}", page + 1, total_pages);
 
         let page_pos = PagePosition::new(0, total_pages - 1, page);
-        let mut offset = 0usize; // for when "last page" is inserted at index 0
+        let mut offset = 0_usize; // for when "last page" is inserted at index 0
 
         match page_pos {
             PagePosition::Start => {

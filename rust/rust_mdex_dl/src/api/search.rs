@@ -187,7 +187,7 @@ impl SearchClient {
     /// From [`ApiClient::get_ok_json`] or if the response
     /// can't be parsed as [`ChapterResults`].
     pub async fn fetch_all_chapters(&self, manga: &Manga) -> Result<Vec<Chapter>> {
-        let mut offset = 0u32;
+        let mut offset = 0_u32;
 
         let mut params: Vec<(String, String)> = Vec::new();
         params.push(("offset".into(), offset.to_string()));

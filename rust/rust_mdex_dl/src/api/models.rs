@@ -29,7 +29,7 @@ use uuid::Uuid;
 /// - [MangaDex docs](https://api.mangadex.org/docs/3-enumerations/#manga-content-rating)
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 pub enum ContentRating {
     Safe,
     Suggestive,
@@ -44,7 +44,7 @@ pub enum ContentRating {
 /// - [MangaDex docs](https://api.mangadex.org/docs/3-enumerations/#manga-status)
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 pub enum Status {
     Ongoing,
     Completed,
@@ -59,7 +59,7 @@ pub enum Status {
 /// - [MangaDex docs](https://api.mangadex.org/docs/redoc.html#tag/Manga/operation/get-manga-id)
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 pub enum State {
     Draft,
     Submitted,
@@ -74,7 +74,7 @@ pub enum State {
 /// - [MangaDex docs](https://api.mangadex.org/docs/3-enumerations/#manga-publication-demographic)
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 pub enum PublicationDemographic {
     Shounen,
     Shoujo,
@@ -266,7 +266,7 @@ pub struct TagAttributes {
 /// always empty or store no useful information.
 #[derive(Deserialize, Debug, Clone)]
 pub struct Tag {
-    #[allow(unused)]
+    #[expect(unused)]
     #[serde(deserialize_with = "deserialize_uuid")]
     id: Uuid,
     #[serde(rename = "type")]

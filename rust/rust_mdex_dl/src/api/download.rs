@@ -127,7 +127,7 @@ impl ChapterCdn {
             .base_url
             .join(&format!("{quality}/"))
             .into_diagnostic()?
-            .join(&format!("{}/", &self.chapter.hash))
+            .join(&format!("{}/", self.chapter.hash))
             .into_diagnostic()?;
 
         debug!("constructed_url_prefix={:?}", url_prefix.as_str());
@@ -137,7 +137,7 @@ impl ChapterCdn {
             images.push(url_prefix.join(name).into_diagnostic()?);
         }
 
-        debug!("first_image_url={:?}", images.first().map(Url::as_str),);
+        debug!("first_image_url={:?}", images.first().map(Url::as_str));
 
         trace!(
             "all_image_urls={:?}",
@@ -159,7 +159,7 @@ struct ChapterDownloadInfo {
 impl ChapterDownloadInfo {
     /// Constructs and returns a styled [`ProgressBar`]
     fn get_progress_bar(length: u64) -> ProgressBar {
-        let pb: ProgressBar = ProgressBar::new(length);
+        let pb = ProgressBar::new(length);
         pb.set_style(
             ProgressStyle::with_template(
                 "[{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
@@ -235,7 +235,7 @@ impl DownloadClient {
             warn!(
                 "Unexpected image url extension {:?} for image url {}",
                 ext,
-                &image_url.as_str()
+                image_url.as_str()
             );
         }
 
@@ -273,12 +273,12 @@ impl DownloadClient {
             .await
             .into_diagnostic()?;
 
-        trace!("Saved page {} to {:?}", page, &save.to_str());
+        trace!("Saved page {} to {:?}", page, save.to_str());
         Ok(())
     }
 
     /// Helper function for converting bytes to MiB.
-    #[allow(clippy::cast_precision_loss)]
+    #[expect(clippy::cast_precision_loss)]
     #[inline]
     fn to_mib(num_bytes: usize) -> f64 {
         num_bytes as f64 / 1_048_576.0
