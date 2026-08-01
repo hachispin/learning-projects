@@ -107,9 +107,7 @@ class CliUtils:
                 return []
 
             if int(start) > int(stop):
-                error_out(
-                    f"{s!r}: A range selection's start must be below its end."
-                )
+                error_out(f"{s!r}: A range selection's start must be below its end.")
                 return []
             nums += range(int(start), int(stop) + 1)
 
