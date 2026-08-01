@@ -2,9 +2,9 @@
 Where the AnsiOutput class is stored.
 """
 
-from mdex_tool.models import CliConfig
+from mdex_tool.cli.ansi.fg_colors import CYAN, DEFAULT, GREEN, RED, YELLOW
 from mdex_tool.cli.ansi.text_styles import BOLD, DIM, INVERSE, ITALIC, RESET, UNDERLINE
-from mdex_tool.cli.ansi.fg_colors import CYAN, GREEN, RED, DEFAULT, YELLOW
+from mdex_tool.models import CliConfig
 
 
 class AnsiOutput:
@@ -136,8 +136,7 @@ class ProgressBar(AnsiOutput):
             raise ValueError("Progress cannot be greater than 100% (1.0)")
         if progress < 0.0:
             raise ValueError(
-                "Progress cannot be less than 0% "
-                f"(0.0) if it's not {ProgressBar.FAIL}"
+                f"Progress cannot be less than 0% (0.0) if it's not {ProgressBar.FAIL}"
             )
 
         complete_bars = int(self.bars * progress)

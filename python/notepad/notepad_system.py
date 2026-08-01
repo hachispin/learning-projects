@@ -1,11 +1,11 @@
 """Contains the `Note` class and other note-related classes."""
 
 import json
-from pathlib import Path
 import sys
-from textwrap import dedent
 import time
 from datetime import datetime
+from pathlib import Path
+from textwrap import dedent
 from typing import override
 
 
@@ -90,8 +90,8 @@ class Note:
     def __repr__(self) -> str:
         return dedent(
             f"""\
-            Note({repr(self.title)}, {repr(self.body)}, \
-                {repr(self.created_at)}, {repr(self.last_edited)})\
+            Note({self.title!r}, {self.body!r}, \
+                {self.created_at!r}, {self.last_edited!r})\
         """
         )
 
@@ -112,7 +112,7 @@ class Note:
         This auto-fills the `created_at` and `last_edited` fields.
         """
 
-        created_at = last_edited = datetime.now().isoformat()
+        created_at = last_edited = datetime.now().isoformat()  # noqa: DTZ005
         return Note(title, body, created_at, last_edited)
 
 
@@ -168,7 +168,7 @@ class NoteCollection:
         note = self.notes[idx]
         note.title = new_title
         note.body = new_body
-        note.last_edited = datetime.now().isoformat()
+        note.last_edited = datetime.now().isoformat()  # noqa: DTZ005
 
     def add_note(self, note: Note):
         """

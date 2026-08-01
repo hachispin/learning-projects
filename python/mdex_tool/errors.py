@@ -3,6 +3,7 @@ Contains all subclassed exceptions used
 """
 
 from typing import override
+
 from requests import Response
 
 

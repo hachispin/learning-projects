@@ -3,8 +3,8 @@ Contains the SearchSession class, which is used to handle pagination and
 search caching of queries.
 """
 
-from itertools import batched
 import logging
+from itertools import batched
 from typing import Any
 
 from mdex_tool.api.client import safe_get_json

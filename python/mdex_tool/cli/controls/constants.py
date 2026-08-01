@@ -2,7 +2,6 @@
 
 from mdex_tool.cli.controls.classes import Control, ControlGroup
 
-
 BACK = Control("[B] Back", "B")
 QUIT = Control("[Q] Quit", "Q")
 SEARCH = Control("[S] Search", "S")

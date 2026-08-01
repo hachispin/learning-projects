@@ -5,9 +5,9 @@ Sets up `logging.basicConfig` with the function
 Logging may also be disabled if configured as such.
 """
 
-from pathlib import Path
 import logging
 from datetime import datetime
+from pathlib import Path
 
 from mdex_tool import PROJECT_ROOT
 from mdex_tool.models import LoggingConfig

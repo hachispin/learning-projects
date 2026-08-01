@@ -6,7 +6,7 @@ under the CliUtils class.
 
 import os
 import sys
-from typing import Callable
+from collections.abc import Callable
 
 from mdex_tool.cli.ansi.output import AnsiOutput
 from mdex_tool.cli.getch import getch  # type: ignore
@@ -96,29 +96,29 @@ class CliUtils:
 
             # must include one or more dashes if not digit
             if s.count("-") > 1:
-                error_out(f"{repr(s)}: Range selections can only have one dash")
+                error_out(f"{s!r}: Range selections can only have one dash")
                 return []
 
             start, _, stop = s.partition("-")
             if not start or not stop:
                 error_out(
-                    f"{repr(s)}: Both sides of a dash must have numbers to be a valid range"
+                    f"{s!r}: Both sides of a dash must have numbers to be a valid range"
                 )
                 return []
 
             if int(start) > int(stop):
                 error_out(
-                    f"{repr(s)}: A range selection's start must be below its end."
+                    f"{s!r}: A range selection's start must be below its end."
                 )
                 return []
             nums += range(int(start), int(stop) + 1)
 
-        return sorted(list(set(nums)))
+        return sorted(set(nums))
 
     def print_manga_titles(self, manga: tuple[Manga, ...]):
         """Prints manga titles with a left index for use by the user."""
         for idx, m in enumerate(manga):
-            print(f"[{idx+1}]: {m.title}")
+            print(f"[{idx + 1}]: {m.title}")
 
     def print_chapter_titles(self, chapters: tuple[Chapter, ...], page: int = 0):
         """Prints chapter titles with a left index for use by the user."""
@@ -126,7 +126,7 @@ class CliUtils:
         offset = page * self.cfg.search.results_per_page
         for idx, c in enumerate(chapters):
             if c.chap_num is None:
-                print(f"[{offset+idx+1}]: {c.title}")
+                print(f"[{offset + idx + 1}]: {c.title}")
             else:
-                print(f"[{offset+idx+1}]: Ch. {c.chap_num}")
+                print(f"[{offset + idx + 1}]: Ch. {c.chap_num}")
         print()

@@ -13,25 +13,27 @@ preferred to only pass the needed field (e.g. cfg.save)
 than one config field)
 """
 
-import tomllib
+from logging import getLevelNamesMapping, getLogger
 from pathlib import Path
-from logging import getLogger, getLevelNamesMapping
+
+import tomllib
 
 from mdex_tool import PROJECT_ROOT
 from mdex_tool.errors import ConfigError
 from mdex_tool.models import (
+    CliConfig,
     Config,
+    ImagesConfig,
+    LoggingConfig,
     ReqsConfig,
     RetryConfig,
     SaveConfig,
-    ImagesConfig,
     SearchConfig,
-    CliConfig,
-    LoggingConfig,
 )
 
 NAME_TO_LEVEL = getLevelNamesMapping()
 logger = getLogger(__name__)
+
 
 # pylint: disable=missing-function-docstring
 def is_bool(x):
@@ -83,7 +85,7 @@ def require_ok_config() -> Config:
         raise ConfigError(
             errors=["Config file not found; expected config.toml in mdex_tool)"]
         ) from None
-    print(f"Config: {repr(cfg)}")
+    print(f"Config: {cfg!r}")
 
     errors: list[str] = []
 
@@ -198,7 +200,7 @@ def require_ok_config() -> Config:
         )
     else:  # Convert to enum value
         logging_enum = NAME_TO_LEVEL.get(logging["level"])
-        print(f"Converting logging level {logging["level"]} to {logging_enum}")
+        print(f"Converting logging level {logging['level']} to {logging_enum}")
         logging["level"] = logging_enum
 
     if p := get_dirname_problems("logging.location", logging["location"]):

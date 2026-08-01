@@ -5,16 +5,15 @@ custom ratelimit headers (X-Ratelimit-*)
 """
 
 import logging
-from json import JSONDecodeError
 import random
 import time
+from json import JSONDecodeError
 from typing import Any
 
 import requests
 
 from mdex_tool.errors import ApiError
 from mdex_tool.models import Config
-
 
 logger = logging.getLogger(__name__)
 

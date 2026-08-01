@@ -16,8 +16,8 @@ except ImportError:
         Gets a single character from STDIO.
         """
         import sys
-        import tty
         import termios
+        import tty
 
         fd = sys.stdin.fileno()
         old = termios.tcgetattr(fd)

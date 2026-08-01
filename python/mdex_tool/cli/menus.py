@@ -1,34 +1,33 @@
 """Stores classes used to handle menus"""
 
-from dataclasses import dataclass
-from enum import Enum, auto
+import logging
 import sys
 import textwrap
 import time
-import logging
+from dataclasses import dataclass
+from enum import Enum, auto
 
 from mdex_tool.api.download import Downloader
-from mdex_tool.models import Config, Manga, MangaResults
-from mdex_tool.api.search import Searcher
 from mdex_tool.api.pagination import ChapterPaginator, MangaPaginator
+from mdex_tool.api.search import Searcher
 from mdex_tool.cli.ansi.output import AnsiOutput, ProgressBar
-from mdex_tool.cli.utils import CliUtils
 from mdex_tool.cli.controls.classes import Control, ControlGroup
 from mdex_tool.cli.controls.constants import (
     BACK,
     DOWNLOAD,
     HELP,
-    PREV_PAGE,
     MAIN_MENU_CONTROLS,
     MANGA_CONTROLS,
     NEXT_PAGE,
     PAGE_CONTROLS,
     PAGE_CONTROLS_CHAPTERS,
+    PREV_PAGE,
     QUIT,
     SEARCH,
     VIEW_INFO,
 )
-
+from mdex_tool.cli.utils import CliUtils
+from mdex_tool.models import Config, Manga, MangaResults
 
 logger = logging.getLogger(__name__)
 
@@ -107,9 +106,9 @@ class Menu:
                 return user_input
 
             if self.USE_GETCH:
-                print(self.ansi.to_err(f"\nInvalid menu key: {repr(user_input)}"))
+                print(self.ansi.to_err(f"\nInvalid menu key: {user_input!r}"))
             else:
-                print(self.ansi.to_err(f"\nInvalid input: {repr(user_input)}"))
+                print(self.ansi.to_err(f"\nInvalid input: {user_input!r}"))
             time.sleep(self.cfg.cli.time_to_read)
 
     def handle_option_defaults(self, option: str) -> "MenuAction":

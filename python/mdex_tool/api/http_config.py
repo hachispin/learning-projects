@@ -22,6 +22,7 @@ def _get_retry_adapter(retry_cfg: RetryConfig):
     )
     return HTTPAdapter(max_retries=retry_config)
 
+
 def get_retry_session(retry_cfg: RetryConfig) -> requests.Session:
     """Returns a session mounted with the retry adapter from `get_retry_adapter()`"""
     session = requests.session()

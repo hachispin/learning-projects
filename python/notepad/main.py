@@ -3,33 +3,32 @@
 import sys
 from pathlib import Path
 
-from PyQt6.QtCore import Qt, QSize  # pylint: disable=no-name-in-module
+from PyQt6.QtCore import QSize, Qt  # pylint: disable=no-name-in-module
 from PyQt6.QtGui import QBrush  # pylint: disable=no-name-in-module
-from PyQt6.QtWidgets import (  # pylint: disable=no-name-in-module
+from PyQt6.QtWidgets import (
     QApplication,  # pylint: disable=no-name-in-module
-    QMainWindow,
-    QPushButton,
+    QComboBox,  # pylint: disable=no-name-in-module
+    QHBoxLayout,
     QLineEdit,
+    QMainWindow,
+    QMessageBox,
+    QPushButton,
+    QSizePolicy,
     QTextEdit,
     QVBoxLayout,
-    QHBoxLayout,
-    QComboBox,
     QWidget,
-    QMessageBox,
-    QSizePolicy,
 )
 
 from notepad.notepad_system import (
+    BlankBodyError,
+    BlankTitleError,
+    FormatError,
     Note,
     NoteCollection,
     NoteException,
-    TitleAlreadyExistsError,
-    BlankTitleError,
-    BlankBodyError,
     NotFoundError,
-    FormatError,
+    TitleAlreadyExistsError,
 )
-
 
 SAVE_NAME = "data.json"  # must be json
 APP_DIR = Path(__file__).parent

@@ -6,19 +6,20 @@ each chapter, and not for the entire manga
 """
 
 import logging
-from sys import platform as PLATFORM
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from sys import platform as PLATFORM
+from typing import Any
 
 # pylint:disable=c-extension-no-member
 import pycurl
 
-from mdex_tool.cli.ansi.output import ProgressBar
 from mdex_tool import PROJECT_ROOT
-from mdex_tool.errors import ApiError
-from mdex_tool.models import Chapter, Manga, Config, ChapterGetResponse, ImageReport
-from mdex_tool.api.http_config import get_retry_session
 from mdex_tool.api.client import safe_get_json
+from mdex_tool.api.http_config import get_retry_session
+from mdex_tool.cli.ansi.output import ProgressBar
+from mdex_tool.errors import ApiError
+from mdex_tool.models import Chapter, ChapterGetResponse, Config, ImageReport, Manga
 
 logger = logging.getLogger(__name__)
 

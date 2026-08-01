@@ -3,9 +3,9 @@
 import logging
 from typing import Any
 
-from mdex_tool.models import Config, Manga, MangaResults
-from mdex_tool.api.http_config import get_retry_session
 from mdex_tool.api.client import safe_get_json
+from mdex_tool.api.http_config import get_retry_session
+from mdex_tool.models import Config, Manga, MangaResults
 
 logger = logging.getLogger(__name__)
 
