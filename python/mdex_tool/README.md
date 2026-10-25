@@ -1,7 +1,7 @@
 # `mdex_tool`
 
 > [!WARNING]
-> I no longer plan to maintain this project in favour of its rewrite, [rust-mdex-dl](/rust/rust_mdex_dl).
+> I no longer plan to maintain this project in favour of its rewrite, [rust-mdex-dl](https://github.com/hachispin/rust_mdex_dl).
 > Also, download speeds for this tool are... atrocious, mainly from the lack of async.
 
 ## Description
